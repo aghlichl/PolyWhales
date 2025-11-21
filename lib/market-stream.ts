@@ -10,6 +10,7 @@ export interface Anomaly {
     odds: number;
     value: number;
     multiplier: string;
+    zScore: number;
     timestamp: number;
     isContra?: boolean;
 }
@@ -224,28 +225,25 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void) {
                         // 4. Stats Calculation
                         const marketZScore = stats.getZScore(value);
                         globalStats.push(value);
-                        const globalZScore = globalStats.getZScore(value);
                         stats.push(value);
 
-                        // 5. Classification
+                        // 5. Classification (based on bet amount only)
                         let type: AnomalyType | null = null;
 
                         if (value > 10000) type = 'MEGA_WHALE';
-                        else if (value > 2000) type = 'WHALE';
+                        else if (value > 1000) type = 'WHALE';
                         else if (value > 500) type = 'STANDARD';
-                        else if (stats.getCount() >= 3 && marketZScore > 2.0) type = 'MEGA_WHALE';
-                        else if (stats.getCount() >= 3 && marketZScore > 1.5) type = 'WHALE';
-                        else if (stats.getCount() >= 3 && marketZScore > 1.0) type = 'STANDARD';
-                        else if (globalZScore > 3.0) type = 'MEGA_WHALE';
-                        else if (globalZScore > 2.5) type = 'WHALE';
-                        else if (globalZScore > 2.0) type = 'STANDARD';
 
                         if (!type) return;
 
                         // 6. Create Anomaly
                         const odds = Math.round(price * 100);
+
+                        // Filter out 99c and 100c bets
+                        if (odds === 99 || odds === 100) return;
+
                         const isContra = odds < 40 && marketZScore > 2.0;
-                        const multiplier = `σ ${marketZScore.toFixed(1)}`;
+                        const multiplier = `x${marketZScore.toFixed(1)}`;
 
                         const anomaly: Anomaly = {
                             id: Math.random().toString(36).substring(7),
@@ -255,6 +253,7 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void) {
                             odds,
                             value,
                             multiplier,
+                            zScore: marketZScore,
                             timestamp: Date.now(),
                             isContra
                         };

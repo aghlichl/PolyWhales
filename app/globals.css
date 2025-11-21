@@ -25,9 +25,9 @@
   --font-mono: var(--font-jetbrains-mono);
 
   --animate-marquee: marquee 20s linear infinite;
-  --animate-shake: shake 0.5s ease-in-out;
+  --animate-jackpot: jackpot 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
-  --animate-mega-aura: mega-aura 3s ease-in-out infinite;
+  --animate-pulse-glow-purple: pulse-glow-purple 2s ease-in-out infinite;
 
   @keyframes marquee {
     from {
@@ -39,10 +39,18 @@
     }
   }
 
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-    20%, 40%, 60%, 80% { transform: translateX(2px); }
+  @keyframes jackpot {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+    10% { transform: translate(-3px, -2px) scale(1.05) rotate(-1deg); }
+    20% { transform: translate(3px, 2px) scale(1.1) rotate(1deg); }
+    30% { transform: translate(-2px, -3px) scale(1.08) rotate(-0.5deg); }
+    40% { transform: translate(2px, 3px) scale(1.12) rotate(0.5deg); }
+    50% { transform: translate(-4px, 1px) scale(1.15) rotate(-1.5deg); }
+    60% { transform: translate(4px, -1px) scale(1.12) rotate(1.5deg); }
+    70% { transform: translate(-2px, 2px) scale(1.08) rotate(-0.8deg); }
+    80% { transform: translate(2px, -2px) scale(1.05) rotate(0.8deg); }
+    90% { transform: translate(-1px, 1px) scale(1.02) rotate(-0.3deg); }
+    100% { transform: translate(0, 0) scale(1) rotate(0deg); }
   }
 
   @keyframes pulse-glow {
@@ -50,19 +58,9 @@
     50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
   }
 
-  @keyframes mega-aura {
-    0%, 100% {
-      box-shadow:
-        0 0 5px rgba(147, 51, 234, 0.3),
-        0 0 15px rgba(147, 51, 234, 0.4),
-        0 0 30px rgba(147, 51, 234, 0.2);
-    }
-    50% {
-      box-shadow:
-        0 0 10px rgba(147, 51, 234, 0.6),
-        0 0 25px rgba(147, 51, 234, 0.5),
-        0 0 50px rgba(147, 51, 234, 0.3);
-    }
+  @keyframes pulse-glow-purple {
+    0%, 100% { box-shadow: 0 0 15px rgba(147, 51, 234, 0.4), 0 0 30px rgba(147, 51, 234, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(147, 51, 234, 0.6), 0 0 50px rgba(147, 51, 234, 0.3); }
   }
 }
 

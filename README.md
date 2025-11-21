@@ -20,3 +20,4 @@ A cyberpunk prediction market aggregator.
 npm install
 npm run dev
 ```
+# oddsgods
