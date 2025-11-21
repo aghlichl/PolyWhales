@@ -20,7 +20,7 @@ export function convertAnomalyToCardProps(anomaly: Anomaly) {
 }
 
 export function AnomalyCard({ anomaly }: AnomalyCardProps) {
-    const { event: title, value, outcome, odds, type, multiplier, zScore, timestamp, isContra } = anomaly;
+    const { event: title, value, outcome, odds, type, multiplier, zScore, timestamp, isContra, side } = anomaly;
     const amount = `$${Math.round(value).toLocaleString()}`;
     const isMega = type === 'MEGA_WHALE';
     const isWhale = type === 'WHALE';
@@ -50,9 +50,12 @@ export function AnomalyCard({ anomaly }: AnomalyCardProps) {
                 <h3 className="text-sm font-medium text-zinc-200 line-clamp-2 flex-1 mr-4" title={title}>
                     {title}
                 </h3>
-                <div className="text-lg font-bold text-emerald-400 font-mono whitespace-nowrap">
-                    {amount}
-                </div>
+                    <div className={cn(
+                        "text-lg font-bold font-mono whitespace-nowrap",
+                        side === 'SELL' ? "text-red-400" : "text-emerald-400"
+                    )}>
+                        {amount}
+                    </div>
             </div>
 
             <div className="flex justify-between items-end">

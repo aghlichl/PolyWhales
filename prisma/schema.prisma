@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model WalletProfile {
+  id          String   @id // wallet address
+  label       String?  // e.g., "Smart Whale", "Degen"
+  totalPnl    Float    @default(0) // Total PnL in USD
+  winRate     Float    @default(0) // Win rate as decimal (0.0 to 1.0)
+  isFresh     Boolean  @default(false) // < 10 transactions
+  lastUpdated DateTime @default(now())
+  trades      Trade[]
+
+  @@map("wallet_profiles")
+}
+
+model Trade {
+  id            String   @id @default(cuid())
+  assetId       String
+  side          String   // "BUY" or "SELL"
+  size          Float
+  price         Float
+  tradeValue    Float    // size * price
+  timestamp     DateTime
+  walletAddress String
+  walletProfile WalletProfile @relation(fields: [walletAddress], references: [id])
+
+  // Intelligence flags
+  isWhale       Boolean  @default(false)
+  isSmartMoney  Boolean  @default(false)
+  isFresh       Boolean  @default(false)
+  isSweeper     Boolean  @default(false)
+
+  // Market context
+  conditionId   String?
+  outcome       String?
+  question      String?
+
+  @@index([walletAddress])
+  @@index([timestamp])
+  @@index([isWhale, timestamp])
+  @@map("trades")
+}

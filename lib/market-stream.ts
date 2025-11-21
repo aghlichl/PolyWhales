@@ -13,6 +13,7 @@ export interface Anomaly {
     zScore: number;
     timestamp: number;
     isContra?: boolean;
+    side: 'BUY' | 'SELL';
 }
 
 // Global State
@@ -167,12 +168,12 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void) {
             try {
                 const data = JSON.parse(event.data as string);
 
+                console.log(`[WebSocket] Received event: ${data.event_type}`);
+
                 if (data.event_type === "last_trade_price" || data.event_type === "trade") {
                     const trades = Array.isArray(data) ? data : [data];
 
-                    if (Math.random() < 0.01) {
-                        console.log(`[WebSocket] Received ${trades.length} trades`);
-                    }
+                    console.log(`[WebSocket] Processing ${trades.length} trades`);
 
                     trades.forEach(trade => {
                         if (!trade.price || !trade.size || !trade.asset_id) return;
@@ -181,14 +182,15 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void) {
                         const size = Number(trade.size);
                         const value = price * size;
 
-                        // 1. Ignore Noise (< $50)
-                        if (value < 50) return;
+                        // 1. Ignore Noise (< $1,000) - Match worker threshold
+                        if (value < 1000) return;
 
                         // 2. Lookup Metadata
                         // First try to find market by conditionId if provided in trade (usually "market" field)
                         let conditionId = trade.market;
                         let outcomeLabel = '';
                         let marketMeta: MarketMeta | undefined;
+                        const side: 'BUY' | 'SELL' = trade.side || (trade.type === 'buy' ? 'BUY' : 'SELL') || 'BUY';
 
                         // If trade has asset_id, we can fallback to looking up via assetIdToOutcome
                         if (trade.asset_id) {
@@ -227,17 +229,18 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void) {
                         globalStats.push(value);
                         stats.push(value);
 
-                        // 5. Classification (based on bet amount only)
-                        let type: AnomalyType | null = null;
+                        // 5. Basic Classification (based on bet amount only)
+                        let type: AnomalyType = 'STANDARD';
 
-                        if (value > 10000) type = 'MEGA_WHALE';
-                        else if (value > 1000) type = 'WHALE';
-                        else if (value > 500) type = 'STANDARD';
-
-                        if (!type) return;
+                        if (value > 15000) type = 'MEGA_WHALE';
+                        else if (value > 8000) type = 'WHALE';
+                        // else remains 'STANDARD'
 
                         // 6. Create Anomaly
                         const odds = Math.round(price * 100);
+
+                        // Filter out very likely outcomes (price > 97% = odds > 97)
+                        if (price > 0.97) return;
 
                         // Filter out 99c and 100c bets
                         if (odds === 99 || odds === 100) return;
@@ -255,7 +258,8 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void) {
                             multiplier,
                             zScore: marketZScore,
                             timestamp: Date.now(),
-                            isContra
+                            isContra,
+                            side
                         };
 
                         console.log('[Firehose] Enriched Trade:', anomaly);

@@ -8,7 +8,7 @@ import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { motion } from "framer-motion";
 
 export default function Home() {
-  const { anomalies, startStream } = useMarketStore();
+  const { anomalies, startStream, isLoading } = useMarketStore();
 
   useEffect(() => {
     const cleanup = startStream();
@@ -16,7 +16,7 @@ export default function Home() {
   }, [startStream]);
 
   return (
-    <main className="min-h-screen bg-background flex flex-col overflow-hidden">
+    <main className="min-h-screen bg-background flex flex-col">
       <Ticker />
 
       <div className="flex-1 overflow-y-auto p-4 pb-20 scrollbar-hide">
@@ -30,9 +30,15 @@ export default function Home() {
             ))}
           </SlotReel>
 
-          {anomalies.length === 0 && (
+          {anomalies.length === 0 && !isLoading && (
             <div className="text-center text-zinc-600 mt-20 font-mono">
               WAITING FOR SIGNAL...
+            </div>
+          )}
+
+          {isLoading && anomalies.length === 0 && (
+            <div className="text-center text-zinc-600 mt-20 font-mono">
+              LOADING RECENT WHALES...
             </div>
           )}
         </motion.div>
