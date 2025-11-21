@@ -22,7 +22,6 @@ export function convertAnomalyToCardProps(anomaly: Anomaly) {
 export function AnomalyCard({ anomaly }: AnomalyCardProps) {
     const { event: title, value, outcome, odds, type, multiplier, zScore, timestamp, isContra } = anomaly;
     const amount = `$${Math.round(value).toLocaleString()}`;
-    const bet = `${outcome} | ${odds}¢`;
     const isMega = type === 'MEGA_WHALE';
     const isWhale = type === 'WHALE';
     const isBadgeMega = zScore > 10;
@@ -58,8 +57,25 @@ export function AnomalyCard({ anomaly }: AnomalyCardProps) {
 
             <div className="flex justify-between items-end">
                 <div className="flex flex-col">
-                    <div className="text-sm font-mono text-zinc-300 bg-zinc-800/50 px-2 py-1 rounded">
-                        {bet}
+                    <div className="relative overflow-hidden rounded-md bg-zinc-900/60 border border-zinc-800/60 px-3 py-1.5 min-w-[120px] shadow-sm">
+                        <div 
+                            className="absolute bottom-0 left-0 h-0.5 transition-all duration-500"
+                            style={{ 
+                                width: `${odds}%`,
+                                backgroundColor: `hsl(${20 + (odds / 100) * 140}, 85%, 55%)`
+                            }} 
+                        />
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-medium text-zinc-200 whitespace-nowrap">
+                                {outcome}
+                            </span>
+                            <span 
+                                className="text-xs font-mono font-bold transition-colors duration-300"
+                                style={{ color: `hsl(${20 + (odds / 100) * 140}, 85%, 55%)` }}
+                            >
+                                {odds}¢
+                            </span>
+                        </div>
                     </div>
                 </div>
 
