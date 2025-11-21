@@ -29,10 +29,10 @@ export function AnomalyCard({ title, amount, bet, type, multiplier, isContra }: 
     
     return (
         <Card className={cn(
-            "p-4 border-l-4 transition-all duration-300",
-            isMega ? "border-l-purple-500 bg-purple-950/10" : 
-            isWhale ? "border-l-blue-500 bg-blue-950/10" : 
-            "border-l-zinc-500 bg-zinc-950/50"
+            "p-4 border-2 transition-all duration-300",
+            isMega ? "border-purple-500 bg-purple-950/10 shadow-lg shadow-purple-500/30 animate-shake" :
+            isWhale ? "border-blue-500 bg-blue-950/10 shadow-lg shadow-blue-500/25 animate-pulse-glow" :
+            "border-zinc-500 bg-zinc-950/50"
         )}>
             <div className="flex justify-between items-start mb-2">
                 <h3 className="text-sm font-medium text-zinc-200 line-clamp-2 flex-1 mr-4" title={title}>
