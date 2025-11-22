@@ -28,6 +28,10 @@
   --animate-jackpot: jackpot 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
   --animate-pulse-glow-purple: pulse-glow-purple 2s ease-in-out infinite;
+  --animate-shimmer-slide: shimmer-slide 3s linear infinite;
+  --animate-scanline: scanline 8s linear infinite;
+  --animate-glitch-border: glitch-border 4s infinite;
+  --animate-border-march: border-march 4s linear infinite;
 
   @keyframes marquee {
     from {
@@ -106,6 +110,60 @@
 
     50% {
       box-shadow: 0 0 25px rgba(147, 51, 234, 0.6), 0 0 50px rgba(147, 51, 234, 0.3);
+    }
+  }
+
+  @keyframes shimmer-slide {
+    0% {
+      background-position: 200% 0;
+    }
+
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  @keyframes scanline {
+    0% {
+      transform: translateY(-100%);
+    }
+
+    100% {
+      transform: translateY(100%);
+    }
+  }
+
+  @keyframes border-march {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes glitch-border {
+
+    0%,
+    100% {
+      border-color: var(--color-border);
+    }
+
+    2% {
+      border-color: var(--color-foreground);
+    }
+
+    4% {
+      border-color: var(--color-border);
+    }
+
+    6% {
+      border-color: var(--color-foreground);
+    }
+
+    8% {
+      border-color: var(--color-border);
     }
   }
 }
