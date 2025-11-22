@@ -337,28 +337,16 @@ function connectToPolymarket() {
         const parsed = JSON.parse(data.toString());
 
         // Log all incoming messages for debugging
-        // console.log('[Worker] Received message:', parsed.event_type || 'unknown', parsed);
+        // console.log('[Worker] Received message:', parsed.event_type || 'unknown');
 
-        if (parsed.event_type === 'last_trade_price' || parsed.event_type === 'trade' || parsed.event_type === 'price_change') {
-          // Handle different event structures
-          let trades = [];
-
-          if (parsed.event_type === 'price_change' && parsed.price_changes) {
-            // price_change events have trades in price_changes array
-            trades = parsed.price_changes;
-          } else if (Array.isArray(parsed)) {
-            // Some events are arrays of trades
-            trades = parsed;
-          } else {
-            // Single trade object
-            trades = [parsed];
-          }
+        if (parsed.event_type === 'last_trade_price' || parsed.event_type === 'trade') {
+          // Trades can be in an array or single object
+          const trades = Array.isArray(parsed) ? parsed : [parsed];
 
           // console.log(`[Worker] Processing ${trades.length} trades from ${parsed.event_type}`);
           trades.forEach((trade: any) => {
             // Only process if it's actually a trade object with required fields
             if (trade.price && trade.size && trade.asset_id) {
-              // console.log('[Worker] Processing trade:', trade);
               processTrade(trade).catch(console.error);
             } else {
               // console.log('[Worker] Skipping trade - missing required fields:', trade);
