@@ -42,6 +42,10 @@
   --animate-energy-flow: energy-flow 8s ease-in-out infinite alternate;
   --animate-dust-twinkle: dust-twinkle 3s ease-in-out infinite;
   --animate-core-pulse: core-pulse 4s ease-in-out infinite;
+  --animate-crimson-swirl: crimson-swirl 10s linear infinite;
+  --animate-blood-flow: blood-flow 7s ease-in-out infinite alternate;
+  --animate-blood-twinkle: blood-twinkle 4s ease-in-out infinite;
+  --animate-blood-core: blood-core 3.5s ease-in-out infinite;
   --animate-flash: flash 0.5s ease-out infinite alternate;
   --animate-shockwave: shockwave 2s ease-out infinite;
   --animate-super-spin: super-spin 3s linear infinite;
@@ -286,6 +290,52 @@
     50% {
       opacity: 0.8;
       transform: translate(-50%, -50%) scale(1.2);
+    }
+  }
+
+  @keyframes crimson-swirl {
+    0% {
+      transform: rotate(0deg) scale(1);
+    }
+    100% {
+      transform: rotate(360deg) scale(1);
+    }
+  }
+
+  @keyframes blood-flow {
+    0% {
+      transform: scale(0.95) rotate(0deg);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.1) rotate(180deg);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(0.95) rotate(360deg);
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes blood-twinkle {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.4);
+    }
+  }
+
+  @keyframes blood-core {
+    0%, 100% {
+      opacity: 0.3;
+      transform: translate(-50%, -50%) scale(0.7);
+    }
+    50% {
+      opacity: 0.7;
+      transform: translate(-50%, -50%) scale(1.3);
     }
   }
 

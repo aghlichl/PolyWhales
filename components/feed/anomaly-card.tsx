@@ -67,20 +67,37 @@ export function AnomalyCard({ anomaly }: AnomalyCardProps) {
                     </>
                 )}
 
-                {/* Super Tier: Critical Overload */}
+                {/* Super Tier: Crimson Vortex - Magical Blood Nebula */}
                 {isSuper && (
                     <>
-                        {/* Warning Throb (Siren) */}
-                        <div className="absolute inset-0 z-0 pointer-events-none bg-red-500/10 animate-[pulse_0.5s_ease-in-out_infinite]" />
+                        {/* Primary Crimson Swirl - Blood vortex rotation */}
+                        <div className="absolute inset-0 z-0 pointer-events-none bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,rgba(239,68,68,0.15)_45deg,rgba(220,38,38,0.25)_90deg,rgba(239,68,68,0.15)_135deg,transparent_180deg,rgba(185,28,28,0.2)_225deg,rgba(220,38,38,0.3)_270deg,rgba(185,28,28,0.2)_315deg,transparent_360deg)] animate-[crimson-swirl_10s_linear_infinite] mix-blend-screen opacity-80" />
 
-                        {/* Jagged Scanline */}
-                        <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(180deg,transparent_40%,rgba(239,68,68,0.8)_50%,transparent_60%)] bg-[length:100%_200%] animate-scanline mix-blend-plus-lighter opacity-80" />
+                        {/* Secondary Energy Rivers - Flowing crimson streams */}
+                        <div className="absolute inset-[-15%] z-0 pointer-events-none bg-[radial-gradient(circle_at_25%_75%,rgba(239,68,68,0.3)_0%,rgba(239,68,68,0.1)_25%,transparent_50%),radial-gradient(circle_at_75%_25%,rgba(220,38,38,0.25)_0%,rgba(220,38,38,0.1)_30%,transparent_60%)] animate-[blood-flow_7s_ease-in-out_infinite_alternate] mix-blend-plus-lighter opacity-70" />
 
-                        {/* Glitch Border Overlay */}
-                        <div className="absolute inset-0 z-0 pointer-events-none border-2 border-red-500/50 animate-glitch-border" />
+                        {/* Crimson Star Dust - Blood-red twinkling stars */}
+                        <div className="absolute inset-0 opacity-60">
+                            {/* Upper region blood stars */}
+                            <div className="absolute top-[18%] left-[20%] w-0.5 h-0.5 bg-red-400 rounded-full animate-[blood-twinkle_3.2s_ease-in-out_infinite]" style={{ animationDelay: '0s' }} />
+                            <div className="absolute top-[15%] right-[18%] w-1 h-1 bg-red-300 rounded-full animate-[blood-twinkle_4.1s_ease-in-out_infinite]" style={{ animationDelay: '1.2s' }} />
+                            <div className="absolute top-[12%] left-[65%] w-0.5 h-0.5 bg-red-500 rounded-full animate-[blood-twinkle_3.8s_ease-in-out_infinite]" style={{ animationDelay: '2.1s' }} />
+                            <div className="absolute top-[22%] right-[75%] w-0.5 h-0.5 bg-red-200 rounded-full animate-[blood-twinkle_4.9s_ease-in-out_infinite]" style={{ animationDelay: '0.7s' }} />
 
-                        {/* Digital Noise (Static) */}
-                        <div className="absolute inset-0 z-0 pointer-events-none opacity-10 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
+                            {/* Central region blood stars */}
+                            <div className="absolute top-[42%] left-[18%] w-0.5 h-0.5 bg-red-600 rounded-full animate-[blood-twinkle_4.3s_ease-in-out_infinite]" style={{ animationDelay: '1.8s' }} />
+                            <div className="absolute top-[58%] right-[22%] w-1 h-1 bg-red-100 rounded-full animate-[blood-twinkle_3.5s_ease-in-out_infinite]" style={{ animationDelay: '2.9s' }} />
+                            <div className="absolute top-[38%] left-[78%] w-0.5 h-0.5 bg-red-400 rounded-full animate-[blood-twinkle_4.7s_ease-in-out_infinite]" style={{ animationDelay: '1.1s' }} />
+
+                            {/* Lower region blood stars */}
+                            <div className="absolute bottom-[18%] left-[25%] w-0.5 h-0.5 bg-red-500 rounded-full animate-[blood-twinkle_3.9s_ease-in-out_infinite]" style={{ animationDelay: '1.4s' }} />
+                            <div className="absolute bottom-[15%] right-[40%] w-0.5 h-0.5 bg-red-300 rounded-full animate-[blood-twinkle_4.4s_ease-in-out_infinite]" style={{ animationDelay: '2.6s' }} />
+                            <div className="absolute bottom-[22%] left-[72%] w-1 h-1 bg-red-200 rounded-full animate-[blood-twinkle_3.7s_ease-in-out_infinite]" style={{ animationDelay: '0.5s' }} />
+                            <div className="absolute bottom-[12%] right-[15%] w-0.5 h-0.5 bg-red-600 rounded-full animate-[blood-twinkle_5.1s_ease-in-out_infinite]" style={{ animationDelay: '1.9s' }} />
+                        </div>
+
+                        {/* Inner Crimson Core - Pulsing blood heart */}
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-[radial-gradient(circle,rgba(239,68,68,0.5)_0%,rgba(220,38,38,0.3)_40%,rgba(185,28,28,0.2)_70%,transparent_100%)] animate-[blood-core_3.5s_ease-in-out_infinite] rounded-full blur-sm" />
                     </>
                 )}
 
