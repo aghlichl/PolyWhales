@@ -93,24 +93,24 @@ export function AnomalyCard({ anomaly }: AnomalyCardProps) {
                         {/* Mana Surge (Breathing Core) */}
                         <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.3)_0%,transparent_70%)] animate-heartbeat mix-blend-screen" />
 
-                        {/* Arcane Sparkles - Seamless Galaxy Motion */}
-                        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                            {/* Core galaxy cluster - fluid orbiting motion */}
-                            <div className="absolute top-[35%] left-[40%] w-2 h-2 bg-purple-300 rounded-full animate-sparkle blur-[0.5px] shadow-lg shadow-purple-300/50" style={{ animationDelay: '0s' }} />
-                            <div className="absolute top-[45%] right-[35%] w-1.5 h-1.5 bg-purple-400 rounded-full animate-nebula blur-[0.5px] shadow-md shadow-purple-400/40" style={{ animationDelay: '2s' }} />
-                            <div className="absolute bottom-[35%] left-[45%] w-2.5 h-2.5 bg-purple-200 rounded-full animate-cosmic blur-[0.5px] shadow-lg shadow-purple-200/60" style={{ animationDelay: '4s' }} />
+                        {/* Arcane Nebula - Contained Swirling Motion */}
+                        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-none">
+                            {/* Primary Nebula Swirl - Large central vortex */}
+                            <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,rgba(168,85,247,0.1)_30deg,rgba(168,85,247,0.3)_60deg,rgba(168,85,247,0.1)_90deg,rgba(147,51,234,0.2)_120deg,rgba(147,51,234,0.4)_150deg,rgba(147,51,234,0.2)_180deg,transparent_210deg)] animate-[nebula-swirl_12s_linear_infinite] mix-blend-screen opacity-70" />
 
-                            {/* Orbital ring - secondary elements */}
-                            <div className="absolute top-[25%] left-[60%] w-1 h-1 bg-purple-500 rounded-full animate-sparkle blur-[0.3px]" style={{ animationDelay: '1s' }} />
-                            <div className="absolute top-[60%] left-[25%] w-1.5 h-1.5 bg-purple-100 rounded-full animate-nebula blur-[0.3px]" style={{ animationDelay: '3s' }} />
-                            <div className="absolute bottom-[25%] right-[40%] w-1 h-1 bg-white rounded-full animate-cosmic blur-[0.2px] shadow-sm shadow-white/80" style={{ animationDelay: '5s' }} />
+                            {/* Secondary Energy Streams - Flowing tendrils */}
+                            <div className="absolute inset-[-20%] bg-[radial-gradient(circle_at_30%_70%,rgba(168,85,247,0.4)_0%,rgba(168,85,247,0.1)_30%,transparent_60%),radial-gradient(circle_at_70%_30%,rgba(147,51,234,0.3)_0%,rgba(147,51,234,0.1)_40%,transparent_70%)] animate-[energy-flow_8s_ease-in-out_infinite_alternate] mix-blend-plus-lighter opacity-60" />
 
-                            {/* Distant cosmic dust - tertiary elements */}
-                            <div className="absolute top-[20%] left-[30%] w-0.5 h-0.5 bg-purple-300 rounded-full animate-sparkle" style={{ animationDelay: '0.5s' }} />
-                            <div className="absolute top-[70%] right-[25%] w-0.5 h-0.5 bg-purple-400 rounded-full animate-nebula" style={{ animationDelay: '2.5s' }} />
-                            <div className="absolute bottom-[20%] left-[65%] w-0.5 h-0.5 bg-purple-200 rounded-full animate-cosmic" style={{ animationDelay: '4.5s' }} />
-                            <div className="absolute top-[50%] left-[20%] w-0.5 h-0.5 bg-white rounded-full animate-sparkle" style={{ animationDelay: '1.5s' }} />
-                            <div className="absolute bottom-[50%] right-[20%] w-0.5 h-0.5 bg-purple-500 rounded-full animate-nebula" style={{ animationDelay: '3.5s' }} />
+                            {/* Cosmic Dust Particles - Micro sparkles within bounds */}
+                            <div className="absolute inset-[20%] opacity-40">
+                                <div className="absolute top-[30%] left-[40%] w-1 h-1 bg-purple-300 rounded-full animate-[dust-twinkle_3s_ease-in-out_infinite]" style={{ animationDelay: '0s' }} />
+                                <div className="absolute top-[50%] right-[35%] w-0.5 h-0.5 bg-purple-400 rounded-full animate-[dust-twinkle_4s_ease-in-out_infinite]" style={{ animationDelay: '1s' }} />
+                                <div className="absolute bottom-[40%] left-[45%] w-0.5 h-0.5 bg-purple-200 rounded-full animate-[dust-twinkle_3.5s_ease-in-out_infinite]" style={{ animationDelay: '2s' }} />
+                                <div className="absolute top-[45%] left-[55%] w-0.5 h-0.5 bg-white rounded-full animate-[dust-twinkle_5s_ease-in-out_infinite]" style={{ animationDelay: '0.5s' }} />
+                            </div>
+
+                            {/* Inner Glow Core - Pulsing center */}
+                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-[radial-gradient(circle,rgba(168,85,247,0.6)_0%,rgba(168,85,247,0.2)_50%,transparent_100%)] animate-[core-pulse_4s_ease-in-out_infinite] rounded-full blur-sm" />
                         </div>
 
                         {/* Static Border Glow */}
