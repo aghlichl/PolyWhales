@@ -44,14 +44,14 @@ export function TopWhales() {
       </div>
 
       {/* Period Selector */}
-      <div className="flex gap-2 justify-center mb-6">
+      <div className="flex flex-wrap gap-2 justify-center mb-6 px-2">
         {PERIODS.map((period) => (
           <button
             key={period}
             onClick={() => setSelectedPeriod(period)}
             disabled={topTradesLoading}
             className={cn(
-              "px-4 py-2 border-2 font-mono text-sm font-bold uppercase transition-all duration-200",
+              "px-3 py-2 border-2 font-mono text-xs sm:text-sm font-bold uppercase transition-all duration-200 shrink-0",
               selectedPeriod === period
                 ? "border-[#b8a889] bg-[#b8a889]/10 text-[#e9e2d3] shadow-[3px_3px_0px_0px_rgba(184,168,137,0.7)]"
                 : "border-zinc-600 bg-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300",
