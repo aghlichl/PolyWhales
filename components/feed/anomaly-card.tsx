@@ -93,18 +93,24 @@ export function AnomalyCard({ anomaly }: AnomalyCardProps) {
                         {/* Mana Surge (Breathing Core) */}
                         <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.3)_0%,transparent_70%)] animate-heartbeat mix-blend-screen" />
 
-                        {/* Arcane Sparkles - Galaxy Motion */}
-                        <div className="absolute inset-0 z-0 pointer-events-none">
-                            {/* Primary sparkle cluster */}
-                            <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-purple-300 rounded-full animate-sparkle opacity-60 blur-sm" style={{ animationDelay: '0s' }} />
-                            <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-purple-200 rounded-full animate-sparkle opacity-50 blur-sm" style={{ animationDelay: '1s' }} />
-                            <div className="absolute bottom-1/4 left-1/3 w-1 h-1 bg-purple-400 rounded-full animate-sparkle opacity-70 blur-sm" style={{ animationDelay: '2s' }} />
-                            <div className="absolute top-1/2 right-1/4 w-2.5 h-2.5 bg-purple-100 rounded-full animate-sparkle opacity-40 blur-sm" style={{ animationDelay: '3s' }} />
-                            <div className="absolute bottom-1/3 right-1/2 w-1 h-1 bg-white rounded-full animate-sparkle opacity-80 blur-sm" style={{ animationDelay: '4s' }} />
-                            {/* Secondary floating specks */}
-                            <div className="absolute top-1/6 left-1/2 w-0.5 h-0.5 bg-purple-300 rounded-full animate-sparkle opacity-30" style={{ animationDelay: '0.5s' }} />
-                            <div className="absolute bottom-1/6 right-1/6 w-0.5 h-0.5 bg-purple-200 rounded-full animate-sparkle opacity-40" style={{ animationDelay: '1.5s' }} />
-                            <div className="absolute top-2/3 left-1/6 w-0.5 h-0.5 bg-white rounded-full animate-sparkle opacity-50" style={{ animationDelay: '2.5s' }} />
+                        {/* Arcane Sparkles - Seamless Galaxy Motion */}
+                        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                            {/* Core galaxy cluster - fluid orbiting motion */}
+                            <div className="absolute top-[35%] left-[40%] w-2 h-2 bg-purple-300 rounded-full animate-sparkle blur-[0.5px] shadow-lg shadow-purple-300/50" style={{ animationDelay: '0s' }} />
+                            <div className="absolute top-[45%] right-[35%] w-1.5 h-1.5 bg-purple-400 rounded-full animate-nebula blur-[0.5px] shadow-md shadow-purple-400/40" style={{ animationDelay: '2s' }} />
+                            <div className="absolute bottom-[35%] left-[45%] w-2.5 h-2.5 bg-purple-200 rounded-full animate-cosmic blur-[0.5px] shadow-lg shadow-purple-200/60" style={{ animationDelay: '4s' }} />
+
+                            {/* Orbital ring - secondary elements */}
+                            <div className="absolute top-[25%] left-[60%] w-1 h-1 bg-purple-500 rounded-full animate-sparkle blur-[0.3px]" style={{ animationDelay: '1s' }} />
+                            <div className="absolute top-[60%] left-[25%] w-1.5 h-1.5 bg-purple-100 rounded-full animate-nebula blur-[0.3px]" style={{ animationDelay: '3s' }} />
+                            <div className="absolute bottom-[25%] right-[40%] w-1 h-1 bg-white rounded-full animate-cosmic blur-[0.2px] shadow-sm shadow-white/80" style={{ animationDelay: '5s' }} />
+
+                            {/* Distant cosmic dust - tertiary elements */}
+                            <div className="absolute top-[20%] left-[30%] w-0.5 h-0.5 bg-purple-300 rounded-full animate-sparkle" style={{ animationDelay: '0.5s' }} />
+                            <div className="absolute top-[70%] right-[25%] w-0.5 h-0.5 bg-purple-400 rounded-full animate-nebula" style={{ animationDelay: '2.5s' }} />
+                            <div className="absolute bottom-[20%] left-[65%] w-0.5 h-0.5 bg-purple-200 rounded-full animate-cosmic" style={{ animationDelay: '4.5s' }} />
+                            <div className="absolute top-[50%] left-[20%] w-0.5 h-0.5 bg-white rounded-full animate-sparkle" style={{ animationDelay: '1.5s' }} />
+                            <div className="absolute bottom-[50%] right-[20%] w-0.5 h-0.5 bg-purple-500 rounded-full animate-nebula" style={{ animationDelay: '3.5s' }} />
                         </div>
 
                         {/* Static Border Glow */}
