@@ -5,6 +5,9 @@ import { Server as SocketIOServer } from 'socket.io';
 import { createServer } from 'http';
 import WebSocket from 'ws';
 import { getTraderProfile, analyzeMarketImpact } from '../lib/intelligence';
+import { fetchMarketsFromGamma, parseMarketData } from '../lib/polymarket';
+import { MarketMeta, AssetOutcome } from '../lib/types';
+import { CONFIG } from '../lib/config';
 
 // Initialize services
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
@@ -23,109 +26,25 @@ httpServer.listen(3001, () => {
 });
 
 // Market metadata cache
-interface MarketMeta {
-  conditionId: string;
-  eventId: string;
-  eventTitle: string;
-  question: string;
-  marketType: string;
-  outcomes: string[];
-  clobTokenIds: string[];
-}
-
-const marketsByCondition = new Map<string, MarketMeta>();
-const assetIdToOutcome = new Map<string, { outcomeLabel: string; conditionId: string }>();
-
-interface PolymarketMarket {
-  conditionId: string;
-  question: string;
-  marketType: string;
-  outcomes: string | string[];
-  clobTokenIds: string | string[];
-  events: {
-    id: string;
-    title: string;
-  }[];
-}
+// We use mutable maps to store state
+let marketsByCondition = new Map<string, MarketMeta>();
+let assetIdToOutcome = new Map<string, AssetOutcome>();
 
 /**
- * Fetch market metadata from Polymarket API
+ * Fetch market metadata and update local cache
  */
-async function fetchMarketMetadata(): Promise<string[]> {
+async function updateMarketMetadata(): Promise<string[]> {
   try {
-    const response = await fetch('http://localhost:3000/api/proxy/polymarket/markets');
-    if (!response.ok) throw new Error('Failed to fetch metadata');
+    const markets = await fetchMarketsFromGamma();
+    
+    const result = parseMarketData(markets);
+    
+    // Update globals
+    marketsByCondition = result.marketsByCondition;
+    assetIdToOutcome = result.assetIdToOutcome;
 
-    const data = await response.json();
-
-    // Check if markets is directly an array
-    let markets: PolymarketMarket[];
-    if (Array.isArray(data)) {
-      markets = data;
-    } else if (Array.isArray(data.data)) {
-      markets = data.data;
-    } else {
-      console.error('[Worker] Unexpected markets payload shape:', JSON.stringify(data, null, 2));
-      return [];
-    }
-
-    const allAssetIds: string[] = [];
-    let totalMarkets = markets.length;
-    let filteredOut = 0;
-
-    markets.forEach(market => {
-      if (!market.conditionId || !market.clobTokenIds || !market.outcomes) {
-        filteredOut++;
-        return;
-      }
-
-      let tokenIds: string[] = [];
-      let outcomes: string[] = [];
-
-      try {
-        if (Array.isArray(market.clobTokenIds)) {
-          tokenIds = market.clobTokenIds;
-        } else if (typeof market.clobTokenIds === 'string') {
-          tokenIds = JSON.parse(market.clobTokenIds);
-        }
-
-        if (Array.isArray(market.outcomes)) {
-          outcomes = market.outcomes;
-        } else if (typeof market.outcomes === 'string') {
-          outcomes = JSON.parse(market.outcomes);
-        }
-
-        const eventTitle = market.events && market.events.length > 0 ? market.events[0].title : 'Unknown Event';
-        
-        const meta: MarketMeta = {
-          conditionId: market.conditionId,
-          eventId: market.events && market.events.length > 0 ? market.events[0].id : '',
-          eventTitle,
-          question: market.question,
-          marketType: market.marketType,
-          outcomes,
-          clobTokenIds: tokenIds
-        };
-
-        marketsByCondition.set(market.conditionId, meta);
-
-        if (tokenIds && Array.isArray(tokenIds) && outcomes && Array.isArray(outcomes)) {
-          tokenIds.forEach((assetId, index) => {
-            const outcomeLabel = outcomes[index] || 'Unknown';
-            assetIdToOutcome.set(assetId, {
-              outcomeLabel,
-              conditionId: market.conditionId
-            });
-            allAssetIds.push(assetId);
-          });
-        }
-      } catch (error) {
-        console.warn(`[Worker] Error parsing market ${market.conditionId}:`, error);
-      }
-    });
-
-    console.log(`[Worker] Mapped ${marketsByCondition.size} markets and ${assetIdToOutcome.size} assets (filtered ${filteredOut}/${totalMarkets} markets)`);
-    return allAssetIds;
+    console.log(`[Worker] Mapped ${marketsByCondition.size} markets and ${assetIdToOutcome.size} assets`);
+    return result.allAssetIds;
   } catch (error) {
     console.error('[Worker] Error fetching metadata:', error);
     return [];
@@ -143,19 +62,16 @@ async function processTrade(trade: any) {
     const size = Number(trade.size);
     const value = price * size;
 
-    // Filter noise (< $1,000)
-    if (value < 1000) return;
+    // Filter noise
+    if (value < CONFIG.THRESHOLDS.MIN_VALUE) return;
 
-    // Filter out very likely outcomes (price > 97% = odds > 97)
-    if (price > 0.97) return;
+    // Filter out very likely outcomes
+    if (price > CONFIG.CONSTANTS.ODDS_THRESHOLD) return;
 
-    // Get wallet address (may be in different fields)
-    // Note: Polymarket WebSocket may not always include wallet address
-    // In production, you might need to query the CLOB API for full trade details
+    // Get wallet address
     let walletAddress = trade.user || trade.maker || trade.taker || trade.wallet || '';
 
     // TEMPORARY: Use mock wallet addresses for demo purposes
-    // Remove this when we implement proper wallet address fetching
     if (!walletAddress) {
       const mockWallets = [
         '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
@@ -165,19 +81,18 @@ async function processTrade(trade: any) {
         '0x742d35Cc6634C0532925a3b844Bc454e4438f44c'
       ];
       walletAddress = mockWallets[Math.floor(Math.random() * mockWallets.length)];
-      // console.log(`[Worker] Using mock wallet ${walletAddress} for asset ${trade.asset_id}`);
     }
 
     // Lookup market metadata
     const assetInfo = assetIdToOutcome.get(trade.asset_id);
     if (!assetInfo) {
-      console.warn(`[Worker] Unknown asset_id: ${trade.asset_id}`);
+      // console.warn(`[Worker] Unknown asset_id: ${trade.asset_id}`);
       return;
     }
 
     const marketMeta = marketsByCondition.get(assetInfo.conditionId);
     if (!marketMeta) {
-      console.warn(`[Worker] Unknown conditionId: ${assetInfo.conditionId}`);
+      // console.warn(`[Worker] Unknown conditionId: ${assetInfo.conditionId}`);
       return;
     }
 
@@ -294,14 +209,14 @@ function connectToPolymarket() {
   let heartbeatInterval: NodeJS.Timeout;
 
   const connect = async () => {
-    const assetIds = await fetchMarketMetadata();
+    const assetIds = await updateMarketMetadata();
     if (assetIds.length === 0) {
       console.warn('[Worker] No assets found, retrying in 5s...');
       setTimeout(connect, 5000);
       return;
     }
 
-    ws = new WebSocket('wss://ws-subscriptions-clob.polymarket.com/ws/market');
+    ws = new WebSocket(CONFIG.URLS.WS_CLOB);
 
     ws.on('open', () => {
       console.log('[Worker] Connected to Polymarket WebSocket');
@@ -316,12 +231,12 @@ function connectToPolymarket() {
 
       heartbeatInterval = setInterval(() => {
         // console.log('[Worker] Heartbeat - Connected');
-      }, 30000);
+      }, CONFIG.CONSTANTS.HEARTBEAT_INTERVAL);
 
-      // Refresh metadata every 5 minutes
+      // Refresh metadata
       setInterval(async () => {
         // console.log('[Worker] Refreshing metadata...');
-        const latestAssetIds = await fetchMarketMetadata();
+        const latestAssetIds = await updateMarketMetadata();
         if (ws?.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
             type: 'market',
@@ -329,27 +244,19 @@ function connectToPolymarket() {
             channel: 'trades',
           }));
         }
-      }, 5 * 60 * 1000);
+      }, CONFIG.CONSTANTS.METADATA_REFRESH_INTERVAL);
     });
 
     ws.on('message', (data: WebSocket.Data) => {
       try {
         const parsed = JSON.parse(data.toString());
 
-        // Log all incoming messages for debugging
-        // console.log('[Worker] Received message:', parsed.event_type || 'unknown');
-
         if (parsed.event_type === 'last_trade_price' || parsed.event_type === 'trade') {
-          // Trades can be in an array or single object
           const trades = Array.isArray(parsed) ? parsed : [parsed];
 
-          // console.log(`[Worker] Processing ${trades.length} trades from ${parsed.event_type}`);
           trades.forEach((trade: any) => {
-            // Only process if it's actually a trade object with required fields
             if (trade.price && trade.size && trade.asset_id) {
               processTrade(trade).catch(console.error);
-            } else {
-              // console.log('[Worker] Skipping trade - missing required fields:', trade);
             }
           });
         }
@@ -383,4 +290,3 @@ process.on('SIGINT', async () => {
 // Start the worker
 // console.log('[Worker] Starting Polymarket Intelligence Worker...');
 connectToPolymarket();
-

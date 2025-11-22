@@ -51,6 +51,7 @@
   --animate-energy-wisp: energy-wisp 3s ease-in-out infinite;
   --animate-heat-haze: heat-haze 2s ease-in-out infinite;
   --animate-spin-reverse: spin-reverse 4s linear infinite;
+  --animate-border-flicker: border-flicker 2s infinite;
 
   @keyframes marquee {
     0% {
@@ -433,6 +434,29 @@
   @keyframes spin-reverse {
     from { transform: rotate(360deg); }
     to { transform: rotate(0deg); }
+  }
+
+  @keyframes border-flicker {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    2% {
+      opacity: 0.8;
+      transform: scale(1.02);
+    }
+    4% {
+      opacity: 1;
+      transform: scale(0.98);
+    }
+    6% {
+      opacity: 0.9;
+      transform: scale(1.01);
+    }
+    8% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 }
 
