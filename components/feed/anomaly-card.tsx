@@ -165,15 +165,29 @@ export function AnomalyCard({ anomaly }: AnomalyCardProps) {
 
                     {/* Top Right: Amount */}
                     <div className="flex items-start justify-end">
-                        <div className={cn(
-                            "px-3 py-1.5 rounded-full font-black text-sm uppercase tracking-wider shadow-lg border-2",
-                            isGod ? "bg-yellow-500/10 text-yellow-300 border-yellow-400/80 shadow-yellow-500/25" :
-                                isSuper ? "bg-red-500/10 text-red-300 border-red-400/80 shadow-red-500/25" :
-                                    isMega ? "bg-purple-500/10 text-purple-300 border-purple-400/80 shadow-purple-500/25" :
-                                        isWhale ? "bg-blue-500/10 text-blue-300 border-blue-400/80 shadow-blue-500/25" :
-                                            "bg-zinc-800/80 text-zinc-300 border-zinc-400/60 shadow-zinc-500/20"
-                        )}>
-                            <span className="font-mono text-lg font-bold tabular-nums">{amount}</span>
+                        <div className="relative">
+                            {/* Shadow Layer */}
+                            <div className={cn(
+                                "absolute -bottom-1 -right-1 font-black text-lg font-mono tabular-nums opacity-60",
+                                isGod ? "text-yellow-800" :
+                                    isSuper ? "text-red-800" :
+                                        isMega ? "text-purple-800" :
+                                            isWhale ? "text-blue-800" :
+                                                "text-zinc-700"
+                            )}>
+                                {amount}
+                            </div>
+                            {/* Main Layer */}
+                            <div className={cn(
+                                "relative font-black text-lg font-mono tabular-nums border-2 px-1",
+                                isGod ? "text-yellow-300 border-yellow-400/60 bg-yellow-900/20" :
+                                    isSuper ? "text-red-300 border-red-400/60 bg-red-900/20" :
+                                        isMega ? "text-purple-300 border-purple-400/60 bg-purple-900/20" :
+                                            isWhale ? "text-blue-300 border-blue-400/60 bg-blue-900/20" :
+                                                "text-zinc-300 border-zinc-400/40 bg-zinc-800/30"
+                            )}>
+                                {amount}
+                            </div>
                         </div>
                     </div>
 
