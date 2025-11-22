@@ -58,6 +58,14 @@ export const usePreferencesStore = create<PreferencesStore>((set, get) => ({
   }
 }));
 
+type TopTradesPeriod = 'today' | 'weekly' | 'monthly' | 'yearly' | 'max';
+
+interface TopTradesResponse {
+    period: TopTradesPeriod;
+    count: number;
+    trades: Anomaly[];
+}
+
 interface MarketStore {
     anomalies: Anomaly[];
     volume: number;
@@ -66,6 +74,13 @@ interface MarketStore {
     addAnomaly: (anomaly: Anomaly) => void;
     loadHistory: () => Promise<void>;
     startStream: (getPreferences?: () => UserPreferences) => () => void;
+
+    // Top trades functionality
+    topTrades: Anomaly[];
+    topTradesLoading: boolean;
+    selectedPeriod: TopTradesPeriod;
+    fetchTopTrades: (period: TopTradesPeriod) => Promise<void>;
+    setSelectedPeriod: (period: TopTradesPeriod) => void;
 }
 
 export const useMarketStore = create<MarketStore>((set, get) => ({
@@ -73,6 +88,11 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     volume: 0,
     tickerItems: [],
     isLoading: false,
+
+    // Top trades state
+    topTrades: [],
+    topTradesLoading: false,
+    selectedPeriod: 'weekly',
     addAnomaly: (anomaly) => set((state) => ({
         anomalies: [anomaly, ...state.anomalies].slice(0, 100), // Increased limit for historical + real-time
         volume: state.volume + anomaly.value,
@@ -103,5 +123,31 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
             get().addAnomaly(anomaly);
         }, getPreferences);
         return cleanup;
+    },
+
+    // Top trades functions
+    fetchTopTrades: async (period) => {
+        set({ topTradesLoading: true });
+        try {
+            const response = await fetch(`/api/top-trades?period=${period}`);
+            if (response.ok) {
+                const data: TopTradesResponse = await response.json();
+                set({
+                    topTrades: data.trades,
+                    selectedPeriod: period,
+                    topTradesLoading: false
+                });
+            } else {
+                console.error('Failed to fetch top trades');
+                set({ topTradesLoading: false });
+            }
+        } catch (error) {
+            console.error('Error fetching top trades:', error);
+            set({ topTradesLoading: false });
+        }
+    },
+    setSelectedPeriod: (period) => {
+        set({ selectedPeriod: period });
+        get().fetchTopTrades(period);
     }
 }));

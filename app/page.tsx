@@ -8,6 +8,7 @@ import { SlotReel } from "@/components/feed/slot-reel";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { BottomCarousel } from "@/components/bottom-carousel";
 import { UserPreferences } from "@/components/user-preferences";
+import { TopWhales } from "@/components/top-whales";
 import { motion } from "framer-motion";
 
 const PAGES = [
@@ -93,10 +94,7 @@ export default function Home() {
           )}
 
           {currentPage === 2 && (
-            <div className="text-center mt-20">
-              <h2 className="text-xl font-mono text-zinc-300 mb-4">TOP WHALES</h2>
-              <p className="text-zinc-600 font-mono">Coming soon...</p>
-            </div>
+            <TopWhales />
           )}
         </motion.div>
       </div>
