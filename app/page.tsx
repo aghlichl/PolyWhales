@@ -12,11 +12,6 @@ import { TopWhales } from "@/components/top-whales";
 import { SearchButton } from "@/components/search-button";
 import { motion } from "framer-motion";
 
-const PAGES = [
-  { name: "Feed", component: "feed" },
-  { name: "Preferences", component: "preferences" },
-  { name: "Top Whales", component: "whales" }
-];
 
 // Helper function to check if anomaly passes user preferences
 function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType): boolean {
@@ -145,7 +140,6 @@ export default function Home() {
         <div className="flex-1 flex items-center justify-center">
           <BottomCarousel
             currentPage={currentPage}
-            totalPages={PAGES.length}
             onPageChange={handlePageChange}
           />
         </div>
