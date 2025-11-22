@@ -6,7 +6,7 @@ export function Ticker() {
   const { tickerItems, volume } = useMarketStore();
 
   return (
-    <div className="flex">
+    <div className="fixed top-0 left-0 right-0 flex z-50">
       <div className="bg-primary/10 px-3 h-8 flex items-center border-r border-primary/20 z-10">
         <span className="text-primary font-mono text-xs font-bold">
           VOL ${(volume / 1000000).toFixed(2)}M

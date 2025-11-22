@@ -2,6 +2,13 @@ import { RunningStats } from './stats';
 
 export type AnomalyType = 'MEGA_WHALE' | 'WHALE' | 'STANDARD';
 
+export interface UserPreferences {
+    showStandard: boolean;
+    showWhale: boolean;
+    showMegaWhale: boolean;
+    minValueThreshold: number;
+}
+
 export interface Anomaly {
     id: string;
     type: AnomalyType;
@@ -33,6 +40,26 @@ const assetIdToOutcome = new Map<string, { outcomeLabel: string; conditionId: st
 
 const marketStats = new Map<string, RunningStats>();
 const globalStats = new RunningStats();
+
+// Helper function to check if anomaly passes user preferences
+function passesPreferences(anomaly: Anomaly, preferences?: UserPreferences): boolean {
+    if (!preferences) return true; // No preferences means show all
+
+    // Check minimum value threshold
+    if (anomaly.value < preferences.minValueThreshold) return false;
+
+    // Check anomaly type filters
+    switch (anomaly.type) {
+        case 'STANDARD':
+            return preferences.showStandard;
+        case 'WHALE':
+            return preferences.showWhale;
+        case 'MEGA_WHALE':
+            return preferences.showMegaWhale;
+        default:
+            return true;
+    }
+}
 
 interface PolymarketMarket {
     conditionId: string;
@@ -115,7 +142,7 @@ async function fetchMarketMetadata() {
     }
 }
 
-export function startFirehose(onAnomaly: (a: Anomaly) => void) {
+export function startFirehose(onAnomaly: (a: Anomaly) => void, getPreferences?: () => UserPreferences) {
     let ws: WebSocket | null = null;
     let heartbeatInterval: NodeJS.Timeout;
 
@@ -263,7 +290,14 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void) {
                         };
 
                         console.log('[Firehose] Enriched Trade:', anomaly);
-                        onAnomaly(anomaly);
+
+                        // Apply user preferences filtering
+                        const currentPreferences = getPreferences?.();
+                        if (!currentPreferences || passesPreferences(anomaly, currentPreferences)) {
+                            onAnomaly(anomaly);
+                        } else {
+                            console.log('[Firehose] Filtered out anomaly due to user preferences:', anomaly.type, anomaly.value);
+                        }
                     });
                 }
             } catch (e) {
