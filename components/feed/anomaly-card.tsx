@@ -93,8 +93,19 @@ export function AnomalyCard({ anomaly }: AnomalyCardProps) {
                         {/* Mana Surge (Breathing Core) */}
                         <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.3)_0%,transparent_70%)] animate-heartbeat mix-blend-screen" />
 
-                        {/* Arcane Sparkles */}
-                        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4)_1px,transparent_2px),radial-gradient(circle_at_70%_70%,rgba(255,255,255,0.4)_1px,transparent_2px)] bg-[length:40px_40px] animate-sparkle opacity-50" />
+                        {/* Arcane Sparkles - Galaxy Motion */}
+                        <div className="absolute inset-0 z-0 pointer-events-none">
+                            {/* Primary sparkle cluster */}
+                            <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-purple-300 rounded-full animate-sparkle opacity-60 blur-sm" style={{ animationDelay: '0s' }} />
+                            <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-purple-200 rounded-full animate-sparkle opacity-50 blur-sm" style={{ animationDelay: '1s' }} />
+                            <div className="absolute bottom-1/4 left-1/3 w-1 h-1 bg-purple-400 rounded-full animate-sparkle opacity-70 blur-sm" style={{ animationDelay: '2s' }} />
+                            <div className="absolute top-1/2 right-1/4 w-2.5 h-2.5 bg-purple-100 rounded-full animate-sparkle opacity-40 blur-sm" style={{ animationDelay: '3s' }} />
+                            <div className="absolute bottom-1/3 right-1/2 w-1 h-1 bg-white rounded-full animate-sparkle opacity-80 blur-sm" style={{ animationDelay: '4s' }} />
+                            {/* Secondary floating specks */}
+                            <div className="absolute top-1/6 left-1/2 w-0.5 h-0.5 bg-purple-300 rounded-full animate-sparkle opacity-30" style={{ animationDelay: '0.5s' }} />
+                            <div className="absolute bottom-1/6 right-1/6 w-0.5 h-0.5 bg-purple-200 rounded-full animate-sparkle opacity-40" style={{ animationDelay: '1.5s' }} />
+                            <div className="absolute top-2/3 left-1/6 w-0.5 h-0.5 bg-white rounded-full animate-sparkle opacity-50" style={{ animationDelay: '2.5s' }} />
+                        </div>
 
                         {/* Static Border Glow */}
                         <div className="absolute inset-0 z-0 pointer-events-none border border-purple-500/30 shadow-[inset_0_0_20px_rgba(168,85,247,0.2)]" />
