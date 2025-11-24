@@ -52,5 +52,8 @@
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@solana/kit": "^5.0.0"
   }
 }
