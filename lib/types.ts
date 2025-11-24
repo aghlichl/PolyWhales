@@ -18,6 +18,7 @@ export interface Anomaly {
     value: number;
     timestamp: number;
     side: 'BUY' | 'SELL';
+    image?: string; // Event image URL
     // Optional fields for enriched display
     wallet_context?: {
         address?: string;
@@ -48,6 +49,7 @@ export interface MarketMeta {
     marketType: string;
     outcomes: string[];
     clobTokenIds: string[];
+    image?: string;
 }
 
 export interface AssetOutcome {
@@ -61,9 +63,14 @@ export interface PolymarketMarket {
     marketType: string;
     outcomes: string | string[];
     clobTokenIds: string | string[];
+    image?: string;
+    icon?: string;
+    twitterCardImage?: string;
     events: {
         id: string;
         title: string;
+        image?: string;
+        icon?: string;
     }[];
 }
 

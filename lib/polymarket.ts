@@ -60,6 +60,15 @@ export function parseMarketData(markets: PolymarketMarket[]): {
 
             const eventTitle = market.events && market.events.length > 0 ? market.events[0].title : 'Unknown Event';
 
+            // Extract image URL (prioritize twitterCardImage > image > icon)
+            // Check market level first, then event level
+            let imageUrl = market.twitterCardImage || market.image || market.icon;
+
+            if (!imageUrl && market.events && market.events.length > 0) {
+                const event = market.events[0];
+                imageUrl = event.image || event.icon;
+            }
+
             const meta: MarketMeta = {
                 conditionId: market.conditionId,
                 eventId: market.events && market.events.length > 0 ? market.events[0].id : '',
@@ -67,7 +76,8 @@ export function parseMarketData(markets: PolymarketMarket[]): {
                 question: market.question,
                 marketType: market.marketType,
                 outcomes,
-                clobTokenIds: tokenIds
+                clobTokenIds: tokenIds,
+                image: imageUrl
             };
 
             marketsByCondition.set(market.conditionId, meta);

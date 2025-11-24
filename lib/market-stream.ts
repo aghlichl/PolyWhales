@@ -66,6 +66,7 @@ async function saveTradeToDatabase(trade: any, anomaly: Anomaly, conditionId?: s
             conditionId: conditionId || null,
             outcome: anomaly.outcome,
             question: anomaly.event,
+            image: anomaly.image,
         };
 
         // Call the save-trade API endpoint
@@ -226,6 +227,7 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void, getPreferences?: 
                             value,
                             timestamp: Date.now(),
                             side,
+                            image: marketMeta.image,
                             wallet_context: walletAddress ? {
                                 address: walletAddress,
                                 label: 'Unknown',

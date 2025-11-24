@@ -209,6 +209,7 @@ export async function processTrade(trade: any) {
           conditionId: assetInfo.conditionId,
           outcome: assetInfo.outcomeLabel,
           question: marketMeta.question,
+          image: marketMeta.image,
         },
       });
     } catch (dbError) {

@@ -23,7 +23,9 @@ export function TopWhales() {
     topTradesLoading,
     selectedPeriod,
     fetchTopTrades,
-    setSelectedPeriod
+    setSelectedPeriod,
+    hasMore,
+    loadMoreTopTrades
   } = useMarketStore();
 
   // Load initial data on mount
@@ -86,6 +88,22 @@ export function TopWhales() {
         ) : (
           <div className="text-center text-zinc-600 mt-20 font-mono">
             NO TRADES FOUND FOR {PERIOD_LABELS[selectedPeriod].toUpperCase()}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {topTrades.length > 0 && hasMore && (
+          <div className="flex justify-center py-8">
+            <button
+              onClick={() => loadMoreTopTrades()}
+              disabled={topTradesLoading}
+              className={cn(
+                "px-4 py-2 border-2 border-zinc-700 bg-zinc-900 text-zinc-400 font-mono text-sm uppercase tracking-wider transition-all hover:border-zinc-500 hover:text-zinc-200 hover:bg-zinc-800",
+                topTradesLoading && "opacity-50 cursor-wait"
+              )}
+            >
+              {topTradesLoading ? "LOADING..." : "LOAD MORE"}
+            </button>
           </div>
         )}
       </div>

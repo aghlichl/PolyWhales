@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useMarketStore, usePreferencesStore } from "@/lib/store";
 import { Anomaly, UserPreferences as UserPreferencesType } from "@/lib/market-stream";
 import { Ticker } from "@/components/feed/ticker";
@@ -39,11 +39,25 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType): 
 }
 
 export default function Home() {
-  const { anomalies, startStream, isLoading } = useMarketStore();
+  const { anomalies, startStream, isLoading, loadMoreHistory, hasMoreHistory } = useMarketStore();
   const { preferences, loadPreferences } = usePreferencesStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>();
+
+  // Intersection Observer for Infinite Scroll
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement) => {
+    if (isLoading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMoreHistory) {
+        loadMoreHistory();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [isLoading, hasMoreHistory, loadMoreHistory]);
+
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -130,6 +144,11 @@ export default function Home() {
                   <AnomalyCard key={anomaly.id} anomaly={anomaly} />
                 ))}
               </SlotReel>
+              
+              {/* Sentinel for Infinite Scroll */}
+              {hasMoreHistory && !searchQuery && (
+                 <div ref={lastElementRef} className="h-4 w-full" />
+              )}
 
               {filteredAnomalies.length === 0 && !isLoading && (
                 <div className="text-center text-zinc-600 mt-20 font-mono">
@@ -137,9 +156,9 @@ export default function Home() {
                 </div>
               )}
 
-              {isLoading && anomalies.length === 0 && (
-                <div className="text-center text-zinc-600 mt-20 font-mono">
-                  LOADING RECENT WHALES...
+              {isLoading && (
+                <div className="text-center text-zinc-600 mt-8 font-mono animate-pulse">
+                  LOADING MORE DATA...
                 </div>
               )}
             </>

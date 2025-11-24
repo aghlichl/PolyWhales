@@ -46,6 +46,7 @@ model Trade {
   conditionId   String?
   outcome       String?
   question      String?
+  image         String?
 
   @@index([walletAddress])
   @@index([timestamp])

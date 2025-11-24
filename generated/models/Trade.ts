@@ -54,6 +54,7 @@ export type TradeMinAggregateOutputType = {
   conditionId: string | null
   outcome: string | null
   question: string | null
+  image: string | null
 }
 
 export type TradeMaxAggregateOutputType = {
@@ -72,6 +73,7 @@ export type TradeMaxAggregateOutputType = {
   conditionId: string | null
   outcome: string | null
   question: string | null
+  image: string | null
 }
 
 export type TradeCountAggregateOutputType = {
@@ -90,6 +92,7 @@ export type TradeCountAggregateOutputType = {
   conditionId: number
   outcome: number
   question: number
+  image: number
   _all: number
 }
 
@@ -122,6 +125,7 @@ export type TradeMinAggregateInputType = {
   conditionId?: true
   outcome?: true
   question?: true
+  image?: true
 }
 
 export type TradeMaxAggregateInputType = {
@@ -140,6 +144,7 @@ export type TradeMaxAggregateInputType = {
   conditionId?: true
   outcome?: true
   question?: true
+  image?: true
 }
 
 export type TradeCountAggregateInputType = {
@@ -158,6 +163,7 @@ export type TradeCountAggregateInputType = {
   conditionId?: true
   outcome?: true
   question?: true
+  image?: true
   _all?: true
 }
 
@@ -263,6 +269,7 @@ export type TradeGroupByOutputType = {
   conditionId: string | null
   outcome: string | null
   question: string | null
+  image: string | null
   _count: TradeCountAggregateOutputType | null
   _avg: TradeAvgAggregateOutputType | null
   _sum: TradeSumAggregateOutputType | null
@@ -304,6 +311,7 @@ export type TradeWhereInput = {
   conditionId?: Prisma.StringNullableFilter<"Trade"> | string | null
   outcome?: Prisma.StringNullableFilter<"Trade"> | string | null
   question?: Prisma.StringNullableFilter<"Trade"> | string | null
+  image?: Prisma.StringNullableFilter<"Trade"> | string | null
   walletProfile?: Prisma.XOR<Prisma.WalletProfileScalarRelationFilter, Prisma.WalletProfileWhereInput>
 }
 
@@ -323,6 +331,7 @@ export type TradeOrderByWithRelationInput = {
   conditionId?: Prisma.SortOrderInput | Prisma.SortOrder
   outcome?: Prisma.SortOrderInput | Prisma.SortOrder
   question?: Prisma.SortOrderInput | Prisma.SortOrder
+  image?: Prisma.SortOrderInput | Prisma.SortOrder
   walletProfile?: Prisma.WalletProfileOrderByWithRelationInput
 }
 
@@ -345,6 +354,7 @@ export type TradeWhereUniqueInput = Prisma.AtLeast<{
   conditionId?: Prisma.StringNullableFilter<"Trade"> | string | null
   outcome?: Prisma.StringNullableFilter<"Trade"> | string | null
   question?: Prisma.StringNullableFilter<"Trade"> | string | null
+  image?: Prisma.StringNullableFilter<"Trade"> | string | null
   walletProfile?: Prisma.XOR<Prisma.WalletProfileScalarRelationFilter, Prisma.WalletProfileWhereInput>
 }, "id">
 
@@ -364,6 +374,7 @@ export type TradeOrderByWithAggregationInput = {
   conditionId?: Prisma.SortOrderInput | Prisma.SortOrder
   outcome?: Prisma.SortOrderInput | Prisma.SortOrder
   question?: Prisma.SortOrderInput | Prisma.SortOrder
+  image?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.TradeCountOrderByAggregateInput
   _avg?: Prisma.TradeAvgOrderByAggregateInput
   _max?: Prisma.TradeMaxOrderByAggregateInput
@@ -390,6 +401,7 @@ export type TradeScalarWhereWithAggregatesInput = {
   conditionId?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
   outcome?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
   question?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  image?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
 }
 
 export type TradeCreateInput = {
@@ -407,6 +419,7 @@ export type TradeCreateInput = {
   conditionId?: string | null
   outcome?: string | null
   question?: string | null
+  image?: string | null
   walletProfile: Prisma.WalletProfileCreateNestedOneWithoutTradesInput
 }
 
@@ -426,6 +439,7 @@ export type TradeUncheckedCreateInput = {
   conditionId?: string | null
   outcome?: string | null
   question?: string | null
+  image?: string | null
 }
 
 export type TradeUpdateInput = {
@@ -443,6 +457,7 @@ export type TradeUpdateInput = {
   conditionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   walletProfile?: Prisma.WalletProfileUpdateOneRequiredWithoutTradesNestedInput
 }
 
@@ -462,6 +477,7 @@ export type TradeUncheckedUpdateInput = {
   conditionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type TradeCreateManyInput = {
@@ -480,6 +496,7 @@ export type TradeCreateManyInput = {
   conditionId?: string | null
   outcome?: string | null
   question?: string | null
+  image?: string | null
 }
 
 export type TradeUpdateManyMutationInput = {
@@ -497,6 +514,7 @@ export type TradeUpdateManyMutationInput = {
   conditionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type TradeUncheckedUpdateManyInput = {
@@ -515,6 +533,7 @@ export type TradeUncheckedUpdateManyInput = {
   conditionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type TradeListRelationFilter = {
@@ -543,6 +562,7 @@ export type TradeCountOrderByAggregateInput = {
   conditionId?: Prisma.SortOrder
   outcome?: Prisma.SortOrder
   question?: Prisma.SortOrder
+  image?: Prisma.SortOrder
 }
 
 export type TradeAvgOrderByAggregateInput = {
@@ -567,6 +587,7 @@ export type TradeMaxOrderByAggregateInput = {
   conditionId?: Prisma.SortOrder
   outcome?: Prisma.SortOrder
   question?: Prisma.SortOrder
+  image?: Prisma.SortOrder
 }
 
 export type TradeMinOrderByAggregateInput = {
@@ -585,6 +606,7 @@ export type TradeMinOrderByAggregateInput = {
   conditionId?: Prisma.SortOrder
   outcome?: Prisma.SortOrder
   question?: Prisma.SortOrder
+  image?: Prisma.SortOrder
 }
 
 export type TradeSumOrderByAggregateInput = {
@@ -650,6 +672,7 @@ export type TradeCreateWithoutWalletProfileInput = {
   conditionId?: string | null
   outcome?: string | null
   question?: string | null
+  image?: string | null
 }
 
 export type TradeUncheckedCreateWithoutWalletProfileInput = {
@@ -667,6 +690,7 @@ export type TradeUncheckedCreateWithoutWalletProfileInput = {
   conditionId?: string | null
   outcome?: string | null
   question?: string | null
+  image?: string | null
 }
 
 export type TradeCreateOrConnectWithoutWalletProfileInput = {
@@ -714,6 +738,7 @@ export type TradeScalarWhereInput = {
   conditionId?: Prisma.StringNullableFilter<"Trade"> | string | null
   outcome?: Prisma.StringNullableFilter<"Trade"> | string | null
   question?: Prisma.StringNullableFilter<"Trade"> | string | null
+  image?: Prisma.StringNullableFilter<"Trade"> | string | null
 }
 
 export type TradeCreateManyWalletProfileInput = {
@@ -731,6 +756,7 @@ export type TradeCreateManyWalletProfileInput = {
   conditionId?: string | null
   outcome?: string | null
   question?: string | null
+  image?: string | null
 }
 
 export type TradeUpdateWithoutWalletProfileInput = {
@@ -748,6 +774,7 @@ export type TradeUpdateWithoutWalletProfileInput = {
   conditionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type TradeUncheckedUpdateWithoutWalletProfileInput = {
@@ -765,6 +792,7 @@ export type TradeUncheckedUpdateWithoutWalletProfileInput = {
   conditionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type TradeUncheckedUpdateManyWithoutWalletProfileInput = {
@@ -782,6 +810,7 @@ export type TradeUncheckedUpdateManyWithoutWalletProfileInput = {
   conditionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -802,6 +831,7 @@ export type TradeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   conditionId?: boolean
   outcome?: boolean
   question?: boolean
+  image?: boolean
   walletProfile?: boolean | Prisma.WalletProfileDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["trade"]>
 
@@ -821,6 +851,7 @@ export type TradeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   conditionId?: boolean
   outcome?: boolean
   question?: boolean
+  image?: boolean
   walletProfile?: boolean | Prisma.WalletProfileDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["trade"]>
 
@@ -840,6 +871,7 @@ export type TradeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   conditionId?: boolean
   outcome?: boolean
   question?: boolean
+  image?: boolean
   walletProfile?: boolean | Prisma.WalletProfileDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["trade"]>
 
@@ -859,9 +891,10 @@ export type TradeSelectScalar = {
   conditionId?: boolean
   outcome?: boolean
   question?: boolean
+  image?: boolean
 }
 
-export type TradeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "assetId" | "side" | "size" | "price" | "tradeValue" | "timestamp" | "walletAddress" | "isWhale" | "isSmartMoney" | "isFresh" | "isSweeper" | "conditionId" | "outcome" | "question", ExtArgs["result"]["trade"]>
+export type TradeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "assetId" | "side" | "size" | "price" | "tradeValue" | "timestamp" | "walletAddress" | "isWhale" | "isSmartMoney" | "isFresh" | "isSweeper" | "conditionId" | "outcome" | "question" | "image", ExtArgs["result"]["trade"]>
 export type TradeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   walletProfile?: boolean | Prisma.WalletProfileDefaultArgs<ExtArgs>
 }
@@ -893,6 +926,7 @@ export type $TradePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     conditionId: string | null
     outcome: string | null
     question: string | null
+    image: string | null
   }, ExtArgs["result"]["trade"]>
   composites: {}
 }
@@ -1332,6 +1366,7 @@ export interface TradeFieldRefs {
   readonly conditionId: Prisma.FieldRef<"Trade", 'String'>
   readonly outcome: Prisma.FieldRef<"Trade", 'String'>
   readonly question: Prisma.FieldRef<"Trade", 'String'>
+  readonly image: Prisma.FieldRef<"Trade", 'String'>
 }
     
 

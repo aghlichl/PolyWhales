@@ -1,42 +1,64 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { fetchMarketsFromGamma, parseMarketData } from '@/lib/polymarket';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Calculate timestamp for 30 minutes ago
-    const thirtyMinutesAgo = new Date(Date.now() - 1440 * 60 * 1000);
+    const { searchParams } = new URL(request.url);
+    const cursor = searchParams.get('cursor');
+    const limit = parseInt(searchParams.get('limit') || '100');
 
-    // Fetch whale trades from last 30 minutes
+    // Calculate timestamp for 24 hours ago (1440 minutes)
+    const twentyFourHoursAgo = new Date(Date.now() - 1440 * 60 * 1000);
+
+    // Fetch current market metadata to get images
+    const markets = await fetchMarketsFromGamma();
+    const { marketsByCondition } = parseMarketData(markets);
+
+    // Fetch whale trades with cursor-based pagination
     const trades = await prisma.trade.findMany({
       where: {
         tradeValue: {
-          gt: 10000,
+          gt: 1000,
         },
         timestamp: {
-          gte: thirtyMinutesAgo,
+          gte: twentyFourHoursAgo,
         },
       },
       orderBy: {
         timestamp: 'desc',
       },
+      take: limit + 1, // Fetch one extra to determine if there are more
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0, // Skip the cursor itself
       include: {
         walletProfile: true,
       },
     });
+
+    let nextCursor: string | undefined = undefined;
+    if (trades.length > limit) {
+      const nextItem = trades.pop();
+      nextCursor = trades[trades.length - 1].id;
+    }
 
     // Transform to Anomaly interface format (matching market-stream.ts)
     const anomalies = trades.map(trade => {
       const value = trade.tradeValue;
       const price = trade.price;
 
-      // Determine anomaly type based on trade value (matching market-stream.ts logic)
-      let type: 'GOD_WHALE' | 'SUPER_WHALE' | 'MEGA_WHALE' | 'WHALE' | 'STANDARD' = 'STANDARD';
-      if (value > 100000) type = 'GOD_WHALE';
-      else if (value > 50000) type = 'SUPER_WHALE';
-      else if (value > 15000) type = 'MEGA_WHALE';
-      else if (value > 8000) type = 'WHALE';
+  // Determine anomaly type based on trade value (matching market-stream.ts logic)
+  let type: 'GOD_WHALE' | 'SUPER_WHALE' | 'MEGA_WHALE' | 'WHALE' | 'STANDARD' = 'STANDARD';
+  if (value > 100000) type = 'GOD_WHALE';
+  else if (value > 50000) type = 'SUPER_WHALE';
+  else if (value > 15000) type = 'MEGA_WHALE';
+  else if (value > 8000) type = 'WHALE';
 
-      return {
+  // Get image from current market metadata
+  const marketMeta = trade.conditionId ? marketsByCondition.get(trade.conditionId) : undefined;
+  const image = marketMeta?.image || trade.image || undefined;
+
+  return {
         id: trade.id, // Use actual trade ID instead of random
         type,
         event: trade.question || 'Unknown Market',
@@ -44,11 +66,12 @@ export async function GET() {
         odds: Math.round(price * 100),
         value,
         timestamp: trade.timestamp.getTime(), // Convert to number
-        side: trade.side, // Include the side from the trade
+        side: trade.side as 'BUY' | 'SELL', // Include the side from the trade
+        image,
         wallet_context: {
           address: trade.walletProfile?.id || trade.walletAddress,
           label: trade.walletProfile?.label || 'Unknown',
-          pnl_all_time: `$${trade.walletProfile?.totalPnl.toLocaleString()}`,
+          pnl_all_time: `$${(trade.walletProfile?.totalPnl || 0).toLocaleString()}`,
           win_rate: `${((trade.walletProfile?.winRate || 0) * 100).toFixed(0)}%`,
           is_fresh_wallet: trade.walletProfile?.isFresh || false,
         },
@@ -70,7 +93,10 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json(anomalies);
+    return NextResponse.json({
+      trades: anomalies,
+      nextCursor
+    });
   } catch (error) {
     console.error('[API] Error fetching history:', error);
     return NextResponse.json(
@@ -79,4 +105,3 @@ export async function GET() {
     );
   }
 }
-

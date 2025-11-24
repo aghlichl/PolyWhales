@@ -5,6 +5,21 @@ import { Gauge } from "./gauge";
 import { useState, memo } from "react";
 import { TradeDetailsModal } from "./trade-details-modal";
 
+// Import distinctive fonts following Spotify/DoorDash/Robinhood patterns
+import { Bricolage_Grotesque, JetBrains_Mono } from 'next/font/google';
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  weight: ['200', '800'], // Extreme weight contrast
+  display: 'swap',
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['200', '800'], // Extreme weight contrast
+  display: 'swap',
+});
+
 interface AnomalyCardProps {
     anomaly: Anomaly;
 }
@@ -19,7 +34,7 @@ export function convertAnomalyToCardProps(anomaly: Anomaly) {
 }
 
 export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardProps) {
-    const { event: title, value, outcome, odds, type, timestamp, side } = anomaly;
+    const { event: title, value, outcome, odds, type, timestamp, side, image } = anomaly;
     const amount = `$${Math.round(value).toLocaleString()}`;
     const isGod = type === 'GOD_WHALE';
     const isSuper = type === 'SUPER_WHALE';
@@ -36,9 +51,9 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
             >
                 {/* Dragon Ball Z/Demon Slayer Aura - Only for God Whale */}
                 {isGod && (
-                    <>
+                    <div className="absolute inset-0 pointer-events-none isolate">
                         {/* Demonic Flame Rings - Around Card Border */}
-                        <div className="absolute -inset-1 z-0 pointer-events-none">
+                        <div className="absolute -inset-1 z-0">
                             {/* Outer Ring - Slow Pulsing */}
                             <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,rgba(251,191,36,0.8)_45deg,rgba(239,68,68,0.9)_90deg,rgba(251,191,36,0.7)_135deg,transparent_180deg,rgba(168,85,247,0.6)_225deg,rgba(239,68,68,0.8)_270deg,rgba(251,191,36,0.7)_315deg,transparent_360deg)] animate-[spin_8s_linear_infinite] opacity-70 blur-sm rounded-[60%_40%_70%_30%/40%_60%_30%_70%]" />
 
@@ -47,7 +62,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         </div>
 
                         {/* Energy Wisps - Floating Demonic Particles Around Border */}
-                        <div className="absolute -inset-0.5 z-0 pointer-events-none">
+                        <div className="absolute -inset-0.5 z-0">
                             {/* Top wisps */}
                             <div className="absolute -top-0.5 left-1/4 w-0.5 h-3 bg-linear-to-t from-transparent via-yellow-400 to-transparent animate-energy-wisp" style={{ animationDelay: '0s' }} />
                             <div className="absolute -top-0.5 right-1/3 w-0.5 h-2 bg-linear-to-t from-transparent via-red-400 to-transparent animate-energy-wisp" style={{ animationDelay: '1s' }} />
@@ -60,7 +75,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                             <div className="absolute -bottom-0.5 left-1/3 w-0.5 h-2.5 bg-linear-to-t from-yellow-500 via-orange-400 to-transparent animate-energy-wisp" style={{ animationDelay: '2s' }} />
                             <div className="absolute -bottom-0.5 right-1/4 w-0.5 h-1.5 bg-linear-to-t from-red-500 via-yellow-400 to-transparent animate-energy-wisp" style={{ animationDelay: '0.8s' }} />
                         </div>
-                    </>
+                    </div>
                 )}
 
                 <Card className={cn(
@@ -190,11 +205,84 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         "relative z-10 grid grid-cols-[1fr_auto] gap-2",
                         isSuper && "animate-heat-distortion"
                     )}>
-                        {/* Top Left: Title */}
-                        <div className="flex items-center">
-                            <h3 className="text-lg font-bold uppercase tracking-tight text-zinc-100 line-clamp-2 leading-tight" title={title}>
-                                {title}
-                            </h3>
+                        {/* Top Left: Title - REDESIGNED (Tactical HUD) */}
+                        <div className="flex items-start min-w-0 pr-2">
+                            <div className="relative group/title w-full flex gap-3">
+                                {/* Event Image (If Available) */}
+                                {image && (
+                                    <div className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/20 shadow-2xl group-hover/title:border-white/30 transition-all duration-300 backdrop-blur-sm bg-white/5">
+                                        {/* Modern Glass Effect */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
+
+                                        <img
+                                            src={image}
+                                            alt={title}
+                                            className="w-full h-full object-cover relative z-10"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                            }}
+                                        />
+
+                                        {/* Enhanced Scanline Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent opacity-40 pointer-events-none" />
+
+                                        {/* Subtle Glow Effect */}
+                                        <div className="absolute inset-0 ring-1 ring-white/10 group-hover/title:ring-white/20 transition-all duration-300" />
+
+                                        {/* Hover Scale Animation */}
+                                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-300" />
+                                    </div>
+                                )}
+
+                                <div className="relative flex-1 min-w-0">
+                                    {/* Tier-Specific Accent Bar (Vertical) */}
+                                    <div className={cn(
+                                        "absolute -left-2 top-1 bottom-1 w-1 rounded-full transition-all duration-300",
+                                        "opacity-40 group-hover/title:opacity-100 group-hover/title:w-1.5",
+                                        isGod ? "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]" :
+                                            isSuper ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
+                                                isMega ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" :
+                                                    isWhale ? "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" :
+                                                        "bg-zinc-600"
+                                    )} />
+
+                                    <div className="flex flex-col">
+                                        {/* Main Title - Two-line approach */}
+                                        <h3
+                                            className={cn(
+                                                bricolage.className,
+                                                "text-sm font-black uppercase tracking-tight leading-tight",
+                                                "text-zinc-100 drop-shadow-sm line-clamp-2",
+                                                "transition-all duration-300 min-h-10 flex flex-col justify-center",
+                                                // Tier-specific text colors
+                                                isGod ? "text-yellow-100" :
+                                                    isSuper ? "text-red-100" :
+                                                        isMega ? "text-purple-100" :
+                                                            isWhale ? "text-blue-100" :
+                                                                "text-zinc-100"
+                                            )}
+                                            title={title}
+                                        >
+                                            {/* Split long titles intelligently */}
+                                            {(() => {
+                                                const words = title.split(' ');
+                                                if (words.length <= 4) return title;
+
+                                                const midPoint = Math.ceil(words.length / 2);
+                                                const firstLine = words.slice(0, midPoint).join(' ');
+                                                const secondLine = words.slice(midPoint).join(' ');
+
+                                                return (
+                                                    <>
+                                                        <span>{firstLine}</span>
+                                                        <span className="text-xs font-bold opacity-90">{secondLine}</span>
+                                                    </>
+                                                );
+                                            })()}
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Top Right: Amount - THE DATA SHARD (POLISHED) */}
@@ -233,6 +321,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                     <div className="relative flex items-baseline gap-1 z-10">
                                         {/* Currency Symbol */}
                                         <span className={cn(
+                                            jetbrains.className,
                                             "text-sm font-bold opacity-80",
                                             isGod ? "text-yellow-400" :
                                                 isSuper ? "text-red-400" :
@@ -245,7 +334,8 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
 
                                         {/* Amount - The Hero */}
                                         <span className={cn(
-                                            "font-mono text-2xl font-black tracking-tighter",
+                                            jetbrains.className,
+                                            "text-3xl font-bold tracking-tighter",
                                             "drop-shadow-lg",
                                             isGod ? "text-yellow-100" :
                                                 isSuper ? "text-red-100" :
@@ -264,16 +354,80 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                             </div>
                         </div>
 
-                        {/* Bottom Left: Outcome */}
-                        <div className="flex items-end">
+                        {/* Bottom Left: Outcome - REDESIGNED */}
+                        <div className="flex items-end z-20">
                             <div className="flex flex-col justify-end">
-                                <div className={cn(
-                                    "px-2 py-0.5 border-2 font-black text-sm uppercase bg-zinc-900",
-                                    side === 'SELL'
-                                        ? "border-[#ff3b3b] text-[#ff3b3b] shadow-[3px_3px_0px_0px_#ff3b3b]"
-                                        : "border-[#21ff99] text-[#21ff99] shadow-[3px_3px_0px_0px_#21ff99]"
-                                )}>
-                                    {outcome}
+                                <div className="relative group/outcome cursor-default">
+                                    {/* Ambient Glow - Behind */}
+                                    <div className={cn(
+                                        "absolute -inset-2 opacity-0 group-hover/outcome:opacity-100 transition-opacity duration-500 blur-xl",
+                                        side === 'SELL' ? "bg-red-600/20" : "bg-emerald-500/20"
+                                    )} />
+
+                                    {/* Main Container */}
+                                    <div className={cn(
+                                        "relative flex flex-col min-w-[100px] overflow-hidden transition-all duration-300",
+                                        "bg-zinc-950 border border-zinc-800",
+                                        side === 'SELL'
+                                            ? "hover:border-red-500/50"
+                                            : "hover:border-emerald-500/50"
+                                    )}>
+                                        {/* Decorative Top Bar */}
+                                        <div className={cn(
+                                            "h-0.5 w-full",
+                                            side === 'SELL'
+                                                ? "bg-gradient-to-r from-red-500 via-orange-500 to-transparent"
+                                                : "bg-gradient-to-r from-emerald-500 via-cyan-500 to-transparent"
+                                        )} />
+
+                                        <div className="px-2 py-1.5">
+                                            {/* Label - Micro Typography */}
+                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                                <span className={cn(
+                                                    bricolage.className,
+                                                    "text-[0.65rem] uppercase tracking-[0.25em] font-black",
+                                                    side === 'SELL' ? "text-red-400" : "text-emerald-400"
+                                                )}>
+                                                    {side === 'SELL' ? 'Short' : 'Long'}
+                                                </span>
+                                                {/* Animated Dot */}
+                                                <div className={cn(
+                                                    "w-1 h-1 rounded-full animate-pulse",
+                                                    side === 'SELL' ? "bg-red-500" : "bg-emerald-500"
+                                                )} />
+                                            </div>
+
+                                            {/* The Outcome Text - Hero */}
+                                            <div className="relative">
+                                                <span className={cn(
+                                                    bricolage.className,
+                                                    "block text-lg font-black italic tracking-tighter leading-none uppercase text-zinc-100",
+                                                    "group-hover/outcome:translate-x-0.5 transition-transform duration-300"
+                                                )}>
+                                                    {outcome}
+                                                </span>
+
+                                                {/* Glitch/Echo Effect on Hover */}
+                                                <span className={cn(
+                                                    bricolage.className,
+                                                    "absolute inset-0 text-lg font-black italic tracking-tighter leading-none uppercase opacity-0 group-hover/outcome:opacity-40 transition-opacity duration-100 delay-75",
+                                                    "translate-x-[-1px] translate-y-[0.5px]",
+                                                    side === 'SELL' ? "text-red-500" : "text-emerald-500"
+                                                )}>
+                                                    {outcome}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Background Pattern - Subtle Grid */}
+                                        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none bg-[size:4px_4px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)]" />
+
+                                        {/* Corner Accent */}
+                                        <div className={cn(
+                                            "absolute bottom-0 right-0 w-2 h-2 border-b-1.5 border-r-1.5",
+                                            side === 'SELL' ? "border-red-500" : "border-emerald-500"
+                                        )} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -287,7 +441,8 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
 
                 {/* Card Docked Plate - Timestamp Footer */}
                 <div className={cn(
-                    "mx-auto mt-1 w-[92%] px-4 py-1.5 text-[10px] font-mono rounded-md",
+                    jetbrains.className,
+                    "mx-auto mt-1 w-[92%] px-4 py-1.5 text-[10px] rounded-md",
                     "backdrop-blur-sm border-t",
                     // Base styling - more subtle
                     "bg-black/20 text-zinc-500 border-[rgba(255,255,255,0.03)] shadow-inner shadow-black/20",

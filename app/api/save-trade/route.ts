@@ -13,6 +13,7 @@ interface SaveTradeRequest {
   conditionId?: string | null;
   outcome?: string;
   question?: string;
+  image?: string;
 }
 
 export async function POST(request: Request) {
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
         conditionId: tradeData.conditionId,
         outcome: tradeData.outcome,
         question: tradeData.question,
+        image: tradeData.image,
       },
     });
 
@@ -86,3 +88,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

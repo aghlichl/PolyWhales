@@ -208,7 +208,7 @@ graph TB
 ### External API Calls
 - **WebSocket**: `wss://ws-subscriptions-clob.polymarket.com/ws/market`
 - **Gamma API**: `https://gamma-api.polymarket.com/markets`
-- **Data API**: `https://data-api.polymarket.com/positions? mddress}`
+- **Data API**: `https://data-api.polymarket.com/positions?user={address}`
 - **CLOB API**: `https://clob.polymarket.com/book?token_id={assetId}`
 
 ### Real-time Data Flow
