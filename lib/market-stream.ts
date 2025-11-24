@@ -1,4 +1,4 @@
-import { Anomaly, UserPreferences, MarketMeta, AssetOutcome, AnomalyType, PolymarketMarket } from './types';
+import { Anomaly, UserPreferences, MarketMeta, AssetOutcome, AnomalyType, PolymarketMarket, PolymarketTrade } from './types';
 import { CONFIG } from './config';
 import { parseMarketData } from './polymarket';
 
@@ -34,7 +34,7 @@ function passesPreferences(anomaly: Anomaly, preferences?: UserPreferences): boo
 }
 
 // Helper function to save trade to database via API
-async function saveTradeToDatabase(trade: any, anomaly: Anomaly, conditionId?: string) {
+async function saveTradeToDatabase(trade: PolymarketTrade, anomaly: Anomaly, conditionId?: string) {
     try {
         const walletAddress = (trade.user || trade.maker || trade.taker || trade.wallet || '').toLowerCase();
 
@@ -225,7 +225,7 @@ export function startFirehose(onAnomaly: (a: Anomaly) => void, getPreferences?: 
                             outcome: outcomeLabel,
                             odds,
                             value,
-                            timestamp: Date.now(),
+                            timestamp: trade.timestamp ? new Date(trade.timestamp).getTime() : Date.now(),
                             side,
                             image: marketMeta.image,
                             wallet_context: walletAddress ? {

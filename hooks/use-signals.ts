@@ -10,6 +10,7 @@ export interface EnrichedTrade {
     outcome: string;
     conditionId: string;
     odds: number;
+    image?: string;
   };
   trade: {
     assetId: string;

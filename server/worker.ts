@@ -6,7 +6,7 @@ import { createServer } from 'http';
 import WebSocket from 'ws';
 import { getTraderProfile, analyzeMarketImpact, getWalletsFromTx } from '../lib/intelligence';
 import { fetchMarketsFromGamma, parseMarketData } from '../lib/polymarket';
-import { MarketMeta, AssetOutcome } from '../lib/types';
+import { MarketMeta, AssetOutcome, PolymarketTrade } from '../lib/types';
 import { CONFIG } from '../lib/config';
 
 // Initialize services
@@ -65,7 +65,7 @@ async function updateMarketMetadata(): Promise<string[]> {
 /**
  * Process and enrich a trade
  */
-export async function processTrade(trade: any) {
+export async function processTrade(trade: PolymarketTrade) {
   try {
     if (!trade.price || !trade.size || !trade.asset_id) return;
 
@@ -138,6 +138,7 @@ export async function processTrade(trade: any) {
         outcome: assetInfo.outcomeLabel,
         conditionId: assetInfo.conditionId,
         odds: Math.round(price * 100),
+        image: marketMeta.image,
       },
       trade: {
         assetId: trade.asset_id,
@@ -145,7 +146,7 @@ export async function processTrade(trade: any) {
         side,
         price,
         tradeValue: value,
-        timestamp: new Date(trade.timestamp || Date.now()),
+        timestamp: new Date(Number(trade.timestamp) * 1000 || Date.now()),
       },
       analysis: {
         tags: [
@@ -287,7 +288,7 @@ function connectToPolymarket() {
         if (parsed.event_type === 'last_trade_price' || parsed.event_type === 'trade') {
           const trades = Array.isArray(parsed) ? parsed : [parsed];
 
-          trades.forEach((trade: any) => {
+          trades.forEach((trade: PolymarketTrade) => {
             if (trade.price && trade.size && trade.asset_id) {
               processTrade(trade).catch(console.error);
             }

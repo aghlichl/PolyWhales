@@ -1,5 +1,20 @@
 export type AnomalyType = 'GOD_WHALE' | 'SUPER_WHALE' | 'MEGA_WHALE' | 'WHALE' | 'STANDARD';
 
+export interface PolymarketTrade {
+    asset_id: string;
+    price: number | string;
+    size: number | string;
+    side?: string;
+    type?: string;
+    user?: string;
+    maker?: string;
+    taker?: string;
+    wallet?: string;
+    market?: string;
+    timestamp?: number | string | Date;
+    transaction_hash?: string;
+}
+
 export interface UserPreferences {
     showStandard: boolean;
     showWhale: boolean;
@@ -81,6 +96,7 @@ export interface EnrichedTrade {
         outcome: string;
         conditionId: string;
         odds: number;
+        image?: string;
     };
     trade: {
         assetId: string;
