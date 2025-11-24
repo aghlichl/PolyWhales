@@ -85,16 +85,16 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
 
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
-            <div className="flex flex-col max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <div className="flex flex-col max-h-[80vh] overflow-y-auto custom-scrollbar">
                 {/* Header - HERO STYLE */}
-                <div className={cn("relative border-b border-zinc-800 overflow-hidden", bgGlow)}>
+                <div className={cn("relative border-b border-zinc-800", bgGlow)}>
                     {/* Background Image Overlay */}
                     {anomaly.image && (
-                        <div className="absolute inset-0 opacity-10">
+                        <div className="absolute inset-0 opacity-10 overflow-hidden">
                             <img
                                 src={anomaly.image}
                                 alt={event}
-                                className="w-full h-full object-cover blur-sm scale-110"
+                                className="w-full h-full object-cover blur-sm scale-105"
                             />
                             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
                         </div>
