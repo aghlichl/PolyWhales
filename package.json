@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "worker": "tsx server/worker.ts",
@@ -34,9 +34,11 @@
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "tap": "^21.1.6",
     "ts-node": "^10.9.2",
     "vercel": "^48.10.10",
     "viem": "^2.39.3",
+    "why-is-node-running": "^3.2.2",
     "ws": "^8.18.3",
     "zustand": "^5.0.8"
   },
