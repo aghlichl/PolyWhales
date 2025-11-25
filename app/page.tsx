@@ -10,6 +10,7 @@ import { BottomCarousel } from "@/components/bottom-carousel";
 import { UserPreferences } from "@/components/user-preferences";
 import { TopWhales } from "@/components/top-whales";
 import { SearchButton } from "@/components/search-button";
+import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { motion } from "framer-motion";
 
 
@@ -129,7 +130,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="h-full overflow-y-auto p-4 scrollbar-hide pt-24 pb-20">
+      <div className="h-full overflow-y-auto p-4 scrollbar-hide pt-24 pb-20 scroll-container">
         <motion.div
           className="max-w-md mx-auto w-full"
           key={currentPage}
@@ -196,6 +197,9 @@ export default function Home() {
 
       {/* Floating Search Button */}
       {currentPage === 1 && <SearchButton onSearch={setSearchQuery} />}
+
+      {/* Floating Scroll to Top Button */}
+      {currentPage === 1 && <ScrollToTopButton />}
     </main>
   );
 }
