@@ -8,7 +8,6 @@ import { getTraderProfile, analyzeMarketImpact, getWalletsFromTx } from '../lib/
 import { fetchMarketsFromGamma, parseMarketData, enrichTradeWithDataAPI } from '../lib/polymarket';
 import { MarketMeta, AssetOutcome, PolymarketTrade, EnrichmentStatus } from '../lib/types';
 import { CONFIG } from '../lib/config';
-import { safeParseDate } from '../lib/utils';
 
 // Helper function for rate limiting delays
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -115,7 +114,9 @@ export async function processTrade(trade: PolymarketTrade) {
     // Step 2: Try Data-API matching (if has txHash and no wallet yet)
     if (!walletAddress && transactionHash) {
       try {
-        const timestamp = safeParseDate(trade.timestamp);
+        const timestamp = trade.timestamp 
+          ? new Date(trade.timestamp) 
+          : new Date();
         
         const dataApiResult = await enrichTradeWithDataAPI({
           assetId: trade.asset_id,
@@ -203,7 +204,7 @@ export async function processTrade(trade: PolymarketTrade) {
         side,
         price,
         tradeValue: value,
-        timestamp: safeParseDate(trade.timestamp),
+        timestamp: new Date(trade.timestamp || Date.now()),
       },
       analysis: {
         tags: [
@@ -269,7 +270,7 @@ export async function processTrade(trade: PolymarketTrade) {
           size,
           price,
           tradeValue: value,
-          timestamp: safeParseDate(trade.timestamp),
+          timestamp: new Date(trade.timestamp || Date.now()),
           walletAddress: walletAddress.toLowerCase(),
           isWhale,
           isSmartMoney,
@@ -350,7 +351,7 @@ async function runBatchEnrichment() {
             assetId: trade.assetId,
             price: trade.price,
             size: trade.size,
-            timestamp: safeParseDate(trade.timestamp),
+            timestamp: trade.timestamp,
             transactionHash: trade.transactionHash,
           });
 
