@@ -51,3 +51,38 @@ export function formatCurrency(num: number): string {
 
   return num < 0 ? `-${formatted}` : `+${formatted}`;
 }
+
+/**
+ * Safely parse a timestamp value into a valid Date object.
+ * Falls back to Date.now() if the input is invalid.
+ */
+export function safeParseDate(timestamp: string | number | Date | undefined | null): Date {
+  if (!timestamp) {
+    return new Date();
+  }
+
+  // If it's already a Date object, check if it's valid
+  if (timestamp instanceof Date) {
+    return isNaN(timestamp.getTime()) ? new Date() : timestamp;
+  }
+
+  // Try to parse as a number (Unix timestamp)
+  if (typeof timestamp === 'number') {
+    const date = new Date(timestamp);
+    return isNaN(date.getTime()) ? new Date() : date;
+  }
+
+  // Try to parse as a string
+  if (typeof timestamp === 'string') {
+    // Handle empty/whitespace strings
+    if (timestamp.trim() === '') {
+      return new Date();
+    }
+
+    const date = new Date(timestamp);
+    return isNaN(date.getTime()) ? new Date() : date;
+  }
+
+  // Fallback for any other type
+  return new Date();
+}
