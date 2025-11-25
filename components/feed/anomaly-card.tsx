@@ -1,23 +1,25 @@
 import { Anomaly } from "@/lib/market-stream";
+import { MarketMeta } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Gauge } from "./gauge";
-import { useState, memo } from "react";
+import { useState, memo, useMemo } from "react";
 import { TradeDetailsModal } from "./trade-details-modal";
+import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
 
 // Import distinctive fonts following Spotify/DoorDash/Robinhood patterns
 import { Bricolage_Grotesque, JetBrains_Mono } from 'next/font/google';
 
 const bricolage = Bricolage_Grotesque({
-  subsets: ['latin'],
-  weight: ['200', '800'], // Extreme weight contrast
-  display: 'swap',
+    subsets: ['latin'],
+    weight: ['200', '800'], // Extreme weight contrast
+    display: 'swap',
 });
 
 const jetbrains = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['200', '800'], // Extreme weight contrast
-  display: 'swap',
+    subsets: ['latin'],
+    weight: ['200', '800'], // Extreme weight contrast
+    display: 'swap',
 });
 
 interface AnomalyCardProps {
@@ -35,6 +37,27 @@ export function convertAnomalyToCardProps(anomaly: Anomaly) {
 
 export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardProps) {
     const { event: title, value, outcome, odds, type, timestamp, side, image } = anomaly;
+
+    // Resolve team logo
+    const { resolvedTeam, logoPath, usePolymarketFallback } = useMemo(() => {
+        const team = resolveTeamFromMarket({
+            marketTitle: title,
+            outcomeLabel: outcome,
+            question: title, // Anomaly event is usually the question/title
+        });
+        const league = team?.league || inferLeagueFromMarket({ question: title } as MarketMeta);
+
+        // If no team found in teamMeta.ts, use Polymarket image as primary fallback
+        const noTeamMatch = !team;
+        const hasPolymarketImage = image && image.trim() !== '';
+
+        return {
+            resolvedTeam: team,
+            logoPath: noTeamMatch && hasPolymarketImage ? image : getLogoPathForTeam(team, league),
+            usePolymarketFallback: noTeamMatch && hasPolymarketImage
+        };
+    }, [title, outcome, image]);
+
     const amount = `$${Math.round(value).toLocaleString()}`;
     const isGod = type === 'GOD_WHALE';
     const isSuper = type === 'SUPER_WHALE';
@@ -209,30 +232,41 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         <div className="flex items-start min-w-0 pr-2">
                             <div className="relative group/title w-full flex gap-3">
                                 {/* Event Image (If Available) */}
-                                {image && (
-                                    <div className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/20 shadow-2xl group-hover/title:border-white/30 transition-all duration-300 backdrop-blur-sm bg-white/5">
-                                        {/* Modern Glass Effect */}
+                                {/* Team Logo / Event Image */}
+                                <div className={cn(
+                                    "relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/20 shadow-2xl group-hover/title:border-white/30 transition-all duration-300 backdrop-blur-sm",
+                                    usePolymarketFallback ? "bg-white/5" : "bg-transparent"
+                                )}>
+                                    {/* Modern Glass Effect - Only for Polymarket images */}
+                                    {usePolymarketFallback && (
                                         <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
+                                    )}
 
-                                        <img
-                                            src={image}
-                                            alt={title}
-                                            className="w-full h-full object-cover relative z-10"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                            }}
-                                        />
+                                    <img
+                                        src={logoPath}
+                                        alt={resolvedTeam?.name || title}
+                                        className="w-full h-full object-cover relative z-10"
+                                        onError={(e) => {
+                                            // If logo fails, try falling back to original Polymarket image if available, or hide
+                                            if (image && (e.target as HTMLImageElement).src !== image) {
+                                                (e.target as HTMLImageElement).src = image;
+                                                (e.target as HTMLImageElement).className = "w-full h-full object-cover relative z-10"; // Reset style for event image
+                                            } else {
+                                                // (e.target as HTMLImageElement).style.display = 'none';
+                                                // Don't hide, show placeholder? logoPath should be valid generic at least.
+                                            }
+                                        }}
+                                    />
 
-                                        {/* Enhanced Scanline Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent opacity-40 pointer-events-none" />
+                                    {/* Enhanced Scanline Overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent opacity-40 pointer-events-none" />
 
-                                        {/* Subtle Glow Effect */}
-                                        <div className="absolute inset-0 ring-1 ring-white/10 group-hover/title:ring-white/20 transition-all duration-300" />
+                                    {/* Subtle Glow Effect */}
+                                    <div className="absolute inset-0 ring-1 ring-white/10 group-hover/title:ring-white/20 transition-all duration-300" />
 
-                                        {/* Hover Scale Animation */}
-                                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-300" />
-                                    </div>
-                                )}
+                                    {/* Hover Scale Animation */}
+                                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-300" />
+                                </div>
 
                                 <div className="relative flex-1 min-w-0">
                                     {/* Tier-Specific Accent Bar (Vertical) */}

@@ -3,7 +3,8 @@
 import { Anomaly } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { cn, formatShortNumber, calculatePositionPL, formatCurrency } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
 import {
     AreaChart,
     Area,
@@ -23,7 +24,21 @@ interface TradeDetailsModalProps {
 }
 
 export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModalProps) {
-    const { event, outcome, odds, value, side, trader_context, wallet_context, analysis } = anomaly;
+    const { event, outcome, odds, value, side, trader_context, wallet_context, analysis, image } = anomaly;
+
+    // Resolve team logo
+    const { resolvedTeam, logoPath } = useMemo(() => {
+        const team = resolveTeamFromMarket({
+            marketTitle: event,
+            outcomeLabel: outcome,
+            question: event,
+        });
+        const league = team?.league || inferLeagueFromMarket({ question: event } as any);
+        return {
+            resolvedTeam: team,
+            logoPath: getLogoPathForTeam(team, league)
+        };
+    }, [event, outcome]);
 
     // Fallback to analysis tags if trader_context is missing (for older trades)
     const isInsider = analysis?.tags?.includes('INSIDER');
@@ -77,11 +92,11 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
 
     // Calculate P/L if we have price history
     const currentPrice = historyData?.priceHistory && historyData.priceHistory.length > 0
-      ? historyData.priceHistory[historyData.priceHistory.length - 1].price
-      : null;
+        ? historyData.priceHistory[historyData.priceHistory.length - 1].price
+        : null;
     const unrealizedPL = currentPrice !== null
-      ? calculatePositionPL(value, odds, currentPrice, side)
-      : 0;
+        ? calculatePositionPL(value, odds, currentPrice, side)
+        : 0;
 
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
@@ -89,10 +104,11 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                 {/* Header - HERO STYLE */}
                 <div className={cn("relative border-b border-zinc-800", bgGlow)}>
                     {/* Background Image Overlay */}
-                    {anomaly.image && (
+                    {/* Background Image Overlay */}
+                    {(image || logoPath) && (
                         <div className="absolute inset-0 opacity-10 overflow-hidden">
                             <img
-                                src={anomaly.image}
+                                src={image || logoPath}
                                 alt={event}
                                 className="w-full h-full object-cover blur-sm scale-105"
                             />
@@ -103,29 +119,31 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                     <div className="relative z-10 p-6">
                         <div className="flex items-start gap-6">
                             {/* Large Hero Thumbnail */}
-                            {anomaly.image && (
-                                <div className="relative shrink-0">
-                                    <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-white/20 shadow-2xl group-hover:border-white/30 transition-all duration-300 backdrop-blur-sm bg-white/5">
-                                        {/* Modern Glass Effect */}
-                                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
+                            {/* Large Hero Thumbnail */}
+                            <div className="relative shrink-0">
+                                <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-white/20 shadow-2xl group-hover:border-white/30 transition-all duration-300 backdrop-blur-sm bg-white/5">
+                                    {/* Modern Glass Effect */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
 
-                                        <img
-                                            src={anomaly.image}
-                                            alt={event}
-                                            className="w-full h-full object-cover relative z-10"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                            }}
-                                        />
+                                    <img
+                                        src={logoPath}
+                                        alt={event}
+                                        className="w-full h-full object-contain p-2 relative z-10"
+                                        onError={(e) => {
+                                            if (image && (e.target as HTMLImageElement).src !== image) {
+                                                (e.target as HTMLImageElement).src = image;
+                                                (e.target as HTMLImageElement).className = "w-full h-full object-cover relative z-10";
+                                            }
+                                        }}
+                                    />
 
-                                        {/* Enhanced Scanline Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent opacity-40 pointer-events-none" />
+                                    {/* Enhanced Scanline Overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent opacity-40 pointer-events-none" />
 
-                                        {/* Subtle Glow Effect */}
-                                        <div className="absolute inset-0 ring-1 ring-white/10 group-hover:ring-white/20 transition-all duration-300" />
-                                    </div>
+                                    {/* Subtle Glow Effect */}
+                                    <div className="absolute inset-0 ring-1 ring-white/10 group-hover:ring-white/20 transition-all duration-300" />
                                 </div>
-                            )}
+                            </div>
 
                             {/* Title and Badges */}
                             <div className="flex-1 min-w-0">
@@ -202,7 +220,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                         <span className={cn(
                             "text-xl font-bold font-mono",
                             unrealizedPL > 0 ? "text-emerald-400" :
-                            unrealizedPL < 0 ? "text-red-400" : "text-zinc-100"
+                                unrealizedPL < 0 ? "text-red-400" : "text-zinc-100"
                         )}>
                             {formatCurrency(unrealizedPL)}
                         </span>
