@@ -140,7 +140,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                     <img
                                         src={logoPath}
                                         alt={resolvedTeam?.name || event}
-                                        className={`w-full h-full relative z-10 ${usePolymarketFallback ? 'object-cover' : 'object-contain p-2'}`}
+                                        className="w-full h-full object-cover relative z-10"
                                         onError={(e) => {
                                             // If logo fails, try falling back to original Polymarket image if available, or hide
                                             if (image && (e.target as HTMLImageElement).src !== image) {
