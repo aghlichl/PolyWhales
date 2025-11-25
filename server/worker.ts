@@ -12,6 +12,23 @@ import { CONFIG } from '../lib/config';
 // Helper function for rate limiting delays
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Helper function for safe timestamp parsing
+function safeParseTimestamp(timestamp: string | number | Date | undefined): Date {
+  if (!timestamp) {
+    return new Date();
+  }
+
+  const date = new Date(timestamp);
+
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    console.warn('[Worker] Invalid timestamp received:', timestamp, '- using current time');
+    return new Date();
+  }
+
+  return date;
+}
+
 // Initialize services
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
@@ -114,9 +131,7 @@ export async function processTrade(trade: PolymarketTrade) {
     // Step 2: Try Data-API matching (if has txHash and no wallet yet)
     if (!walletAddress && transactionHash) {
       try {
-        const timestamp = trade.timestamp 
-          ? new Date(trade.timestamp) 
-          : new Date();
+        const timestamp = safeParseTimestamp(trade.timestamp);
         
         const dataApiResult = await enrichTradeWithDataAPI({
           assetId: trade.asset_id,
@@ -204,7 +219,7 @@ export async function processTrade(trade: PolymarketTrade) {
         side,
         price,
         tradeValue: value,
-        timestamp: new Date(trade.timestamp || Date.now()),
+        timestamp: safeParseTimestamp(trade.timestamp),
       },
       analysis: {
         tags: [
@@ -270,7 +285,7 @@ export async function processTrade(trade: PolymarketTrade) {
           size,
           price,
           tradeValue: value,
-          timestamp: new Date(trade.timestamp || Date.now()),
+          timestamp: safeParseTimestamp(trade.timestamp),
           walletAddress: walletAddress.toLowerCase(),
           isWhale,
           isSmartMoney,
