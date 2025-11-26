@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { Anomaly } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 
 interface QuickSearchFiltersProps {
@@ -303,52 +303,58 @@ export function QuickSearchFilters({ onFilterSelect, activeFilter, anomalies = [
 
   const { items: displayItems, title: displayTitle } = getCurrentItems();
 
+  // Limit display items to prevent overflow and maintain scrollability
+  const maxDisplayItems = 5;
+  const limitedDisplayItems = displayItems.slice(0, maxDisplayItems);
+
   return (
     <div className="flex items-center w-full">
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pr-2">
-        {drillDownLevel > 0 && (
-          <motion.button
-            onClick={handleBackToCategories}
-            className="flex items-center gap-1 text-xs font-mono text-zinc-400 hover:text-zinc-100 transition-colors duration-200 mr-2 whitespace-nowrap flex-shrink-0"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            ← Back
-          </motion.button>
-        )}
+      {drillDownLevel > 0 && (
+        <button
+          onClick={handleBackToCategories}
+          className="px-2 py-1.5 border-2 font-mono text-xs font-bold uppercase transition-all duration-200 shrink-0 border-zinc-600 bg-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+        >
+          ← BACK
+        </button>
+      )}
 
-        {/* Show league name only for level 2 (teams within league) */}
-        {drillDownLevel === 2 && displayTitle && (
-          <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider whitespace-nowrap mr-2 flex-shrink-0">
-            {displayTitle}:
+      {/* Show league name only for level 2 (teams within league) */}
+      {drillDownLevel === 2 && displayTitle && (
+        <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider whitespace-nowrap mr-2 shrink-0">
+          {displayTitle}:
+        </span>
+      )}
+
+        {limitedDisplayItems.map((item) => (
+          <button
+            key={item}
+            onClick={() => {
+              if (drillDownLevel === 2 || (drillDownLevel === 1 && expandedCategory !== 'sports')) {
+                // Final level - filter the results
+                onFilterSelect(item);
+              } else {
+                // Navigate to next level
+                handleCategoryClick(item);
+              }
+            }}
+            className={cn(
+              "px-2 py-1.5 border-2 font-mono text-xs font-bold uppercase transition-all duration-200 shrink-0",
+              activeFilter === item
+                ? "border-[#b8a889] bg-[#b8a889]/10 text-[#e9e2d3] shadow-[3px_3px_0px_0px_rgba(184,168,137,0.7)]"
+                : "border-zinc-600 bg-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            {item}
+          </button>
+        ))}
+
+        {/* Show indicator if there are more items */}
+        {displayItems.length > maxDisplayItems && (
+          <span className="text-xs font-mono text-zinc-500 uppercase shrink-0 ml-2">
+            +{displayItems.length - maxDisplayItems} MORE
           </span>
         )}
-
-        <div className="flex gap-2">
-          {displayItems.map((item) => (
-            <motion.button
-              key={item}
-              onClick={() => {
-                if (drillDownLevel === 2 || (drillDownLevel === 1 && expandedCategory !== 'sports')) {
-                  // Final level - filter the results
-                  onFilterSelect(item);
-                } else {
-                  // Navigate to next level
-                  handleCategoryClick(item);
-                }
-              }}
-              className={`px-3 py-1 text-xs font-mono rounded whitespace-nowrap transition-colors duration-200 flex-shrink-0 ${
-                activeFilter === item
-                  ? 'bg-primary text-black border border-primary'
-                  : 'bg-zinc-800/50 text-zinc-300 hover:bg-zinc-700/50 border border-zinc-700 hover:border-zinc-600'
-              }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {item}
-            </motion.button>
-          ))}
-        </div>
       </div>
     </div>
   );

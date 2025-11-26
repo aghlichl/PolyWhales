@@ -19,7 +19,9 @@ import {
   AssetOutcome,
   PolymarketTrade,
   EnrichmentStatus,
+  GammaPortfolio,
 } from "../lib/types";
+import { fetchPortfolio } from "../lib/gamma";
 import { CONFIG } from "../lib/config";
 
 // Helper function for rate limiting delays
@@ -77,6 +79,51 @@ async function updateMarketMetadata(): Promise<string[]> {
   } catch (error) {
     console.error("[Worker] Error fetching metadata:", error);
     return [];
+  }
+}
+
+/**
+ * Enriches wallet with portfolio data from Gamma
+ * Rate limited to once every 5 minutes per wallet
+ */
+async function enrichWalletPortfolio(walletAddress: string) {
+  try {
+    // Check if we have a recent snapshot (last 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const recentSnapshot = await prisma.walletPortfolioSnapshot.findFirst({
+      where: {
+        walletAddress: walletAddress,
+        timestamp: {
+          gt: fiveMinutesAgo,
+        },
+      },
+    });
+
+    if (recentSnapshot) {
+      return; // Skip if we have fresh data
+    }
+
+    // Fetch from Gamma
+    // console.log(`[Worker] Fetching portfolio for ${walletAddress}...`);
+    const portfolio = await fetchPortfolio(walletAddress);
+
+    if (portfolio) {
+      // Save snapshot
+      await prisma.walletPortfolioSnapshot.create({
+        data: {
+          walletAddress: walletAddress,
+          totalValue: portfolio.totalValue,
+          totalPnl: portfolio.totalPnl,
+          positions: portfolio.positions as any, // Cast to any for JSON compatibility
+          timestamp: new Date(),
+        },
+      });
+
+      // Optionally update wallet profile stats if Gamma data is more authoritative
+      // For now, we just store the snapshot
+    }
+  } catch (error) {
+    console.error(`[Worker] Error enriching portfolio for ${walletAddress}:`, error);
   }
 }
 
@@ -185,17 +232,17 @@ export async function processTrade(trade: PolymarketTrade) {
     const profile = walletAddress
       ? await getTraderProfile(walletAddress)
       : {
-          address: "",
-          label: null,
-          totalPnl: 0,
-          winRate: 0,
-          isFresh: false,
-          isSmartMoney: false,
-          isWhale: false,
-          txCount: 0,
-          maxTradeValue: 0,
-          activityLevel: null as "LOW" | "MEDIUM" | "HIGH" | null,
-        };
+        address: "",
+        label: null,
+        totalPnl: 0,
+        winRate: 0,
+        isFresh: false,
+        isSmartMoney: false,
+        isWhale: false,
+        txCount: 0,
+        maxTradeValue: 0,
+        activityLevel: null as "LOW" | "MEDIUM" | "HIGH" | null,
+      };
 
     // Analyze market impact
     const impact = await analyzeMarketImpact(
@@ -333,6 +380,14 @@ export async function processTrade(trade: PolymarketTrade) {
           enrichmentStatus,
         },
       });
+
+      // Trigger portfolio enrichment for interesting wallets
+      if (walletAddress && (isWhale || isSmartMoney || isGodWhale || isSuperWhale || isMegaWhale)) {
+        // Run in background, don't await
+        enrichWalletPortfolio(walletAddress.toLowerCase()).catch(err =>
+          console.error(`[Worker] Background portfolio enrichment failed:`, err)
+        );
+      }
     } catch (dbError) {
       console.error("[Worker] Database error:", dbError);
     }
@@ -491,7 +546,7 @@ async function runBatchEnrichment() {
             where: { id: trade.id },
             data: { enrichmentStatus: "failed" },
           })
-          .catch(() => {}); // Ignore update errors
+          .catch(() => { }); // Ignore update errors
       }
     }
 

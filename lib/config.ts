@@ -8,6 +8,7 @@ export const CONFIG = {
     },
     URLS: {
         GAMMA_API: 'https://gamma-api.polymarket.com/markets?limit=500&active=true&closed=false&order=volume24hr&ascending=false',
+        GAMMA_API_PORTFOLIO: 'https://gamma-api.polymarket.com/portfolio',
         WS_CLOB: 'wss://ws-subscriptions-clob.polymarket.com/ws/market',
         DATA_API_TRADES: 'https://data-api.polymarket.com/trades',
     },

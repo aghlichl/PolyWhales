@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { cn, formatShortNumber, calculatePositionPL, formatCurrency } from "@/lib/utils";
 import { useState, useEffect, useMemo } from "react";
 import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
+import { WalletPortfolio } from "@/components/wallet-portfolio";
 import {
     AreaChart,
     Area,
@@ -450,7 +451,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                             "font-bold text-sm md:text-base font-mono",
                                             period.data ? (
                                                 period.data.pnlPercent > 0 ? "text-emerald-400" :
-                                                period.data.pnlPercent < 0 ? "text-red-400" : "text-zinc-400"
+                                                    period.data.pnlPercent < 0 ? "text-red-400" : "text-zinc-400"
                                             ) : "text-zinc-600 animate-pulse"
                                         )}>
                                             {period.data ? (
@@ -571,6 +572,13 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                         )}
                     </div>
                 </div>
+
+                {/* Wallet Portfolio */}
+                {wallet_context?.address && (
+                    <div className="p-3 md:p-4 lg:p-6 border-t border-zinc-800">
+                        <WalletPortfolio walletAddress={wallet_context.address} />
+                    </div>
+                )}
             </div>
         </Modal>
     );

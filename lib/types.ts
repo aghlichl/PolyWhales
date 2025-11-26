@@ -167,7 +167,6 @@ export interface DataAPIActivity {
 // Enrichment status for trade wallet identity
 export type EnrichmentStatus = 'pending' | 'enriched' | 'failed';
 
-// Result from wallet enrichment attempt
 export interface WalletEnrichmentResult {
     walletAddress: string;
     maker: string;
@@ -175,3 +174,27 @@ export interface WalletEnrichmentResult {
     source: 'websocket' | 'data-api' | 'tx-logs';
 }
 
+// Gamma Portfolio Types
+export interface GammaPosition {
+    asset_id: string;
+    condition_id: string;
+    question: string;
+    outcome: string;
+    outcomeLabel: string; // "Yes" or "No" usually
+    market: string; // Market question
+    size: number;
+    price: number; // Current price
+    value: number; // Current value
+    avgPrice: number; // Average entry price
+    pnl: number;
+    pnlPercent: number;
+    image?: string;
+}
+
+export interface GammaPortfolio {
+    address: string;
+    totalValue: number;
+    totalPnl: number;
+    totalPnlPercent: number;
+    positions: GammaPosition[];
+}

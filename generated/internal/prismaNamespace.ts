@@ -385,6 +385,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   WalletProfile: 'WalletProfile',
+  WalletPortfolioSnapshot: 'WalletPortfolioSnapshot',
   Trade: 'Trade',
   User: 'User',
   Watchlist: 'Watchlist',
@@ -404,7 +405,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "walletProfile" | "trade" | "user" | "watchlist" | "alert"
+    modelProps: "walletProfile" | "walletPortfolioSnapshot" | "trade" | "user" | "watchlist" | "alert"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -479,6 +480,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.WalletProfileCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.WalletProfileCountAggregateOutputType> | number
+        }
+      }
+    }
+    WalletPortfolioSnapshot: {
+      payload: Prisma.$WalletPortfolioSnapshotPayload<ExtArgs>
+      fields: Prisma.WalletPortfolioSnapshotFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WalletPortfolioSnapshotFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WalletPortfolioSnapshotFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>
+        }
+        findFirst: {
+          args: Prisma.WalletPortfolioSnapshotFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WalletPortfolioSnapshotFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>
+        }
+        findMany: {
+          args: Prisma.WalletPortfolioSnapshotFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>[]
+        }
+        create: {
+          args: Prisma.WalletPortfolioSnapshotCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>
+        }
+        createMany: {
+          args: Prisma.WalletPortfolioSnapshotCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WalletPortfolioSnapshotCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>[]
+        }
+        delete: {
+          args: Prisma.WalletPortfolioSnapshotDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>
+        }
+        update: {
+          args: Prisma.WalletPortfolioSnapshotUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>
+        }
+        deleteMany: {
+          args: Prisma.WalletPortfolioSnapshotDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WalletPortfolioSnapshotUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WalletPortfolioSnapshotUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>[]
+        }
+        upsert: {
+          args: Prisma.WalletPortfolioSnapshotUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletPortfolioSnapshotPayload>
+        }
+        aggregate: {
+          args: Prisma.WalletPortfolioSnapshotAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWalletPortfolioSnapshot>
+        }
+        groupBy: {
+          args: Prisma.WalletPortfolioSnapshotGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WalletPortfolioSnapshotGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WalletPortfolioSnapshotCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WalletPortfolioSnapshotCountAggregateOutputType> | number
         }
       }
     }
@@ -832,6 +907,18 @@ export const WalletProfileScalarFieldEnum = {
 export type WalletProfileScalarFieldEnum = (typeof WalletProfileScalarFieldEnum)[keyof typeof WalletProfileScalarFieldEnum]
 
 
+export const WalletPortfolioSnapshotScalarFieldEnum = {
+  id: 'id',
+  walletAddress: 'walletAddress',
+  timestamp: 'timestamp',
+  totalValue: 'totalValue',
+  totalPnl: 'totalPnl',
+  positions: 'positions'
+} as const
+
+export type WalletPortfolioSnapshotScalarFieldEnum = (typeof WalletPortfolioSnapshotScalarFieldEnum)[keyof typeof WalletPortfolioSnapshotScalarFieldEnum]
+
+
 export const TradeScalarFieldEnum = {
   id: 'id',
   assetId: 'assetId',
@@ -1003,6 +1090,20 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'BigInt'
  */
 export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
@@ -1041,20 +1142,6 @@ export type EnumAlertTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
  * Reference to a field of type 'AlertType[]'
  */
 export type ListEnumAlertTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AlertType[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 /**
@@ -1137,6 +1224,7 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   walletProfile?: Prisma.WalletProfileOmit
+  walletPortfolioSnapshot?: Prisma.WalletPortfolioSnapshotOmit
   trade?: Prisma.TradeOmit
   user?: Prisma.UserOmit
   watchlist?: Prisma.WatchlistOmit

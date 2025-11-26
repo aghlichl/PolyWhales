@@ -45,6 +45,11 @@ export { Prisma }
  */
 export type WalletProfile = Prisma.WalletProfileModel
 /**
+ * Model WalletPortfolioSnapshot
+ * 
+ */
+export type WalletPortfolioSnapshot = Prisma.WalletPortfolioSnapshotModel
+/**
  * Model Trade
  * 
  */

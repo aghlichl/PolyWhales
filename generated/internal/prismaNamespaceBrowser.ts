@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   WalletProfile: 'WalletProfile',
+  WalletPortfolioSnapshot: 'WalletPortfolioSnapshot',
   Trade: 'Trade',
   User: 'User',
   Watchlist: 'Watchlist',
@@ -87,6 +88,18 @@ export const WalletProfileScalarFieldEnum = {
 } as const
 
 export type WalletProfileScalarFieldEnum = (typeof WalletProfileScalarFieldEnum)[keyof typeof WalletProfileScalarFieldEnum]
+
+
+export const WalletPortfolioSnapshotScalarFieldEnum = {
+  id: 'id',
+  walletAddress: 'walletAddress',
+  timestamp: 'timestamp',
+  totalValue: 'totalValue',
+  totalPnl: 'totalPnl',
+  positions: 'positions'
+} as const
+
+export type WalletPortfolioSnapshotScalarFieldEnum = (typeof WalletPortfolioSnapshotScalarFieldEnum)[keyof typeof WalletPortfolioSnapshotScalarFieldEnum]
 
 
 export const TradeScalarFieldEnum = {

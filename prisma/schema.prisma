@@ -21,8 +21,27 @@ model WalletProfile {
   activityLevel String? // "LOW", "MEDIUM", "HIGH"
   lastUpdated DateTime @default(now())
   trades      Trade[]
+  snapshots   WalletPortfolioSnapshot[]
 
   @@map("wallet_profiles")
+}
+
+model WalletPortfolioSnapshot {
+  id            String        @id @default(cuid())
+  walletAddress String
+  wallet        WalletProfile @relation(fields: [walletAddress], references: [id])
+  timestamp     DateTime      @default(now())
+  
+  // Summary metrics
+  totalValue    Float         @default(0)
+  totalPnl      Float         @default(0)
+  
+  // Raw data
+  positions     Json          // Array of positions from Gamma
+  
+  @@index([walletAddress])
+  @@index([timestamp])
+  @@map("wallet_portfolio_snapshots")
 }
 
 model Trade {
