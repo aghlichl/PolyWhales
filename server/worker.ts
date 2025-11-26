@@ -182,14 +182,18 @@ export async function processTrade(trade: PolymarketTrade) {
     // Analyze market impact
     const impact = await analyzeMarketImpact(trade.asset_id, size, side as 'BUY' | 'SELL');
 
-    // Tag the trade
-    const isWhale = value > 10000 || profile.isWhale;
+    // Tag the trade with proper tiered classification
+    const isWhale = value >= CONFIG.THRESHOLDS.WHALE || profile.isWhale;
+    const isMegaWhale = value >= CONFIG.THRESHOLDS.MEGA_WHALE;
+    const isSuperWhale = value >= CONFIG.THRESHOLDS.SUPER_WHALE;
+    const isGodWhale = value >= CONFIG.THRESHOLDS.GOD_WHALE;
     const isSmartMoney = profile.isSmartMoney;
     const isFresh = profile.isFresh;
     const isSweeper = impact.isSweeper;
     const isInsider = profile.activityLevel === 'LOW' && profile.winRate > 0.7 && profile.totalPnl > 10000;
 
     // Create enriched trade object
+    console.log('[WORKER] Polymarket image for market:', marketMeta.question, marketMeta.image);
     const enrichedTrade = {
       type: 'UNUSUAL_ACTIVITY',
       market: {
@@ -197,6 +201,7 @@ export async function processTrade(trade: PolymarketTrade) {
         outcome: assetInfo.outcomeLabel,
         conditionId: assetInfo.conditionId,
         odds: Math.round(price * 100),
+        image: marketMeta.image,
       },
       trade: {
         assetId: trade.asset_id,
@@ -208,6 +213,9 @@ export async function processTrade(trade: PolymarketTrade) {
       },
       analysis: {
         tags: [
+          isGodWhale && 'GOD_WHALE',
+          isSuperWhale && 'SUPER_WHALE',
+          isMegaWhale && 'MEGA_WHALE',
           isWhale && 'WHALE',
           isSmartMoney && 'SMART_MONEY',
           isFresh && 'FRESH_WALLET',

@@ -14,7 +14,8 @@ import {
     ResponsiveContainer,
     BarChart,
     Bar,
-    Cell
+    Cell,
+    ReferenceLine
 } from "recharts";
 
 interface TradeDetailsModalProps {
@@ -74,6 +75,11 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
     const [historyData, setHistoryData] = useState<{
         priceHistory: any[];
         walletHistory: any[];
+        stats?: {
+            last5: { winRate: number; pnlPercent: number; totalPnL: number; tradeCount: number };
+            last10: { winRate: number; pnlPercent: number; totalPnL: number; tradeCount: number };
+            last50: { winRate: number; pnlPercent: number; totalPnL: number; tradeCount: number };
+        };
     } | null>(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -83,7 +89,8 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
             const params = new URLSearchParams({
                 question: anomaly.event,
                 outcome: anomaly.outcome,
-                walletAddress: anomaly.wallet_context?.address || ''
+                walletAddress: anomaly.wallet_context?.address || '',
+                tradeTimestamp: anomaly.timestamp.toString()
             });
 
             fetch(`/api/market-history?${params.toString()}`)
@@ -122,7 +129,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                 alt={event}
                                 className="w-full h-full object-cover blur-sm scale-105"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
+                            <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/60 to-transparent" />
                         </div>
                     )}
 
@@ -134,7 +141,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                 <div className="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 rounded-lg overflow-hidden border-2 border-white/20 shadow-2xl group-hover:border-white/30 transition-all duration-300 backdrop-blur-sm bg-white/5">
                                     {/* Modern Glass Effect - Only for Polymarket images */}
                                     {usePolymarketFallback && (
-                                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
+                                        <div className="absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-black/20" />
                                     )}
 
                                     <img
@@ -155,7 +162,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                     />
 
                                     {/* Enhanced Scanline Overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent opacity-40 pointer-events-none" />
+                                    <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/10 to-transparent opacity-40 pointer-events-none" />
 
                                     {/* Subtle Glow Effect */}
                                     <div className="absolute inset-0 ring-1 ring-white/10 group-hover:ring-white/20 transition-all duration-300" />
@@ -263,7 +270,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                 <div className="h-full flex items-center justify-center text-zinc-600 text-xs md:text-sm animate-pulse">Loading chart data...</div>
                             ) : historyData?.priceHistory?.length ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={historyData.priceHistory}>
+                                    <AreaChart data={historyData.priceHistory} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                                         <defs>
                                             <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -282,19 +289,48 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                             minTickGap={40}
                                         />
                                         <YAxis
-                                            domain={['auto', 'auto']}
+                                            domain={[0, 100]}
                                             stroke="#52525b"
                                             fontSize={9}
                                             tickLine={false}
                                             axisLine={false}
                                             tickFormatter={(val) => `${val}¢`}
-                                            width={25}
+                                            width={30}
                                         />
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', fontSize: '11px' }}
                                             itemStyle={{ color: '#e4e4e7' }}
                                             labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
                                             formatter={(value: number) => [`${value.toFixed(1)}¢`, 'Price']}
+                                        />
+                                        <ReferenceLine
+                                            x={anomaly.timestamp}
+                                            stroke="#ffffff"
+                                            strokeDasharray="3 3"
+                                            strokeWidth={2}
+                                            strokeOpacity={0.8}
+                                            label={{
+                                                value: new Date(anomaly.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                position: 'insideTop',
+                                                fill: '#a1a1aa',
+                                                fontSize: 10,
+                                                offset: 8,
+                                                dx: 30
+                                            }}
+                                        />
+                                        <ReferenceLine
+                                            y={odds}
+                                            stroke={unrealizedPL > 0 ? "#10b981" : unrealizedPL < 0 ? "#ef4444" : "#f4f4f5"}
+                                            strokeDasharray="5 5"
+                                            strokeWidth={1}
+                                            strokeOpacity={0.7}
+                                            label={{
+                                                value: `${odds}¢`,
+                                                position: "insideRight",
+                                                fill: unrealizedPL > 0 ? "#10b981" : unrealizedPL < 0 ? "#ef4444" : "#f4f4f5",
+                                                fontSize: 10,
+                                                dy: -5
+                                            }}
                                         />
                                         <Area
                                             type="monotone"
@@ -374,6 +410,66 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                 <div className="h-full flex items-center justify-center text-zinc-600 text-xs md:text-sm">No recent wallet activity</div>
                             )}
                         </div>
+                    </div>
+                </div>
+
+                {/* Recent Performance Stats */}
+                <div className="p-3 md:p-4 lg:p-6 border-b border-zinc-800">
+                    <h3 className="text-sm md:text-base font-bold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span className="w-1 h-4 bg-purple-500 rounded-full" />
+                        Recent Performance
+                    </h3>
+                    <div className="grid grid-cols-3 gap-2 md:gap-4">
+                        {[
+                            { label: 'Last 5', data: historyData?.stats?.last5 },
+                            { label: 'Last 10', data: historyData?.stats?.last10 },
+                            { label: 'Last 50', data: historyData?.stats?.last50 }
+                        ].map((period) => (
+                            <div key={period.label} className="bg-zinc-900/50 p-2 md:p-3 rounded border border-zinc-800 flex flex-col items-center text-center">
+                                <div className="text-[10px] text-zinc-500 uppercase mb-1">{period.label} Trades</div>
+
+                                <div className="grid grid-cols-2 w-full gap-x-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-zinc-600">Win Rate</span>
+                                        <span className={cn(
+                                            "font-bold text-sm md:text-base font-mono",
+                                            period.data ? (
+                                                period.data.winRate >= 50 ? "text-emerald-400" : "text-red-400"
+                                            ) : "text-zinc-600 animate-pulse"
+                                        )}>
+                                            {period.data ? (
+                                                `${period.data.winRate.toFixed(0)}%`
+                                            ) : (
+                                                '...'
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-zinc-600">PnL</span>
+                                        <span className={cn(
+                                            "font-bold text-sm md:text-base font-mono",
+                                            period.data ? (
+                                                period.data.pnlPercent > 0 ? "text-emerald-400" :
+                                                period.data.pnlPercent < 0 ? "text-red-400" : "text-zinc-400"
+                                            ) : "text-zinc-600 animate-pulse"
+                                        )}>
+                                            {period.data ? (
+                                                `${period.data.pnlPercent > 0 ? '+' : ''}${period.data.pnlPercent.toFixed(1)}%`
+                                            ) : (
+                                                '...'
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {period.data && period.data.tradeCount === 0 && (
+                                    <div className="mt-1 text-[10px] text-zinc-600 italic">No data</div>
+                                )}
+                                {!period.data && (
+                                    <div className="mt-1 text-[10px] text-zinc-600 italic animate-pulse">Loading stats...</div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
 

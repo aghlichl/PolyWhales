@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useMarketStore, usePreferencesStore } from "@/lib/store";
-import { Anomaly, UserPreferences as UserPreferencesType } from "@/lib/market-stream";
+import { Anomaly, UserPreferences as UserPreferencesType } from "@/lib/types";
 import { Ticker } from "@/components/feed/ticker";
 import { SlotReel } from "@/components/feed/slot-reel";
 import { AnomalyCard } from "@/components/feed/anomaly-card";

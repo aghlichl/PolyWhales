@@ -2,20 +2,20 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs));
 }
 
 export function formatShortNumber(num: number): string {
-    if (num >= 1000000000) {
-        return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
-    }
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-    }
-    if (num >= 1000) {
-        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-    }
-    return num.toString();
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+  }
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num.toString();
 }
 
 export function calculatePositionPL(
@@ -29,11 +29,22 @@ export function calculatePositionPL(
   const currentPriceDecimal = currentPrice / 100;
 
   if (side === 'BUY') {
-    // Profit when price goes up
+    // Long position: Profit = (Current Price - Entry Price) / Entry Price
+    if (betPrice === 0) return 0;
     return tradeValue * (currentPriceDecimal - betPrice) / betPrice;
   } else {
-    // Profit when price goes down (SELL position)
-    return tradeValue * (betPrice - currentPriceDecimal) / betPrice;
+    // Short position (SELL): Effectively "Buying No"
+    // Entry Price for "No" = 1 - Entry Price for "Yes"
+    // Current Price for "No" = 1 - Current Price for "Yes"
+    const entryPriceNo = 1 - betPrice;
+    const currentPriceNo = 1 - currentPriceDecimal;
+
+    if (entryPriceNo === 0) return 0;
+
+    // Profit = (Current "No" Price - Entry "No" Price) / Entry "No" Price
+    //        = ((1 - Current Yes) - (1 - Entry Yes)) / (1 - Entry Yes)
+    //        = (Entry Yes - Current Yes) / (1 - Entry Yes)
+    return tradeValue * (currentPriceNo - entryPriceNo) / entryPriceNo;
   }
 }
 

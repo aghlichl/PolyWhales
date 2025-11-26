@@ -1,4 +1,4 @@
-import { MarketMeta, AssetOutcome, PolymarketMarket, DataAPITrade, WalletEnrichmentResult } from './types';
+import { MarketMeta, AssetOutcome, PolymarketMarket, DataAPITrade, DataAPIActivity, WalletEnrichmentResult } from './types';
 import { CONFIG } from './config';
 
 export function normalizeMarketResponse(data: any): PolymarketMarket[] {
@@ -77,7 +77,9 @@ export function parseMarketData(markets: PolymarketMarket[]): {
                 marketType: market.marketType,
                 outcomes,
                 clobTokenIds: tokenIds,
-                image: imageUrl
+                image: imageUrl,
+                outcomePrices: typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : market.outcomePrices,
+                closed: market.closed
             };
 
             marketsByCondition.set(market.conditionId, meta);
@@ -118,7 +120,7 @@ export interface DataAPITradeQuery {
 export async function fetchTradesFromDataAPI(params: DataAPITradeQuery): Promise<DataAPITrade[]> {
     try {
         const url = new URL(CONFIG.URLS.DATA_API_TRADES);
-        
+
         if (params.asset_id) url.searchParams.set('asset_id', params.asset_id);
         if (params.maker) url.searchParams.set('maker', params.maker);
         if (params.after) url.searchParams.set('after', params.after.toString());
@@ -143,6 +145,119 @@ export async function fetchTradesFromDataAPI(params: DataAPITradeQuery): Promise
         console.error('[DataAPI] Error fetching trades:', error);
         return [];
     }
+}
+
+// Query parameters for Data-API /activity endpoint
+export interface DataAPIActivityQuery {
+    user: string; // Wallet address (required) - may be user or proxy wallet
+    limit?: number;
+    offset?: number;
+    market?: string; // conditionId
+    eventId?: string;
+    type?: 'TRADE' | 'SPLIT' | 'MERGE' | 'REDEEM' | 'REWARD' | 'CONVERSION';
+    side?: 'BUY' | 'SELL';
+    sortBy?: 'TIMESTAMP' | 'SIZE' | 'PRICE';
+    sortDirection?: 'ASC' | 'DESC';
+    start?: number; // Unix timestamp
+    end?: number;   // Unix timestamp
+}
+
+/**
+ * Attempts to resolve proxy wallet address for a user address
+ * Polymarket uses proxy wallets (1-of-1 multisigs) for trading
+ */
+export async function resolveProxyWallet(userAddress: string): Promise<string | null> {
+    try {
+        // First, try fetching positions to see if we can get proxy wallet info
+        const positionsUrl = `https://data-api.polymarket.com/positions?user=${userAddress}`;
+        const response = await fetch(positionsUrl, {
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'OddsGods/1.0',
+            }
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const positions = await response.json();
+        if (!Array.isArray(positions) || positions.length === 0) {
+            return null;
+        }
+
+        // Check if any position has proxy wallet info
+        // Some Polymarket APIs might include proxy wallet in position data
+        // For now, if positions exist, the user address might work directly
+        return userAddress; // Assume user address works, proxy resolution can be added later
+
+    } catch (error) {
+        console.warn('[DataAPI] Error resolving proxy wallet:', error);
+        return null;
+    }
+}
+
+/**
+ * Fetches user activity from Polymarket Data-API /activity endpoint
+ * Rate limit: 75 requests per 10 seconds
+ */
+export async function fetchActivityFromDataAPI(params: DataAPIActivityQuery): Promise<DataAPIActivity[]> {
+    try {
+        // First try with the provided user address
+        let userAddress = params.user;
+        let activities = await fetchActivityWithAddress(userAddress, params);
+
+        // If no activities found, try to resolve proxy wallet
+        if (activities.length === 0) {
+            const proxyWallet = await resolveProxyWallet(userAddress);
+            if (proxyWallet && proxyWallet !== userAddress) {
+                console.log(`[DataAPI] Retrying with proxy wallet for ${userAddress.slice(0, 8)}...`);
+                activities = await fetchActivityWithAddress(proxyWallet, { ...params, user: proxyWallet });
+            }
+        }
+
+        return activities;
+    } catch (error) {
+        console.error('[DataAPI] Error fetching activity:', error);
+        return [];
+    }
+}
+
+/**
+ * Internal function to fetch activity with a specific address
+ */
+async function fetchActivityWithAddress(userAddress: string, params: DataAPIActivityQuery): Promise<DataAPIActivity[]> {
+    const url = new URL('https://data-api.polymarket.com/activity');
+
+    // Required parameter
+    url.searchParams.set('user', userAddress);
+
+    // Optional parameters
+    if (params.limit) url.searchParams.set('limit', params.limit.toString());
+    if (params.offset) url.searchParams.set('offset', params.offset.toString());
+    if (params.market) url.searchParams.set('market', params.market);
+    if (params.eventId) url.searchParams.set('eventId', params.eventId);
+    if (params.type) url.searchParams.set('type', params.type);
+    if (params.side) url.searchParams.set('side', params.side);
+    if (params.sortBy) url.searchParams.set('sortBy', params.sortBy);
+    if (params.sortDirection) url.searchParams.set('sortDirection', params.sortDirection);
+    if (params.start) url.searchParams.set('start', params.start.toString());
+    if (params.end) url.searchParams.set('end', params.end.toString());
+
+    const response = await fetch(url.toString(), {
+        headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'OddsGods/1.0',
+        }
+    });
+
+    if (!response.ok) {
+        console.warn(`[DataAPI] Failed to fetch activity: ${response.status} ${response.statusText}`);
+        return [];
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
 }
 
 /**
@@ -182,10 +297,10 @@ export async function enrichTradeWithDataAPI(trade: TradeForEnrichment): Promise
 
         // Strategy 1: Direct match by transaction hash (most reliable)
         if (trade.transactionHash) {
-            const exactMatch = trades.find(t => 
+            const exactMatch = trades.find(t =>
                 t.transaction_hash?.toLowerCase() === trade.transactionHash?.toLowerCase()
             );
-            
+
             if (exactMatch) {
                 return {
                     walletAddress: exactMatch.owner || exactMatch.maker_address,
@@ -207,10 +322,10 @@ export async function enrichTradeWithDataAPI(trade: TradeForEnrichment): Promise
 
             // Check price within tolerance
             const priceMatch = Math.abs(apiPrice - trade.price) / trade.price <= priceTolerance;
-            
+
             // Check size within tolerance  
             const sizeMatch = Math.abs(apiSize - trade.size) / trade.size <= sizeTolerance;
-            
+
             // Check timestamp within window
             const timestampMatch = Math.abs(apiTimestamp - trade.timestamp.getTime()) <= CONFIG.ENRICHMENT.TIME_WINDOW_MS;
 

@@ -1,4 +1,4 @@
-import { Anomaly } from "@/lib/market-stream";
+import { Anomaly } from "@/lib/types";
 import { MarketMeta } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -69,8 +69,12 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
 
         // If no team found in teamMeta.ts, use Polymarket image as primary fallback
         const noTeamMatch = !team;
-        const hasPolymarketImage = image && image.trim() !== '';
-
+        const hasPolymarketImage = image && image.length > 0;
+        console.log('[IMAGE]', image);
+        console.log('[HAS_POLYMARKET_IMAGE]', hasPolymarketImage);
+        console.log('[NO_TEAM_MATCH]', noTeamMatch);
+        console.log('[GET_LOGO_PATH_FOR_TEAM]', getLogoPathForTeam(team, league));
+        console.log('[USE_POLYMARKET_FALLBACK]', noTeamMatch && hasPolymarketImage);
         return {
             resolvedTeam: team,
             logoPath: noTeamMatch && hasPolymarketImage ? image : getLogoPathForTeam(team, league),

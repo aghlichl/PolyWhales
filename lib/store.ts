@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Anomaly, UserPreferences } from './market-stream';
+import { Anomaly, UserPreferences } from './types';
 import { io } from 'socket.io-client';
 
 // Helper function to check if anomaly passes user preferences
@@ -235,6 +235,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
           is_fresh_wallet: enrichedTrade.analysis.wallet_context.is_fresh_wallet,
         }
       };
+
+      console.log('[STORE] Created anomaly with image:', anomaly.image);
 
       // Only add if it passes user preferences
       const currentPreferences = getPreferences?.();

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Anomaly } from "@/lib/market-stream";
+import { Anomaly } from "@/lib/types";
 
 
 interface QuickSearchFiltersProps {

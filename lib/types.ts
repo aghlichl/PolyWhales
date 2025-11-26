@@ -65,6 +65,8 @@ export interface MarketMeta {
     outcomes: string[];
     clobTokenIds: string[];
     image?: string;
+    outcomePrices?: string[];
+    closed?: boolean;
 }
 
 export interface AssetOutcome {
@@ -81,6 +83,8 @@ export interface PolymarketMarket {
     image?: string;
     icon?: string;
     twitterCardImage?: string;
+    outcomePrices?: string | string[];
+    closed?: boolean;
     events: {
         id: string;
         title: string;
@@ -139,6 +143,23 @@ export interface DataAPITrade {
     maker_address: string;   // Maker wallet address
     transaction_hash: string;
     type: string;
+}
+
+// Data-API activity response from Polymarket /activity endpoint
+export interface DataAPIActivity {
+    id: string;
+    proxyWallet: string;
+    timestamp: number; // Unix timestamp
+    type: 'TRADE' | 'SPLIT' | 'MERGE' | 'REDEEM' | 'REWARD' | 'CONVERSION';
+    conditionId: string;
+    size: string;
+    usdcSize: string;
+    transactionHash: string;
+    price: string;
+    side: 'BUY' | 'SELL';
+    outcome: string;
+    market: string;
+    asset_id: string;
 }
 
 // Enrichment status for trade wallet identity

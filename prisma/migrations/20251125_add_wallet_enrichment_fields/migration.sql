@@ -28,3 +28,6 @@ UPDATE "trades" SET "enrichmentStatus" = 'enriched' WHERE "walletAddress" IS NOT
 -- Mark existing trades without wallet addresses as pending
 UPDATE "trades" SET "enrichmentStatus" = 'pending' WHERE "walletAddress" IS NULL OR "walletAddress" = '';
 
+
+
+
