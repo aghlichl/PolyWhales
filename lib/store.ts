@@ -32,6 +32,7 @@ interface Preferences {
   showMegaWhale: boolean;
   showSuperWhale: boolean;
   showGodWhale: boolean;
+  showSports: boolean;
   minValueThreshold: number;
 }
 
@@ -41,6 +42,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   showMegaWhale: true,
   showSuperWhale: true,
   showGodWhale: true,
+  showSports: true,
   minValueThreshold: 0,
 };
 

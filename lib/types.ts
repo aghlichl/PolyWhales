@@ -21,6 +21,7 @@ export interface UserPreferences {
     showMegaWhale: boolean;
     showSuperWhale: boolean;
     showGodWhale: boolean;
+    showSports: boolean;
     minValueThreshold: number;
 }
 

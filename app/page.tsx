@@ -39,6 +39,13 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType): 
     default:
       return true;
   }
+
+  // Check sports filter - hide events containing "vs."
+  if (!preferences.showSports && anomaly.event.toLowerCase().includes('vs.')) {
+    return false;
+  }
+
+  return true;
 }
 
 export default function Home() {

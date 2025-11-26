@@ -190,6 +190,30 @@ export function UserPreferences() {
         </div>
       </div>
 
+      {/* Content Filter */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-mono font-semibold text-zinc-400">
+          CONTENT FILTERS
+        </h2>
+
+        {/* SPORTS Card */}
+        <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer ${preferences.showSports
+            ? 'border-green-500 bg-green-950/20 shadow-[3px_3px_0px_0px_rgba(34,197,94,0.8)]'
+            : 'border-green-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
+          }`} onClick={() => setPreferences({ showSports: !preferences.showSports })}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-mono font-bold text-green-400">SPORTS</div>
+              <div className="text-xs text-zinc-600 font-mono">Events with "vs." in title</div>
+            </div>
+            <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.showSports
+                ? 'border-green-400 bg-green-400'
+                : 'border-green-600/50'
+              }`} />
+          </div>
+        </div>
+      </div>
+
       {/* Enhanced Minimum Value Filter */}
       <div className="space-y-4">
         <h2 className="text-lg font-mono font-semibold text-zinc-400">
