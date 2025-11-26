@@ -24,6 +24,11 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType): 
   // Check minimum value threshold
   if (anomaly.value < preferences.minValueThreshold) return false;
 
+  // Check sports filter FIRST - hide events containing "vs."
+  if (!preferences.showSports && anomaly.event.toLowerCase().includes('vs.')) {
+    return false;
+  }
+
   // Check anomaly type filters
   switch (anomaly.type) {
     case 'STANDARD':
@@ -39,13 +44,6 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType): 
     default:
       return true;
   }
-
-  // Check sports filter - hide events containing "vs."
-  if (!preferences.showSports && anomaly.event.toLowerCase().includes('vs.')) {
-    return false;
-  }
-
-  return true;
 }
 
 export default function Home() {

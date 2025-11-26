@@ -40,14 +40,6 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
 
     // Resolve team logo
     const { resolvedTeam, logoPath, usePolymarketFallback } = useMemo(() => {
-        console.log('[TEAM_RESOLUTION_DEBUG]', {
-            title,
-            outcome,
-            image,
-            timestamp: new Date(timestamp).toISOString(),
-            side,
-            type
-        });
 
         const team = resolveTeamFromMarket({
             marketTitle: title,
@@ -55,26 +47,26 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
             question: title, // Anomaly event is usually the question/title
         });
 
-        console.log('[TEAM_RESOLUTION_RESULT]', {
-            input: { title, outcome },
-            resolvedTeam: team ? {
-                league: team.league,
-                slug: team.slug,
-                name: team.name,
-                logoPath: team.logoPath
-            } : null,
-            finalLogoPath: !team && image && image.trim() !== '' ? image : team ? team.logoPath : '/logos/generic/default.svg'
-        });
+        // console.log('[TEAM_RESOLUTION_RESULT]', {
+        //     input: { title, outcome },
+        //     resolvedTeam: team ? {
+        //         league: team.league,
+        //         slug: team.slug,
+        //         name: team.name,
+        //         logoPath: team.logoPath
+        //     } : null,
+        //     finalLogoPath: !team && image && image.trim() !== '' ? image : team ? team.logoPath : '/logos/generic/default.svg'
+        // });
         const league = team?.league || inferLeagueFromMarket({ question: title } as MarketMeta);
 
         // If no team found in teamMeta.ts, use Polymarket image as primary fallback
         const noTeamMatch = !team;
         const hasPolymarketImage = image && image.length > 0;
-        console.log('[IMAGE]', image);
-        console.log('[HAS_POLYMARKET_IMAGE]', hasPolymarketImage);
-        console.log('[NO_TEAM_MATCH]', noTeamMatch);
-        console.log('[GET_LOGO_PATH_FOR_TEAM]', getLogoPathForTeam(team, league));
-        console.log('[USE_POLYMARKET_FALLBACK]', noTeamMatch && hasPolymarketImage);
+        // console.log('[IMAGE]', image);
+        // console.log('[HAS_POLYMARKET_IMAGE]', hasPolymarketImage);
+        // console.log('[NO_TEAM_MATCH]', noTeamMatch);
+        // console.log('[GET_LOGO_PATH_FOR_TEAM]', getLogoPathForTeam(team, league));
+        // console.log('[USE_POLYMARKET_FALLBACK]', noTeamMatch && hasPolymarketImage);
         return {
             resolvedTeam: team,
             logoPath: noTeamMatch && hasPolymarketImage ? image : getLogoPathForTeam(team, league),
