@@ -94,7 +94,8 @@ model User {
 
   // User preferences
   watchlist     Watchlist[]
-  alerts        Alert[]
+  alerts        Alert[] // Old alert model, keeping for now
+  alertSettings UserAlertSettings?
 
   @@map("users")
 }
@@ -138,4 +139,24 @@ enum AlertType {
   WHALE_MOVEMENT
   MARKET_SPIKE
   SMART_MONEY_ENTRY
+}
+
+model UserAlertSettings {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  
+  // Channels
+  discordWebhook String?
+  smsNumber      String?
+  telegramId     String?
+  
+  // Subscriptions
+  wallets        String[] // Array of wallet addresses to watch
+  markets        String[] // Array of market IDs to watch
+  alertTypes     AlertType[] // Types of alerts to receive
+  
+  updatedAt      DateTime @updatedAt
+
+  @@map("user_alert_settings")
 }

@@ -200,6 +200,7 @@ export type UserWhereInput = {
   stripeCustomerId?: Prisma.StringNullableFilter<"User"> | string | null
   watchlist?: Prisma.WatchlistListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
+  alertSettings?: Prisma.XOR<Prisma.UserAlertSettingsNullableScalarRelationFilter, Prisma.UserAlertSettingsWhereInput> | null
 }
 
 export type UserOrderByWithRelationInput = {
@@ -212,6 +213,7 @@ export type UserOrderByWithRelationInput = {
   stripeCustomerId?: Prisma.SortOrderInput | Prisma.SortOrder
   watchlist?: Prisma.WatchlistOrderByRelationAggregateInput
   alerts?: Prisma.AlertOrderByRelationAggregateInput
+  alertSettings?: Prisma.UserAlertSettingsOrderByWithRelationInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -227,6 +229,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   stripeCustomerId?: Prisma.StringNullableFilter<"User"> | string | null
   watchlist?: Prisma.WatchlistListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
+  alertSettings?: Prisma.XOR<Prisma.UserAlertSettingsNullableScalarRelationFilter, Prisma.UserAlertSettingsWhereInput> | null
 }, "id" | "email" | "walletAddress">
 
 export type UserOrderByWithAggregationInput = {
@@ -265,6 +268,7 @@ export type UserCreateInput = {
   stripeCustomerId?: string | null
   watchlist?: Prisma.WatchlistCreateNestedManyWithoutUserInput
   alerts?: Prisma.AlertCreateNestedManyWithoutUserInput
+  alertSettings?: Prisma.UserAlertSettingsCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -277,6 +281,7 @@ export type UserUncheckedCreateInput = {
   stripeCustomerId?: string | null
   watchlist?: Prisma.WatchlistUncheckedCreateNestedManyWithoutUserInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutUserInput
+  alertSettings?: Prisma.UserAlertSettingsUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -289,6 +294,7 @@ export type UserUpdateInput = {
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watchlist?: Prisma.WatchlistUpdateManyWithoutUserNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutUserNestedInput
+  alertSettings?: Prisma.UserAlertSettingsUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -301,6 +307,7 @@ export type UserUncheckedUpdateInput = {
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watchlist?: Prisma.WatchlistUncheckedUpdateManyWithoutUserNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutUserNestedInput
+  alertSettings?: Prisma.UserAlertSettingsUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -400,6 +407,20 @@ export type UserUpdateOneRequiredWithoutAlertsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAlertsInput, Prisma.UserUpdateWithoutAlertsInput>, Prisma.UserUncheckedUpdateWithoutAlertsInput>
 }
 
+export type UserCreateNestedOneWithoutAlertSettingsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAlertSettingsInput, Prisma.UserUncheckedCreateWithoutAlertSettingsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAlertSettingsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAlertSettingsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAlertSettingsInput, Prisma.UserUncheckedCreateWithoutAlertSettingsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAlertSettingsInput
+  upsert?: Prisma.UserUpsertWithoutAlertSettingsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAlertSettingsInput, Prisma.UserUpdateWithoutAlertSettingsInput>, Prisma.UserUncheckedUpdateWithoutAlertSettingsInput>
+}
+
 export type UserCreateWithoutWatchlistInput = {
   id: string
   email?: string | null
@@ -409,6 +430,7 @@ export type UserCreateWithoutWatchlistInput = {
   tier?: $Enums.SubscriptionTier
   stripeCustomerId?: string | null
   alerts?: Prisma.AlertCreateNestedManyWithoutUserInput
+  alertSettings?: Prisma.UserAlertSettingsCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutWatchlistInput = {
@@ -420,6 +442,7 @@ export type UserUncheckedCreateWithoutWatchlistInput = {
   tier?: $Enums.SubscriptionTier
   stripeCustomerId?: string | null
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutUserInput
+  alertSettings?: Prisma.UserAlertSettingsUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutWatchlistInput = {
@@ -447,6 +470,7 @@ export type UserUpdateWithoutWatchlistInput = {
   tier?: Prisma.EnumSubscriptionTierFieldUpdateOperationsInput | $Enums.SubscriptionTier
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   alerts?: Prisma.AlertUpdateManyWithoutUserNestedInput
+  alertSettings?: Prisma.UserAlertSettingsUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWatchlistInput = {
@@ -458,6 +482,7 @@ export type UserUncheckedUpdateWithoutWatchlistInput = {
   tier?: Prisma.EnumSubscriptionTierFieldUpdateOperationsInput | $Enums.SubscriptionTier
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutUserNestedInput
+  alertSettings?: Prisma.UserAlertSettingsUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAlertsInput = {
@@ -469,6 +494,7 @@ export type UserCreateWithoutAlertsInput = {
   tier?: $Enums.SubscriptionTier
   stripeCustomerId?: string | null
   watchlist?: Prisma.WatchlistCreateNestedManyWithoutUserInput
+  alertSettings?: Prisma.UserAlertSettingsCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAlertsInput = {
@@ -480,6 +506,7 @@ export type UserUncheckedCreateWithoutAlertsInput = {
   tier?: $Enums.SubscriptionTier
   stripeCustomerId?: string | null
   watchlist?: Prisma.WatchlistUncheckedCreateNestedManyWithoutUserInput
+  alertSettings?: Prisma.UserAlertSettingsUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAlertsInput = {
@@ -507,6 +534,7 @@ export type UserUpdateWithoutAlertsInput = {
   tier?: Prisma.EnumSubscriptionTierFieldUpdateOperationsInput | $Enums.SubscriptionTier
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watchlist?: Prisma.WatchlistUpdateManyWithoutUserNestedInput
+  alertSettings?: Prisma.UserAlertSettingsUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAlertsInput = {
@@ -518,6 +546,71 @@ export type UserUncheckedUpdateWithoutAlertsInput = {
   tier?: Prisma.EnumSubscriptionTierFieldUpdateOperationsInput | $Enums.SubscriptionTier
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   watchlist?: Prisma.WatchlistUncheckedUpdateManyWithoutUserNestedInput
+  alertSettings?: Prisma.UserAlertSettingsUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutAlertSettingsInput = {
+  id: string
+  email?: string | null
+  walletAddress?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  tier?: $Enums.SubscriptionTier
+  stripeCustomerId?: string | null
+  watchlist?: Prisma.WatchlistCreateNestedManyWithoutUserInput
+  alerts?: Prisma.AlertCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAlertSettingsInput = {
+  id: string
+  email?: string | null
+  walletAddress?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  tier?: $Enums.SubscriptionTier
+  stripeCustomerId?: string | null
+  watchlist?: Prisma.WatchlistUncheckedCreateNestedManyWithoutUserInput
+  alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAlertSettingsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAlertSettingsInput, Prisma.UserUncheckedCreateWithoutAlertSettingsInput>
+}
+
+export type UserUpsertWithoutAlertSettingsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAlertSettingsInput, Prisma.UserUncheckedUpdateWithoutAlertSettingsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAlertSettingsInput, Prisma.UserUncheckedCreateWithoutAlertSettingsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAlertSettingsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAlertSettingsInput, Prisma.UserUncheckedUpdateWithoutAlertSettingsInput>
+}
+
+export type UserUpdateWithoutAlertSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  walletAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tier?: Prisma.EnumSubscriptionTierFieldUpdateOperationsInput | $Enums.SubscriptionTier
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watchlist?: Prisma.WatchlistUpdateManyWithoutUserNestedInput
+  alerts?: Prisma.AlertUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAlertSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  walletAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tier?: Prisma.EnumSubscriptionTierFieldUpdateOperationsInput | $Enums.SubscriptionTier
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watchlist?: Prisma.WatchlistUncheckedUpdateManyWithoutUserNestedInput
+  alerts?: Prisma.AlertUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -570,6 +663,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   stripeCustomerId?: boolean
   watchlist?: boolean | Prisma.User$watchlistArgs<ExtArgs>
   alerts?: boolean | Prisma.User$alertsArgs<ExtArgs>
+  alertSettings?: boolean | Prisma.User$alertSettingsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -607,6 +701,7 @@ export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = run
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   watchlist?: boolean | Prisma.User$watchlistArgs<ExtArgs>
   alerts?: boolean | Prisma.User$alertsArgs<ExtArgs>
+  alertSettings?: boolean | Prisma.User$alertSettingsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -617,6 +712,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   objects: {
     watchlist: Prisma.$WatchlistPayload<ExtArgs>[]
     alerts: Prisma.$AlertPayload<ExtArgs>[]
+    alertSettings: Prisma.$UserAlertSettingsPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1022,6 +1118,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   readonly [Symbol.toStringTag]: "PrismaPromise"
   watchlist<T extends Prisma.User$watchlistArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$watchlistArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WatchlistPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   alerts<T extends Prisma.User$alertsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$alertsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AlertPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  alertSettings<T extends Prisma.User$alertSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$alertSettingsArgs<ExtArgs>>): Prisma.Prisma__UserAlertSettingsClient<runtime.Types.Result.GetResult<Prisma.$UserAlertSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1491,6 +1588,25 @@ export type User$alertsArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   distinct?: Prisma.AlertScalarFieldEnum | Prisma.AlertScalarFieldEnum[]
+}
+
+/**
+ * User.alertSettings
+ */
+export type User$alertSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserAlertSettings
+   */
+  select?: Prisma.UserAlertSettingsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserAlertSettings
+   */
+  omit?: Prisma.UserAlertSettingsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserAlertSettingsInclude<ExtArgs> | null
+  where?: Prisma.UserAlertSettingsWhereInput
 }
 
 /**

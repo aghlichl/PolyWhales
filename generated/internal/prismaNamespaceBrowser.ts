@@ -56,7 +56,8 @@ export const ModelName = {
   Trade: 'Trade',
   User: 'User',
   Watchlist: 'Watchlist',
-  Alert: 'Alert'
+  Alert: 'Alert',
+  UserAlertSettings: 'UserAlertSettings'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -161,6 +162,21 @@ export const AlertScalarFieldEnum = {
 } as const
 
 export type AlertScalarFieldEnum = (typeof AlertScalarFieldEnum)[keyof typeof AlertScalarFieldEnum]
+
+
+export const UserAlertSettingsScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  discordWebhook: 'discordWebhook',
+  smsNumber: 'smsNumber',
+  telegramId: 'telegramId',
+  wallets: 'wallets',
+  markets: 'markets',
+  alertTypes: 'alertTypes',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserAlertSettingsScalarFieldEnum = (typeof UserAlertSettingsScalarFieldEnum)[keyof typeof UserAlertSettingsScalarFieldEnum]
 
 
 export const SortOrder = {

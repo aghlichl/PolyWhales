@@ -23,12 +23,21 @@ import {
 } from "../lib/types";
 import { fetchPortfolio } from "../lib/gamma";
 import { CONFIG } from "../lib/config";
+import { AlertQueue } from "../lib/alerts/queue";
+import { NotificationRouter } from "../lib/alerts/router";
 
 // Helper function for rate limiting delays
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Initialize services
 const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+const alertQueue = new AlertQueue(process.env.REDIS_URL);
+const notificationRouter = new NotificationRouter();
+
+// Start alert processor
+alertQueue.processQueue(async (event) => {
+  await notificationRouter.route(event);
+});
 
 // Socket.io server on port 3001
 const httpServer = createServer();
@@ -398,6 +407,49 @@ export async function processTrade(trade: PolymarketTrade) {
     const walletDisplay = walletAddress
       ? walletAddress.slice(0, 8) + "..."
       : "UNKNOWN";
+
+    // === ALERT GENERATION ===
+    try {
+      if (isGodWhale || isSuperWhale || isMegaWhale || isWhale) {
+        const whaleType = isGodWhale ? "GOD WHALE" : isSuperWhale ? "SUPER WHALE" : isMegaWhale ? "MEGA WHALE" : "WHALE";
+        const emoji = isGodWhale ? "🐋👑" : isSuperWhale ? "🐋🔥" : isMegaWhale ? "🐋⚡" : "🐋";
+
+        await alertQueue.enqueueAlert({
+          type: "WHALE_MOVEMENT",
+          title: `${emoji} ${whaleType} ALERT`,
+          description: `**${walletDisplay}** ${side} $${value.toLocaleString()} of **${assetInfo.outcomeLabel}** in *${marketMeta.question}* @ ${Math.round(price * 100)}¢`,
+          timestamp: new Date(),
+          data: {
+            wallet: walletAddress,
+            value: value,
+            market: marketMeta.question,
+            outcome: assetInfo.outcomeLabel,
+            price: price,
+            link: `https://polymarket.com/event/${marketMeta.conditionId}` // Approximate link
+          },
+          walletAddress: walletAddress.toLowerCase(),
+          marketId: assetInfo.conditionId // Using conditionId as marketId proxy for now
+        });
+      } else if (isSmartMoney) {
+        await alertQueue.enqueueAlert({
+          type: "SMART_MONEY_ENTRY",
+          title: `🧠 SMART MONEY ALERT`,
+          description: `**${walletDisplay}** (Win Rate: ${(profile.winRate * 100).toFixed(0)}%) ${side} $${value.toLocaleString()} of **${assetInfo.outcomeLabel}** in *${marketMeta.question}*`,
+          timestamp: new Date(),
+          data: {
+            wallet: walletAddress,
+            value: value,
+            winRate: profile.winRate,
+            pnl: profile.totalPnl
+          },
+          walletAddress: walletAddress.toLowerCase(),
+          marketId: assetInfo.conditionId
+        });
+      }
+    } catch (alertError) {
+      console.error("[Worker] Error generating alert:", alertError);
+    }
+
     console.log(
       `[Worker] Processed trade: $${value.toFixed(
         2

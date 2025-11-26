@@ -389,7 +389,8 @@ export const ModelName = {
   Trade: 'Trade',
   User: 'User',
   Watchlist: 'Watchlist',
-  Alert: 'Alert'
+  Alert: 'Alert',
+  UserAlertSettings: 'UserAlertSettings'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -405,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "walletProfile" | "walletPortfolioSnapshot" | "trade" | "user" | "watchlist" | "alert"
+    modelProps: "walletProfile" | "walletPortfolioSnapshot" | "trade" | "user" | "watchlist" | "alert" | "userAlertSettings"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -853,6 +854,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    UserAlertSettings: {
+      payload: Prisma.$UserAlertSettingsPayload<ExtArgs>
+      fields: Prisma.UserAlertSettingsFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserAlertSettingsFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserAlertSettingsFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>
+        }
+        findFirst: {
+          args: Prisma.UserAlertSettingsFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserAlertSettingsFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>
+        }
+        findMany: {
+          args: Prisma.UserAlertSettingsFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>[]
+        }
+        create: {
+          args: Prisma.UserAlertSettingsCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>
+        }
+        createMany: {
+          args: Prisma.UserAlertSettingsCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserAlertSettingsCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>[]
+        }
+        delete: {
+          args: Prisma.UserAlertSettingsDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>
+        }
+        update: {
+          args: Prisma.UserAlertSettingsUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserAlertSettingsDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserAlertSettingsUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserAlertSettingsUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserAlertSettingsUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserAlertSettingsPayload>
+        }
+        aggregate: {
+          args: Prisma.UserAlertSettingsAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserAlertSettings>
+        }
+        groupBy: {
+          args: Prisma.UserAlertSettingsGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserAlertSettingsGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserAlertSettingsCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserAlertSettingsCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -978,6 +1053,21 @@ export const AlertScalarFieldEnum = {
 } as const
 
 export type AlertScalarFieldEnum = (typeof AlertScalarFieldEnum)[keyof typeof AlertScalarFieldEnum]
+
+
+export const UserAlertSettingsScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  discordWebhook: 'discordWebhook',
+  smsNumber: 'smsNumber',
+  telegramId: 'telegramId',
+  wallets: 'wallets',
+  markets: 'markets',
+  alertTypes: 'alertTypes',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserAlertSettingsScalarFieldEnum = (typeof UserAlertSettingsScalarFieldEnum)[keyof typeof UserAlertSettingsScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1229,6 +1319,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   watchlist?: Prisma.WatchlistOmit
   alert?: Prisma.AlertOmit
+  userAlertSettings?: Prisma.UserAlertSettingsOmit
 }
 
 /* Types for Logging */

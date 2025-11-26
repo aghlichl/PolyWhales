@@ -69,3 +69,8 @@ export type Watchlist = Prisma.WatchlistModel
  * 
  */
 export type Alert = Prisma.AlertModel
+/**
+ * Model UserAlertSettings
+ * 
+ */
+export type UserAlertSettings = Prisma.UserAlertSettingsModel

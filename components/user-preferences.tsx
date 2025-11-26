@@ -2,6 +2,7 @@
 
 import React from "react";
 import { usePreferencesStore } from "@/lib/store";
+import { usePrivy } from "@privy-io/react-auth";
 import { CONFIG } from "@/lib/config";
 
 // Exponential scale mapping for more intuitive control
@@ -106,8 +107,8 @@ export function UserPreferences() {
       <div className="space-y-4">
         {/* STANDARD Card */}
         <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer ${preferences.showStandard
-            ? 'border-zinc-500 bg-zinc-900 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)]'
-            : 'border-zinc-700 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
+          ? 'border-zinc-500 bg-zinc-900 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)]'
+          : 'border-zinc-700 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
           }`} onClick={() => setPreferences({ showStandard: !preferences.showStandard })}>
           <div className="flex items-center justify-between">
             <div>
@@ -115,16 +116,16 @@ export function UserPreferences() {
               <div className="text-xs text-zinc-600 font-mono">$0 - $8,000</div>
             </div>
             <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.showStandard
-                ? 'border-zinc-400 bg-zinc-400'
-                : 'border-zinc-600'
+              ? 'border-zinc-400 bg-zinc-400'
+              : 'border-zinc-600'
               }`} />
           </div>
         </div>
 
         {/* WHALE Card */}
         <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer ${preferences.showWhale
-            ? 'border-blue-500 bg-blue-950/20 shadow-[3px_3px_0px_0px_rgba(59,130,246,0.8)]'
-            : 'border-blue-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
+          ? 'border-blue-500 bg-blue-950/20 shadow-[3px_3px_0px_0px_rgba(59,130,246,0.8)]'
+          : 'border-blue-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
           }`} onClick={() => setPreferences({ showWhale: !preferences.showWhale })}>
           <div className="flex items-center justify-between">
             <div>
@@ -132,16 +133,16 @@ export function UserPreferences() {
               <div className="text-xs text-zinc-600 font-mono">$8,000 - $15,000</div>
             </div>
             <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.showWhale
-                ? 'border-blue-400 bg-blue-400'
-                : 'border-blue-600/50'
+              ? 'border-blue-400 bg-blue-400'
+              : 'border-blue-600/50'
               }`} />
           </div>
         </div>
 
         {/* MEGA_WHALE Card */}
         <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer ${preferences.showMegaWhale
-            ? 'border-purple-500 bg-purple-950/20 shadow-[3px_3px_0px_0px_rgba(147,51,234,0.8)]'
-            : 'border-purple-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
+          ? 'border-purple-500 bg-purple-950/20 shadow-[3px_3px_0px_0px_rgba(147,51,234,0.8)]'
+          : 'border-purple-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
           }`} onClick={() => setPreferences({ showMegaWhale: !preferences.showMegaWhale })}>
           <div className="flex items-center justify-between">
             <div>
@@ -149,16 +150,16 @@ export function UserPreferences() {
               <div className="text-xs text-zinc-600 font-mono">$15,000 - $50,000</div>
             </div>
             <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.showMegaWhale
-                ? 'border-purple-400 bg-purple-400'
-                : 'border-purple-600/50'
+              ? 'border-purple-400 bg-purple-400'
+              : 'border-purple-600/50'
               }`} />
           </div>
         </div>
 
         {/* SUPER_WHALE Card */}
         <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer ${preferences.showSuperWhale
-            ? 'border-red-500 bg-red-950/20 shadow-[3px_3px_0px_0px_rgba(239,68,68,0.8)]'
-            : 'border-red-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
+          ? 'border-red-500 bg-red-950/20 shadow-[3px_3px_0px_0px_rgba(239,68,68,0.8)]'
+          : 'border-red-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
           }`} onClick={() => setPreferences({ showSuperWhale: !preferences.showSuperWhale })}>
           <div className="flex items-center justify-between">
             <div>
@@ -166,16 +167,16 @@ export function UserPreferences() {
               <div className="text-xs text-zinc-600 font-mono">$50,000 - $100,000</div>
             </div>
             <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.showSuperWhale
-                ? 'border-red-400 bg-red-400'
-                : 'border-red-600/50'
+              ? 'border-red-400 bg-red-400'
+              : 'border-red-600/50'
               }`} />
           </div>
         </div>
 
         {/* GOD_WHALE Card */}
         <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer ${preferences.showGodWhale
-            ? 'border-yellow-500 bg-yellow-950/20 shadow-[3px_3px_0px_0px_rgba(251,191,36,0.8)]'
-            : 'border-yellow-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
+          ? 'border-yellow-500 bg-yellow-950/20 shadow-[3px_3px_0px_0px_rgba(251,191,36,0.8)]'
+          : 'border-yellow-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
           }`} onClick={() => setPreferences({ showGodWhale: !preferences.showGodWhale })}>
           <div className="flex items-center justify-between">
             <div>
@@ -183,8 +184,8 @@ export function UserPreferences() {
               <div className="text-xs text-zinc-600 font-mono">$100,000+</div>
             </div>
             <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.showGodWhale
-                ? 'border-yellow-400 bg-yellow-400'
-                : 'border-yellow-600/50'
+              ? 'border-yellow-400 bg-yellow-400'
+              : 'border-yellow-600/50'
               }`} />
           </div>
         </div>
@@ -198,8 +199,8 @@ export function UserPreferences() {
 
         {/* SPORTS Card */}
         <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer ${preferences.showSports
-            ? 'border-green-500 bg-green-950/20 shadow-[3px_3px_0px_0px_rgba(34,197,94,0.8)]'
-            : 'border-green-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
+          ? 'border-green-500 bg-green-950/20 shadow-[3px_3px_0px_0px_rgba(34,197,94,0.8)]'
+          : 'border-green-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
           }`} onClick={() => setPreferences({ showSports: !preferences.showSports })}>
           <div className="flex items-center justify-between">
             <div>
@@ -207,8 +208,8 @@ export function UserPreferences() {
               <div className="text-xs text-zinc-600 font-mono">Events with "vs." in title</div>
             </div>
             <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.showSports
-                ? 'border-green-400 bg-green-400'
-                : 'border-green-600/50'
+              ? 'border-green-400 bg-green-400'
+              : 'border-green-600/50'
               }`} />
           </div>
         </div>
@@ -322,10 +323,10 @@ export function UserPreferences() {
         <div className="text-center">
           <div className="inline-flex items-center px-3 py-1 bg-zinc-900 border border-zinc-700 rounded-full">
             <div className={`w-2 h-2 rounded-full mr-2 ${preferences.minValueThreshold >= CONFIG.THRESHOLDS.GOD_WHALE ? 'bg-yellow-400' :
-                preferences.minValueThreshold >= CONFIG.THRESHOLDS.SUPER_WHALE ? 'bg-red-400' :
-                  preferences.minValueThreshold >= CONFIG.THRESHOLDS.MEGA_WHALE ? 'bg-purple-400' :
-                    preferences.minValueThreshold >= CONFIG.THRESHOLDS.WHALE ? 'bg-blue-400' :
-                      'bg-zinc-400'
+              preferences.minValueThreshold >= CONFIG.THRESHOLDS.SUPER_WHALE ? 'bg-red-400' :
+                preferences.minValueThreshold >= CONFIG.THRESHOLDS.MEGA_WHALE ? 'bg-purple-400' :
+                  preferences.minValueThreshold >= CONFIG.THRESHOLDS.WHALE ? 'bg-blue-400' :
+                    'bg-zinc-400'
               }`} />
             <span className="text-xs font-mono text-zinc-400">
               {preferences.minValueThreshold >= CONFIG.THRESHOLDS.GOD_WHALE ? 'GOD WHALE +' :
@@ -337,6 +338,14 @@ export function UserPreferences() {
           </div>
         </div>
       </div>
+      {/* Alert Settings Section */}
+      <div className="space-y-4 pt-6 border-t border-zinc-800">
+        <h2 className="text-lg font-mono font-semibold text-zinc-400">
+          ALERTS & NOTIFICATIONS
+        </h2>
+
+        <AlertSettings />
+      </div>
 
       {/* Save Indicator */}
       <div className="text-center">
@@ -344,6 +353,145 @@ export function UserPreferences() {
           Preferences saved automatically
         </p>
       </div>
+    </div>
+  );
+}
+
+function AlertSettings() {
+  const { user } = usePrivy();
+  const [discordWebhook, setDiscordWebhook] = React.useState("");
+  const [alertTypes, setAlertTypes] = React.useState<string[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [status, setStatus] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // Fetch settings on mount
+  React.useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/user/alerts", {
+          headers: { "x-user-did": user.id }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDiscordWebhook(data.discordWebhook || "");
+          setAlertTypes(data.alertTypes || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch alert settings", err);
+      }
+    };
+
+    fetchSettings();
+  }, [user?.id]);
+
+  const saveSettings = async () => {
+    if (!user?.id) return;
+    setStatus("saving");
+
+    try {
+      const res = await fetch("/api/user/alerts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-did": user.id
+        },
+        body: JSON.stringify({
+          discordWebhook,
+          alertTypes
+        })
+      });
+
+      if (res.ok) {
+        setStatus("saved");
+        setTimeout(() => setStatus("idle"), 2000);
+      } else {
+        setStatus("error");
+      }
+    } catch (err) {
+      setStatus("error");
+    }
+  };
+
+  const toggleAlertType = (type: string) => {
+    setAlertTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
+  if (!user) {
+    return (
+      <div className="p-4 border border-zinc-800 bg-zinc-900/50 rounded-lg text-center">
+        <p className="text-zinc-500 font-mono text-sm">Sign in to configure alerts</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Discord Webhook Input */}
+      <div className="space-y-2">
+        <label className="text-xs font-mono text-zinc-500 uppercase">Discord Webhook URL</label>
+        <input
+          type="text"
+          value={discordWebhook}
+          onChange={(e) => setDiscordWebhook(e.target.value)}
+          placeholder="https://discord.com/api/webhooks/..."
+          className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm font-mono text-zinc-300 focus:border-primary focus:outline-none"
+        />
+      </div>
+
+      {/* Alert Types */}
+      <div className="space-y-3">
+        <label className="text-xs font-mono text-zinc-500 uppercase">Alert Types</label>
+
+        <div
+          className={`flex items-center justify-between p-3 border rounded cursor-pointer transition-colors ${alertTypes.includes("WHALE_MOVEMENT")
+            ? "border-blue-500/50 bg-blue-500/10"
+            : "border-zinc-800 bg-zinc-950"
+            }`}
+          onClick={() => toggleAlertType("WHALE_MOVEMENT")}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🐋</span>
+            <span className="font-mono text-sm text-zinc-300">Whale Movements</span>
+          </div>
+          <div className={`w-3 h-3 rounded-full border ${alertTypes.includes("WHALE_MOVEMENT") ? "bg-blue-500 border-blue-500" : "border-zinc-600"
+            }`} />
+        </div>
+
+        <div
+          className={`flex items-center justify-between p-3 border rounded cursor-pointer transition-colors ${alertTypes.includes("SMART_MONEY_ENTRY")
+            ? "border-green-500/50 bg-green-500/10"
+            : "border-zinc-800 bg-zinc-950"
+            }`}
+          onClick={() => toggleAlertType("SMART_MONEY_ENTRY")}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🧠</span>
+            <span className="font-mono text-sm text-zinc-300">Smart Money Entries</span>
+          </div>
+          <div className={`w-3 h-3 rounded-full border ${alertTypes.includes("SMART_MONEY_ENTRY") ? "bg-green-500 border-green-500" : "border-zinc-600"
+            }`} />
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <button
+        onClick={saveSettings}
+        disabled={status === "saving"}
+        className={`w-full py-2 font-mono text-sm font-bold rounded transition-all ${status === "saved"
+          ? "bg-green-500 text-black"
+          : status === "error"
+            ? "bg-red-500 text-white"
+            : "bg-primary text-black hover:bg-primary/90"
+          }`}
+      >
+        {status === "saving" ? "SAVING..." : status === "saved" ? "SAVED!" : status === "error" ? "ERROR" : "SAVE SETTINGS"}
+      </button>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Anomaly, UserPreferences } from './types';
+import { Anomaly, AnomalyType, UserPreferences } from './types';
 import { io } from 'socket.io-client';
 
 // Helper function to check if anomaly passes user preferences
@@ -218,10 +218,11 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
       console.log('[STORE] Enriched trade:', JSON.stringify(enrichedTrade, null, 2));
       const anomaly: Anomaly = {
         id: enrichedTrade.trade.assetId + '_' + enrichedTrade.trade.timestamp,
-        type: enrichedTrade.analysis.tags.includes('WHALE') ? 'WHALE' :
-              enrichedTrade.analysis.tags.includes('MEGA_WHALE') ? 'MEGA_WHALE' :
+        type: enrichedTrade.analysis.tags.includes('GOD_WHALE') ? 'GOD_WHALE' :
               enrichedTrade.analysis.tags.includes('SUPER_WHALE') ? 'SUPER_WHALE' :
-              enrichedTrade.analysis.tags.includes('GOD_WHALE') ? 'GOD_WHALE' : 'STANDARD',
+              enrichedTrade.analysis.tags.includes('MEGA_WHALE') ? 'MEGA_WHALE' :
+              enrichedTrade.analysis.tags.includes('WHALE') ? 'WHALE' :
+              'STANDARD' as AnomalyType,
         event: enrichedTrade.market.question,
         outcome: enrichedTrade.market.outcome,
         odds: enrichedTrade.market.odds,
