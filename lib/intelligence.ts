@@ -296,7 +296,7 @@ export async function getWalletsFromTx(txHash: string): Promise<TxLogWalletResul
     } catch (decodeError) {
       // Fallback to manual topic parsing if ABI decoding fails
       console.warn(`[Intelligence] ABI decode failed for ${txHash}, using fallback:`, decodeError);
-      
+
       // Topics: [0]=eventSig, [1]=orderHash, [2]=maker, [3]=taker
       const maker = log.topics[2] ? `0x${log.topics[2].slice(26)}`.toLowerCase() : null;
       const taker = log.topics[3] ? `0x${log.topics[3].slice(26)}`.toLowerCase() : null;
@@ -314,13 +314,6 @@ export async function getWalletsFromTx(txHash: string): Promise<TxLogWalletResul
   }
 }
 
-/**
- * Legacy wrapper for backward compatibility
- * Returns just maker/taker without extended metadata
- */
-export async function getWalletsFromTxSimple(txHash: string): Promise<{ maker: string | null; taker: string | null }> {
-  const result = await getWalletsFromTx(txHash);
-  return { maker: result.maker, taker: result.taker };
-}
+
 
 

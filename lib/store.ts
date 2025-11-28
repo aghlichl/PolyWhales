@@ -112,7 +112,7 @@ interface MarketStore {
   loadHistory: (cursor?: string) => Promise<void>;
   loadMoreHistory: () => void;
   startStream: (getPreferences?: () => UserPreferences) => () => void;
-  
+
   // History pagination state
   historyCursor?: string;
   hasMoreHistory: boolean;
@@ -143,17 +143,37 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
   nextCursor: undefined,
   hasMore: true,
 
-  addAnomaly: (anomaly) => set((state) => ({
-    // Append new anomaly to the front. Limit strictly to 2000 to allow for history but prevent memory leak
-    anomalies: [anomaly, ...state.anomalies].slice(0, 2000), 
-    volume: state.volume + anomaly.value,
-    tickerItems: [`${anomaly.event} ${anomaly.type === 'GOD_WHALE' || anomaly.type === 'SUPER_WHALE' || anomaly.type === 'MEGA_WHALE' ? 'WHALE' : 'TRADE'} $${(anomaly.value / 1000).toFixed(1)}k`, ...state.tickerItems].slice(0, 20)
-  })),
+  addAnomaly: (anomaly) => set((state) => {
+    // Check if anomaly already exists
+    const existingIndex = state.anomalies.findIndex(a => a.id === anomaly.id);
+
+    let newAnomalies;
+    let newVolume = state.volume;
+    let newTickerItems = state.tickerItems;
+
+    if (existingIndex >= 0) {
+      // Update existing anomaly
+      newAnomalies = [...state.anomalies];
+      newAnomalies[existingIndex] = anomaly;
+      // Don't update volume/ticker for updates to avoid double counting
+    } else {
+      // Add new anomaly
+      newAnomalies = [anomaly, ...state.anomalies].slice(0, 2000);
+      newVolume += anomaly.value;
+      newTickerItems = [`${anomaly.event} ${anomaly.type === 'GOD_WHALE' || anomaly.type === 'SUPER_WHALE' || anomaly.type === 'MEGA_WHALE' ? 'WHALE' : 'TRADE'} $${(anomaly.value / 1000).toFixed(1)}k`, ...state.tickerItems].slice(0, 20);
+    }
+
+    return {
+      anomalies: newAnomalies,
+      volume: newVolume,
+      tickerItems: newTickerItems
+    };
+  }),
   loadHistory: async (cursor) => {
     if (!cursor) {
-        set({ isLoading: true, anomalies: [], historyCursor: undefined, hasMoreHistory: true });
+      set({ isLoading: true, anomalies: [], historyCursor: undefined, hasMoreHistory: true });
     } else {
-        set({ isLoading: true });
+      set({ isLoading: true });
     }
 
     try {
@@ -166,7 +186,7 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
       const response = await fetch(url.toString());
       if (response.ok) {
         const data: HistoryResponse = await response.json();
-        
+
         set((state) => ({
           // If cursor exists, we are appending to the end (older data). 
           // If no cursor (initial load), we replace.
@@ -189,10 +209,10 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     }
   },
   loadMoreHistory: () => {
-      const { historyCursor, isLoading, hasMoreHistory } = get();
-      if (!isLoading && hasMoreHistory && historyCursor) {
-          get().loadHistory(historyCursor);
-      }
+    const { historyCursor, isLoading, hasMoreHistory } = get();
+    if (!isLoading && hasMoreHistory && historyCursor) {
+      get().loadHistory(historyCursor);
+    }
   },
   startStream: (getPreferences) => {
     // Load historical data first
@@ -219,10 +239,10 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
       const anomaly: Anomaly = {
         id: enrichedTrade.trade.assetId + '_' + enrichedTrade.trade.timestamp,
         type: enrichedTrade.analysis.tags.includes('GOD_WHALE') ? 'GOD_WHALE' :
-              enrichedTrade.analysis.tags.includes('SUPER_WHALE') ? 'SUPER_WHALE' :
-              enrichedTrade.analysis.tags.includes('MEGA_WHALE') ? 'MEGA_WHALE' :
+          enrichedTrade.analysis.tags.includes('SUPER_WHALE') ? 'SUPER_WHALE' :
+            enrichedTrade.analysis.tags.includes('MEGA_WHALE') ? 'MEGA_WHALE' :
               enrichedTrade.analysis.tags.includes('WHALE') ? 'WHALE' :
-              'STANDARD' as AnomalyType,
+                'STANDARD' as AnomalyType,
         event: enrichedTrade.market.question,
         outcome: enrichedTrade.market.outcome,
         odds: enrichedTrade.market.odds,

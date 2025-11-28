@@ -31,6 +31,11 @@ const mockTrades: EnrichedTrade[] = [
             market_impact: {
                 swept_levels: 3,
                 slippage_induced: "1.2%"
+            },
+            trader_context: {
+                tx_count: 150,
+                max_trade_value: 500000,
+                activity_level: "HIGH"
             }
         }
     },
@@ -63,6 +68,11 @@ const mockTrades: EnrichedTrade[] = [
             market_impact: {
                 swept_levels: 0,
                 slippage_induced: "0.1%"
+            },
+            trader_context: {
+                tx_count: 10,
+                max_trade_value: 5000,
+                activity_level: "LOW"
             }
         }
     }

@@ -12,7 +12,20 @@ export function normalizeMarketResponse(data: any): PolymarketMarket[] {
     }
 }
 
+// Simple in-memory cache
+let marketsCache: {
+    data: PolymarketMarket[];
+    timestamp: number;
+} | null = null;
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function fetchMarketsFromGamma(init?: RequestInit): Promise<PolymarketMarket[]> {
+    // Check cache first
+    if (marketsCache && (Date.now() - marketsCache.timestamp < CACHE_TTL)) {
+        return marketsCache.data;
+    }
+
     const response = await fetch(CONFIG.URLS.GAMMA_API, {
         ...init,
         headers: {
@@ -27,7 +40,15 @@ export async function fetchMarketsFromGamma(init?: RequestInit): Promise<Polymar
     }
 
     const data = await response.json();
-    return normalizeMarketResponse(data);
+    const normalizedData = normalizeMarketResponse(data);
+
+    // Update cache
+    marketsCache = {
+        data: normalizedData,
+        timestamp: Date.now()
+    };
+
+    return normalizedData;
 }
 
 export function parseMarketData(markets: PolymarketMarket[]): {

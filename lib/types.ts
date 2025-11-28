@@ -124,6 +124,11 @@ export interface EnrichedTrade {
             swept_levels: number;
             slippage_induced: string;
         };
+        trader_context: {
+            tx_count: number;
+            max_trade_value: number;
+            activity_level: string | null;
+        };
     };
 }
 

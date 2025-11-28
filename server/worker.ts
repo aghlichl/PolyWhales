@@ -201,7 +201,96 @@ export async function processTrade(trade: PolymarketTrade) {
       return;
     }
 
-    // === WALLET ENRICHMENT PIPELINE ===
+    // Determine side (BUY or SELL)
+    const side = trade.side || (trade.type === "buy" ? "BUY" : "SELL") || "BUY";
+
+    // Initial classification (based on value only)
+    const isWhale = value >= CONFIG.THRESHOLDS.WHALE;
+    const isMegaWhale = value >= CONFIG.THRESHOLDS.MEGA_WHALE;
+    const isSuperWhale = value >= CONFIG.THRESHOLDS.SUPER_WHALE;
+    const isGodWhale = value >= CONFIG.THRESHOLDS.GOD_WHALE;
+
+    // Construct initial trade object (FAST PATH)
+    const initialEnrichedTrade: EnrichedTrade = {
+      type: "UNUSUAL_ACTIVITY",
+      market: {
+        question: marketMeta.question,
+        outcome: assetInfo.outcomeLabel,
+        conditionId: assetInfo.conditionId,
+        odds: Math.round(price * 100),
+        image: marketMeta.image ?? null,
+      },
+      trade: {
+        assetId: trade.asset_id,
+        size,
+        side,
+        price,
+        tradeValue: value,
+        timestamp: new Date(Date.now()),
+      },
+      analysis: {
+        tags: [
+          isGodWhale && "GOD_WHALE",
+          isSuperWhale && "SUPER_WHALE",
+          isMegaWhale && "MEGA_WHALE",
+          isWhale && "WHALE",
+        ].filter(Boolean) as string[],
+        wallet_context: {
+          address: "",
+          label: "Loading...",
+          pnl_all_time: "...",
+          win_rate: "...",
+          is_fresh_wallet: false,
+        },
+        market_impact: {
+          swept_levels: 0,
+          slippage_induced: "0%",
+        },
+        trader_context: {
+          tx_count: 0,
+          max_trade_value: 0,
+          activity_level: null,
+        },
+      },
+    };
+
+    // Emit immediately to UI
+    io.emit("trade", initialEnrichedTrade);
+
+    // Save initial trade to DB (to get an ID and ensure persistence)
+    let dbTrade;
+    try {
+      dbTrade = await prisma.trade.create({
+        data: {
+          assetId: trade.asset_id,
+          side,
+          size,
+          price,
+          tradeValue: value,
+          timestamp: initialEnrichedTrade.trade.timestamp,
+          walletAddress: "", // Placeholder
+          isWhale,
+          isSmartMoney: false,
+          isFresh: false,
+          isSweeper: false,
+          conditionId: assetInfo.conditionId,
+          outcome: assetInfo.outcomeLabel,
+          question: marketMeta.question,
+          image: marketMeta.image,
+          transactionHash: trade.transaction_hash || null,
+          enrichmentStatus: "pending",
+        },
+      });
+    } catch (dbError) {
+      console.error("[Worker] Failed to save initial trade:", dbError);
+      return; // Can't proceed without DB record
+    }
+
+
+    // === ASYNC ENRICHMENT ===
+    // We do this in the background but await it here to keep the logic contained.
+    // The UI has already received the initial event.
+
     let walletAddress = "";
     let enrichmentStatus: EnrichmentStatus = "pending";
     let blockNumber: bigint | null = null;
@@ -235,7 +324,6 @@ export async function processTrade(trade: PolymarketTrade) {
           walletAddress = dataApiResult.taker || dataApiResult.maker || "";
           if (walletAddress) {
             enrichmentStatus = "enriched";
-            // console.log(`[Worker] Enriched wallet via Data-API: ${walletAddress.slice(0, 8)}...`);
           }
         }
       } catch (dataApiError) {
@@ -254,7 +342,6 @@ export async function processTrade(trade: PolymarketTrade) {
 
         if (walletAddress) {
           enrichmentStatus = "enriched";
-          // console.log(`[Worker] Enriched wallet via tx logs: ${walletAddress.slice(0, 8)}...`);
         }
       } catch (txError) {
         console.warn("[Worker] Tx log parsing failed:", txError);
@@ -266,111 +353,28 @@ export async function processTrade(trade: PolymarketTrade) {
       enrichmentStatus = "failed";
     }
 
-    // Determine side (BUY or SELL)
-    const side = trade.side || (trade.type === "buy" ? "BUY" : "SELL") || "BUY";
+    // If we found a wallet, update everything
+    if (walletAddress) {
+      // Enrich with trader profile
+      const profile = await getTraderProfile(walletAddress);
 
-    // Enrich with trader profile (only if we have a wallet address)
-    const profile = walletAddress
-      ? await getTraderProfile(walletAddress)
-      : {
-        address: "",
-        label: null,
-        totalPnl: 0,
-        winRate: 0,
-        isFresh: false,
-        isSmartMoney: false,
-        isWhale: false,
-        txCount: 0,
-        maxTradeValue: 0,
-        activityLevel: null as "LOW" | "MEDIUM" | "HIGH" | null,
-      };
-
-    // Analyze market impact
-    const impact = await analyzeMarketImpact(
-      trade.asset_id,
-      size,
-      side as "BUY" | "SELL"
-    );
-
-    // Tag the trade with proper tiered classification
-    const isWhale = value >= CONFIG.THRESHOLDS.WHALE || profile.isWhale;
-    const isMegaWhale = value >= CONFIG.THRESHOLDS.MEGA_WHALE;
-    const isSuperWhale = value >= CONFIG.THRESHOLDS.SUPER_WHALE;
-    const isGodWhale = value >= CONFIG.THRESHOLDS.GOD_WHALE;
-    const isSmartMoney = profile.isSmartMoney;
-    const isFresh = profile.isFresh;
-    const isSweeper = impact.isSweeper;
-    const isInsider =
-      profile.activityLevel === "LOW" &&
-      profile.winRate > 0.7 &&
-      profile.totalPnl > 10000;
-
-    // Create enriched trade object
-    console.log(
-      "[WORKER] Polymarket image for market:",
-      marketMeta.question,
-      marketMeta.image
-    );
-    const enrichedTrade = {
-      type: "UNUSUAL_ACTIVITY",
-      market: {
-        question: marketMeta.question,
-        outcome: assetInfo.outcomeLabel,
-        conditionId: assetInfo.conditionId,
-        odds: Math.round(price * 100),
-        image: marketMeta.image ?? null,
-      },
-      trade: {
-        assetId: trade.asset_id,
+      // Analyze market impact
+      const impact = await analyzeMarketImpact(
+        trade.asset_id,
         size,
-        side,
-        price,
-        tradeValue: value,
-        timestamp: new Date(Date.now()),
-      },
-      analysis: {
-        tags: [
-          isGodWhale && "GOD_WHALE",
-          isSuperWhale && "SUPER_WHALE",
-          isMegaWhale && "MEGA_WHALE",
-          isWhale && "WHALE",
-          isSmartMoney && "SMART_MONEY",
-          isFresh && "FRESH_WALLET",
-          isSweeper && "SWEEPER",
-          isInsider && "INSIDER",
-        ].filter(Boolean) as string[],
-        wallet_context: {
-          address: walletAddress.toLowerCase(),
-          label: profile.label || "Unknown",
-          pnl_all_time: `$${profile.totalPnl.toLocaleString()}`,
-          win_rate: `${(profile.winRate * 100).toFixed(0)}%`,
-          is_fresh_wallet: isFresh,
-        },
-        market_impact: {
-          swept_levels: impact.isSweeper ? 3 : 0,
-          slippage_induced: `${impact.priceImpact.toFixed(2)}%`,
-        },
-        trader_context: {
-          tx_count: profile.txCount,
-          max_trade_value: Math.max(profile.maxTradeValue, value),
-          activity_level: profile.activityLevel,
-        },
-      },
-    };
-    // DEBUG: Log the enriched trade right before sending
-    console.log(
-      "[WORKER] Sending enriched trade with market.image:",
-      enrichedTrade.market.image
-    );
-    console.log(
-      "[WORKER] Full enriched trade market object:",
-      JSON.stringify(enrichedTrade.market, null, 2)
-    );
+        side as "BUY" | "SELL"
+      );
 
-    // Persist to database
-    try {
-      // Only upsert wallet profile if we have a wallet address
-      if (walletAddress) {
+      const isSmartMoney = profile.isSmartMoney;
+      const isFresh = profile.isFresh;
+      const isSweeper = impact.isSweeper;
+      const isInsider =
+        profile.activityLevel === "LOW" &&
+        profile.winRate > 0.7 &&
+        profile.totalPnl > 10000;
+
+      // Update DB
+      try {
         await prisma.walletProfile.upsert({
           where: { id: walletAddress.toLowerCase() },
           update: {
@@ -394,77 +398,94 @@ export async function processTrade(trade: PolymarketTrade) {
             activityLevel: profile.activityLevel,
           },
         });
+
+        await prisma.trade.update({
+          where: { id: dbTrade.id },
+          data: {
+            walletAddress: walletAddress.toLowerCase(),
+            isSmartMoney,
+            isFresh,
+            isSweeper,
+            blockNumber,
+            logIndex,
+            enrichmentStatus,
+          }
+        });
+
+        // Trigger portfolio enrichment for interesting wallets
+        if (isWhale || isSmartMoney || isGodWhale || isSuperWhale || isMegaWhale) {
+          enrichWalletPortfolio(walletAddress.toLowerCase()).catch(err =>
+            console.error(`[Worker] Background portfolio enrichment failed:`, err)
+          );
+        }
+
+      } catch (dbUpdateError) {
+        console.error("[Worker] Failed to update enriched trade in DB:", dbUpdateError);
       }
 
-      // Save trade (always save, even without wallet - can be enriched later)
-      await prisma.trade.create({
-        data: {
-          assetId: trade.asset_id,
-          side,
-          size,
-          price,
-          tradeValue: value,
-          timestamp: new Date(Date.now()),
-          walletAddress: walletAddress.toLowerCase(),
-          isWhale,
-          isSmartMoney,
-          isFresh,
-          isSweeper,
-          conditionId: assetInfo.conditionId,
-          outcome: assetInfo.outcomeLabel,
-          question: marketMeta.question,
-          image: marketMeta.image,
-          // New enrichment fields
-          transactionHash,
-          blockNumber,
-          logIndex,
-          enrichmentStatus,
-        },
-      });
+      // Construct FULL enriched trade
+      const fullEnrichedTrade: EnrichedTrade = {
+        ...initialEnrichedTrade,
+        analysis: {
+          tags: [
+            isGodWhale && "GOD_WHALE",
+            isSuperWhale && "SUPER_WHALE",
+            isMegaWhale && "MEGA_WHALE",
+            isWhale && "WHALE",
+            isSmartMoney && "SMART_MONEY",
+            isFresh && "FRESH_WALLET",
+            isSweeper && "SWEEPER",
+            isInsider && "INSIDER",
+          ].filter(Boolean) as string[],
+          wallet_context: {
+            address: walletAddress.toLowerCase(),
+            label: profile.label || "Unknown",
+            pnl_all_time: `$${profile.totalPnl.toLocaleString()}`,
+            win_rate: `${(profile.winRate * 100).toFixed(0)}%`,
+            is_fresh_wallet: isFresh,
+          },
+          market_impact: {
+            swept_levels: impact.isSweeper ? 3 : 0,
+            slippage_induced: `${impact.priceImpact.toFixed(2)}%`,
+          },
+          trader_context: {
+            tx_count: profile.txCount,
+            max_trade_value: Math.max(profile.maxTradeValue, value),
+            activity_level: profile.activityLevel,
+          },
+        }
+      };
 
-      // Trigger portfolio enrichment for interesting wallets
-      if (walletAddress && (isWhale || isSmartMoney || isGodWhale || isSuperWhale || isMegaWhale)) {
-        // Run in background, don't await
-        enrichWalletPortfolio(walletAddress.toLowerCase()).catch(err =>
-          console.error(`[Worker] Background portfolio enrichment failed:`, err)
-        );
+      // Emit UPDATE to UI
+      io.emit("trade", fullEnrichedTrade);
+
+      // === ALERT GENERATION (Only after enrichment) ===
+      try {
+        if (isGodWhale || isSuperWhale || isMegaWhale || isWhale) {
+          console.log(`[WORKER] 🚨 SENDING WHALE ALERT: $${value} trade`);
+          await sendDiscordAlert(fullEnrichedTrade, "WHALE_MOVEMENT")
+            .catch(err => console.log(`[WORKER] Alert failed silently: ${(err as Error).message}`));
+
+        } else if (isSmartMoney) {
+          console.log(`[WORKER] 🧠 SENDING SMART MONEY ALERT: $${value} trade`);
+          await sendDiscordAlert(fullEnrichedTrade, "SMART_MONEY_ENTRY")
+            .catch(err => console.log(`[WORKER] Alert failed silently: ${(err as Error).message}`));
+        }
+      } catch (alertError) {
+        console.error("[Worker] Error generating alert:", alertError);
       }
-    } catch (dbError) {
-      console.error("[Worker] Database error:", dbError);
+
+      console.log(
+        `[Worker] Enriched & Updated trade: $${value.toFixed(2)} from ${walletAddress.slice(0, 8)}...`
+      );
+
+    } else {
+      // Enrichment failed or no wallet found
+      console.log(
+        `[Worker] Processed trade (No Wallet): $${value.toFixed(2)}`
+      );
     }
 
-    // Broadcast to Socket.io clients
-    io.emit("trade", enrichedTrade);
-
-    const walletDisplay = walletAddress
-      ? walletAddress.slice(0, 8) + "..."
-      : "UNKNOWN";
-
-    // === ALERT GENERATION ===
-    try {
-      console.log(`[WORKER] Checking alerts: value=$${value}, isWhale=${isWhale}, isMegaWhale=${isMegaWhale}, isSmartMoney=${isSmartMoney}`);
-
-      if (isGodWhale || isSuperWhale || isMegaWhale || isWhale) {
-        console.log(`[WORKER] 🚨 SENDING WHALE ALERT: $${value} trade`);
-        await sendDiscordAlert(enrichedTrade, "WHALE_MOVEMENT")
-          .catch(err => console.log(`[WORKER] Alert failed silently: ${(err as Error).message}`));
-
-      } else if (isSmartMoney) {
-        console.log(`[WORKER] 🧠 SENDING SMART MONEY ALERT: $${value} trade`);
-        await sendDiscordAlert(enrichedTrade, "SMART_MONEY_ENTRY")
-          .catch(err => console.log(`[WORKER] Alert failed silently: ${(err as Error).message}`));
-      }
-    } catch (alertError) {
-      console.error("[Worker] Error generating alert:", alertError);
-    }
-
-    console.log(
-      `[Worker] Processed trade: $${value.toFixed(
-        2
-      )} from ${walletDisplay} [${enrichmentStatus}] (${enrichedTrade.analysis.tags.join(
-        ", "
-      )})`
-    );
   } catch (error) {
     console.error("[Worker] Error processing trade:", error);
   }
