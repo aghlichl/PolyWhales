@@ -5,6 +5,7 @@ import { usePreferencesStore } from "@/lib/store";
 import { usePrivy } from "@privy-io/react-auth";
 import { CONFIG } from "@/lib/config";
 import { NumericDisplay } from "@/components/ui/numeric-display";
+import { DiscordPromoModal } from "@/components/discord-promo-modal";
 
 // Exponential scale mapping for more intuitive control
 const VALUE_LEVELS = [
@@ -104,8 +105,16 @@ export function UserPreferences() {
   return (
     <div className="w-full space-y-6">
 
+      {/* Discord Join Button */}
+      <div className="space-y-4">
+        <DiscordJoinButton />
+      </div>
+
       {/* Anomaly Type Filters */}
       <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-zinc-400">
+          CARD FILTERS
+        </h2>
         {/* STANDARD Card */}
         <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer rounded-xl ${preferences.showStandard
           ? 'border-zinc-500 bg-zinc-900 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)]'
@@ -113,7 +122,7 @@ export function UserPreferences() {
           }`} onClick={() => setPreferences({ showStandard: !preferences.showStandard })}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-bold text-zinc-400">STANDARD</div>
+              <div className="font-bold text-zinc-400">COMMON</div>
               <div className="text-xs text-zinc-600">
                 <NumericDisplay value="$0 - $8,000" size="xs" />
               </div>
@@ -132,7 +141,7 @@ export function UserPreferences() {
           }`} onClick={() => setPreferences({ showWhale: !preferences.showWhale })}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-bold text-blue-400">WHALE</div>
+              <div className="font-bold text-blue-400">UNCOMMON</div>
               <div className="text-xs text-zinc-600">
                 <NumericDisplay value="$8,000 - $15,000" size="xs" />
               </div>
@@ -151,7 +160,7 @@ export function UserPreferences() {
           }`} onClick={() => setPreferences({ showMegaWhale: !preferences.showMegaWhale })}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-bold text-purple-400">MEGA WHALE</div>
+              <div className="font-bold text-purple-400">RARE</div>
               <div className="text-xs text-zinc-600">
                 <NumericDisplay value="$15,000 - $50,000" size="xs" />
               </div>
@@ -170,7 +179,7 @@ export function UserPreferences() {
           }`} onClick={() => setPreferences({ showSuperWhale: !preferences.showSuperWhale })}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-bold text-red-400">SUPER WHALE</div>
+              <div className="font-bold text-red-400">SUPER RARE</div>
               <div className="text-xs text-zinc-600">
                 <NumericDisplay value="$50,000 - $100,000" size="xs" />
               </div>
@@ -189,7 +198,7 @@ export function UserPreferences() {
           }`} onClick={() => setPreferences({ showGodWhale: !preferences.showGodWhale })}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-bold text-yellow-400">GOD WHALE</div>
+              <div className="font-bold text-yellow-400">LEGENDARY</div>
               <div className="text-xs text-zinc-600">
                 <NumericDisplay value="$100,000+" size="xs" />
               </div>
@@ -216,7 +225,7 @@ export function UserPreferences() {
           <div className="flex items-center justify-between">
             <div>
               <div className="font-bold text-green-400">SPORTS</div>
-              <div className="text-xs text-zinc-600">Events with "vs." in title</div>
+              <div className="text-xs text-zinc-600">Events with &quot;vs.&quot; in title</div>
             </div>
             <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.showSports
               ? 'border-green-400 bg-green-400'
@@ -353,14 +362,6 @@ export function UserPreferences() {
           </div>
         </div>
       </div>
-      {/* Alert Settings Section */}
-      <div className="space-y-4 pt-6 border-t border-zinc-800">
-        <h2 className="text-lg font-semibold text-zinc-400">
-          ALERTS & NOTIFICATIONS
-        </h2>
-
-        <AlertSettings />
-      </div>
 
       {/* Save Indicator */}
       <div className="text-center">
@@ -372,141 +373,50 @@ export function UserPreferences() {
   );
 }
 
-function AlertSettings() {
-  const { user } = usePrivy();
-  const [discordWebhook, setDiscordWebhook] = React.useState("");
-  const [alertTypes, setAlertTypes] = React.useState<string[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [status, setStatus] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+function DiscordJoinButton() {
+  const { user, login } = usePrivy();
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  // Fetch settings on mount
-  React.useEffect(() => {
-    if (!user?.id) return;
-
-    const fetchSettings = async () => {
-      try {
-        const res = await fetch("/api/user/alerts", {
-          headers: { "x-user-did": user.id }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setDiscordWebhook(data.discordWebhook || "");
-          setAlertTypes(data.alertTypes || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch alert settings", err);
-      }
-    };
-
-    fetchSettings();
-  }, [user?.id]);
-
-  const saveSettings = async () => {
-    if (!user?.id) return;
-    setStatus("saving");
-
-    try {
-      const res = await fetch("/api/user/alerts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-did": user.id
-        },
-        body: JSON.stringify({
-          discordWebhook,
-          alertTypes
-        })
-      });
-
-      if (res.ok) {
-        setStatus("saved");
-        setTimeout(() => setStatus("idle"), 2000);
-      } else {
-        setStatus("error");
-      }
-    } catch (err) {
-      setStatus("error");
+  const handleClick = () => {
+    if (!user) {
+      login();
+    } else {
+      setIsModalOpen(true);
     }
   };
 
-  const toggleAlertType = (type: string) => {
-    setAlertTypes(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
-  };
-
-  if (!user) {
-    return (
-      <div className="p-4 border border-zinc-800 bg-zinc-900/50 rounded-xl text-center">
-        <p className="text-zinc-500 text-sm">Sign in to configure alerts</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Discord Webhook Input */}
-      <div className="space-y-2">
-        <label className="text-xs text-zinc-500 uppercase">Discord Webhook URL</label>
-        <input
-          type="text"
-          value={discordWebhook}
-          onChange={(e) => setDiscordWebhook(e.target.value)}
-          placeholder="https://discord.com/api/webhooks/..."
-          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-300 focus:border-primary focus:outline-none"
-        />
-      </div>
-
-      {/* Alert Types */}
-      <div className="space-y-3">
-        <label className="text-xs text-zinc-500 uppercase">Alert Types</label>
-
-        <div
-          className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-colors ${alertTypes.includes("WHALE_MOVEMENT")
-            ? "border-blue-500/50 bg-blue-500/10"
-            : "border-zinc-800 bg-zinc-950"
-            }`}
-          onClick={() => toggleAlertType("WHALE_MOVEMENT")}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🐋</span>
-            <span className="text-sm text-zinc-300">Whale Movements</span>
-          </div>
-          <div className={`w-3 h-3 rounded-full border ${alertTypes.includes("WHALE_MOVEMENT") ? "bg-blue-500 border-blue-500" : "border-zinc-600"
-            }`} />
-        </div>
-
-        <div
-          className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-colors ${alertTypes.includes("SMART_MONEY_ENTRY")
-            ? "border-green-500/50 bg-green-500/10"
-            : "border-zinc-800 bg-zinc-950"
-            }`}
-          onClick={() => toggleAlertType("SMART_MONEY_ENTRY")}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🧠</span>
-            <span className="text-sm text-zinc-300">Smart Money Entries</span>
-          </div>
-          <div className={`w-3 h-3 rounded-full border ${alertTypes.includes("SMART_MONEY_ENTRY") ? "bg-green-500 border-green-500" : "border-zinc-600"
-            }`} />
-        </div>
-      </div>
-
-      {/* Save Button */}
+    <>
       <button
-        onClick={saveSettings}
-        disabled={status === "saving"}
-        className={`w-full py-2 text-sm font-bold rounded-lg transition-all ${status === "saved"
-          ? "bg-green-500 text-black"
-          : status === "error"
-            ? "bg-red-500 text-white"
-            : "bg-primary text-black hover:bg-primary/90"
-          }`}
+        onClick={handleClick}
+        className="w-full group relative"
       >
-        {status === "saving" ? "SAVING..." : status === "saved" ? "SAVED!" : status === "error" ? "ERROR" : "SAVE SETTINGS"}
+        <div className="absolute inset-0 bg-[#5865F2] rounded-xl blur opacity-10 group-hover:opacity-25 transition-opacity duration-500" />
+        <div className="relative flex items-center justify-between p-4 border-2 border-[#5865F2] bg-[#5865F2]/10 rounded-xl shadow-[3px_3px_0px_0px_rgba(88,101,242,0.8)] hover:translate-y-px hover:shadow-[2px_2px_0px_0px_rgba(88,101,242,0.8)] active:translate-y-[3px] active:shadow-none transition-all duration-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#5865F2] flex items-center justify-center text-white">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.942 5.556a16.299 16.299 0 0 0-4.126-1.297c-.178.321-.385.754-.529 1.097a15.175 15.175 0 0 0-4.573 0 11.583 11.583 0 0 0-.535-1.097 16.274 16.274 0 0 0-4.129 1.3 11.85 11.85 0 0 0-4.792 9.574c.008.016.015.032.024.048a16.49 16.49 0 0 0 5.064 2.595 12.038 12.038 0 0 0 1.084-1.785 10.638 10.638 0 0 1-1.707-.815l.311-.235a8.831 8.831 0 0 0 8.89 0l.311.235a10.64 10.64 0 0 1-1.71.815c.307.651.669 1.25 1.084 1.785a16.497 16.497 0 0 0 5.064-2.595c.009-.016.016-.032.024-.048a11.862 11.862 0 0 0-4.76-9.574ZM8.552 13.16c-1.006 0-1.832-.922-1.832-2.047s.814-2.047 1.832-2.047c1.029 0 1.844.933 1.832 2.047 0 1.125-.803 2.047-1.832 2.047Zm6.896 0c-1.006 0-1.832-.922-1.832-2.047s.814-2.047 1.832-2.047c1.029 0 1.844.933 1.832 2.047 0 1.125-.803 2.047-1.832 2.047Z" fill="currentColor" />
+              </svg>
+            </div>
+            <div className="text-left">
+              <div className="font-bold text-[#5865F2] text-lg">JOIN DISCORD</div>
+              <div className="text-xs text-zinc-400">Get live alerts & AI analytics</div>
+            </div>
+          </div>
+          <div className="w-8 h-8 rounded-full border-2 border-[#5865F2]/50 flex items-center justify-center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[#5865F2]">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </div>
+        </div>
       </button>
-    </div>
+
+      <DiscordPromoModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   );
 }
