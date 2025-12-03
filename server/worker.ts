@@ -304,7 +304,7 @@ async function getUserAlertPreferences(alertType: "WHALE_MOVEMENT" | "SMART_MONE
       }
     },
     include: { alertSettings: true }
-  });
+  }) as any[];
 
   userAlertCache.set(cacheKey, {
     prefs: users,
