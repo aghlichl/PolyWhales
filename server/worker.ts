@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
-import Redis from "ioredis";
 import { Server as SocketIOServer } from "socket.io";
 import { createServer } from "http";
 import WebSocket from "ws";
@@ -24,21 +23,302 @@ import {
 import { formatDiscordAlert } from "../lib/alerts/formatters";
 import { fetchPortfolio } from "../lib/gamma";
 import { CONFIG } from "../lib/config";
+import { load } from "cheerio";
+import fetch from "node-fetch";
 
-// Direct alert sending functions (replaces queue system)
-// Direct alert sending function (replaces queue system)
-async function sendDiscordAlert(trade: EnrichedTrade, alertType: "WHALE_MOVEMENT" | "SMART_MONEY_ENTRY") {
-  // Get all users who should receive this type of alert
+// ---- LEADERBOARD SCRAPER TYPES ----
+type LeaderboardRow = {
+  timeframe: string;      // "Daily" | "Weekly" | "Monthly" | "All Time"
+  rank: number;
+  displayName: string;
+  wallet: string;
+  profitLabel: string;
+  volumeLabel: string;
+};
+
+type PositionResponse = {
+  proxyWallet: string;
+  asset: string;
+  conditionId: string;
+  size: number;
+  avgPrice: number;
+  initialValue: number;
+  currentValue: number;
+  cashPnl: number;
+  percentPnl: number;
+  totalBought: number;
+  realizedPnl: number;
+  percentRealizedPnl: number;
+  curPrice: number;
+  redeemable: boolean;
+  mergeable: boolean;
+  title: string;
+  slug: string;
+  icon: string;
+  eventId: string;
+  eventSlug: string;
+  outcome: string;
+  outcomeIndex: number;
+  oppositeOutcome: string;
+  oppositeAsset: string;
+  endDate: string;
+  negativeRisk: boolean;
+};
+
+/**
+ * Adaptive rate limiter that adjusts delays based on API response times and error rates
+ */
+class AdaptiveRateLimiter {
+  private lastRequestTime = 0;
+  private errorCount = 0;
+  private baseDelay = 200;
+
+  async wait(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    const adaptiveDelay = Math.max(
+      this.baseDelay,
+      this.errorCount * 100,  // Increase delay on errors
+      this.baseDelay - timeSinceLastRequest  // Don't wait if enough time passed
+    );
+
+    if (adaptiveDelay > 0) {
+      await delay(adaptiveDelay);
+    }
+
+    this.lastRequestTime = Date.now();
+  }
+
+  recordError(): void {
+    this.errorCount = Math.min(this.errorCount + 1, 5); // Cap at 5
+  }
+
+  recordSuccess(): void {
+    this.errorCount = Math.max(this.errorCount - 1, 0); // Decay on success
+  }
+}
+
+/**
+ * Bounded Map with automatic cleanup to prevent memory accumulation
+ */
+class BoundedMap<K, V> extends Map<K, V> {
+  private readonly maxSize: number;
+
+  constructor(maxSize: number = 10000) {
+    super();
+    this.maxSize = maxSize;
+  }
+
+  set(key: K, value: V): this {
+    if (this.size >= this.maxSize) {
+      // Remove oldest 10% of entries
+      const keysToDelete = Array.from(this.keys()).slice(0, Math.floor(this.maxSize * 0.1));
+      keysToDelete.forEach(k => this.delete(k));
+    }
+    return super.set(key, value);
+  }
+}
+
+const LEADERBOARD_URLS = [
+  { url: "https://polymarket.com/leaderboard/overall/today/profit", timeframe: "Daily" },
+  { url: "https://polymarket.com/leaderboard/overall/weekly/profit", timeframe: "Weekly" },
+  { url: "https://polymarket.com/leaderboard/overall/monthly/profit", timeframe: "Monthly" },
+  { url: "https://polymarket.com/leaderboard/overall/all/profit", timeframe: "All Time" },
+];
+
+function parseCurrency(label: string): number | null {
+  const trimmed = label.trim();
+  if (!trimmed || trimmed === "—") return null;
+
+  const normalized = trimmed
+    .replace(/[$,]/g, "")
+    .replace(/^\+/, "");
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Fetch top positions for a wallet
+ */
+async function fetchWhalePositions(walletAddress: string): Promise<PositionResponse[]> {
+  try {
+    const url = `https://data-api.polymarket.com/positions?sizeThreshold=1&limit=10&sortBy=CURRENT&sortDirection=DESC&user=${walletAddress}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn(`[Worker] Failed to fetch positions for ${walletAddress}: ${response.statusText}`);
+      return [];
+    }
+    const data = await response.json() as PositionResponse[];
+    return data;
+  } catch (error) {
+    console.error(`[Worker] Error fetching positions for ${walletAddress}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Scrapes Polymarket leaderboard and saves to DB
+ */
+async function scrapeLeaderboard() {
+  console.log("[Worker] Starting leaderboard scrape...");
+  const allRows: LeaderboardRow[] = [];
+
+  try {
+    for (const { url, timeframe } of LEADERBOARD_URLS) {
+      // console.log(`[Worker] Scraping ${timeframe} leaderboard...`);
+      const html = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+      }).then((r) => r.text());
+
+      const $ = load(html);
+      const rows: LeaderboardRow[] = [];
+
+      // each row is wrapped in this exact container:
+      $(".flex.flex-col.gap-2.py-5.border-b").each((i, row) => {
+        if (i >= 20) return; // Top 20
+
+        const $row = $(row);
+
+        // USERNAME + WALLET
+        const usernameAnchor = $row.find('a[href^="/profile/"]').last();
+        const displayName = usernameAnchor.text().trim();
+        const wallet = usernameAnchor.attr("href")!.replace("/profile/", "");
+
+        // PROFIT
+        const profitLabel = $row.find("p.text-text-primary").text().trim();
+
+        // VOLUME
+        const volumeLabel = $row.find("p.text-text-secondary").text().trim();
+
+        rows.push({
+          timeframe,
+          rank: i + 1,
+          displayName,
+          wallet,
+          profitLabel,
+          volumeLabel,
+        });
+      });
+
+      allRows.push(...rows);
+    }
+
+    console.log(`[Worker] Scraped ${allRows.length} leaderboard rows`);
+
+    if (allRows.length > 0) {
+      const snapshotAt = new Date();
+
+      // Insert into DB using Prisma
+      // We do this in a transaction to ensure consistency
+      await prisma.$transaction(async (tx) => {
+        for (const row of allRows) {
+          const totalPnl = parseCurrency(row.profitLabel) ?? 0;
+          const totalVolume = parseCurrency(row.volumeLabel) ?? 0;
+
+          await tx.walletLeaderboardSnapshot.create({
+            data: {
+              walletAddress: row.wallet,
+              period: row.timeframe,
+              rank: row.rank,
+              totalPnl,
+              totalVolume,
+              winRate: 0, // Not available in this view
+              snapshotAt,
+              accountName: row.displayName,
+            }
+          });
+
+          // Fetch and insert positions
+          // Add adaptive delay to respect rate limits
+          await rateLimiter.wait();
+          let positions: PositionResponse[] = [];
+          try {
+            positions = await fetchWhalePositions(row.wallet);
+            rateLimiter.recordSuccess();
+          } catch (error) {
+            console.warn(`[Worker] Failed to fetch positions for ${row.wallet}:`, error);
+            rateLimiter.recordError();
+          }
+
+          let positionRank = 1;
+          for (const pos of positions) {
+            await tx.whalePositionSnapshot.create({
+              data: {
+                snapshotAt,
+                timeframe: row.timeframe,
+                walletRank: row.rank,
+                positionRank: positionRank++,
+                proxyWallet: pos.proxyWallet,
+                conditionId: pos.conditionId,
+                assetId: pos.asset,
+                eventId: pos.eventId,
+                eventSlug: pos.eventSlug,
+                marketTitle: pos.title,
+                marketSlug: pos.slug,
+                iconUrl: pos.icon,
+                outcome: pos.outcome,
+                outcomeIndex: pos.outcomeIndex,
+                oppositeOutcome: pos.oppositeOutcome,
+                oppositeAssetId: pos.oppositeAsset,
+                endDate: pos.endDate ? new Date(pos.endDate) : null,
+                negativeRisk: pos.negativeRisk,
+                redeemable: pos.redeemable,
+                size: pos.size,
+                avgPrice: pos.avgPrice,
+                curPrice: pos.curPrice,
+                initialValue: pos.initialValue,
+                currentValue: pos.currentValue,
+                totalBought: pos.totalBought,
+                cashPnl: pos.cashPnl,
+                percentPnl: pos.percentPnl,
+                realizedPnl: pos.realizedPnl,
+                percentRealizedPnl: pos.percentRealizedPnl,
+              }
+            });
+          }
+        }
+      });
+      console.log("[Worker] Successfully saved leaderboard snapshots and positions");
+    }
+
+  } catch (error) {
+    console.error("[Worker] Leaderboard scraping failed:", error);
+  }
+}
+
+// Cache user alert preferences to avoid repeated database queries
+async function getUserAlertPreferences(alertType: "WHALE_MOVEMENT" | "SMART_MONEY_ENTRY") {
+  const cacheKey = `alert_${alertType}`;
+  const cached = userAlertCache.get(cacheKey);
+
+  if (cached && cached.expires > Date.now()) {
+    return cached.prefs;
+  }
+
   const users = await prisma.user.findMany({
     where: {
       alertSettings: {
-        is: {
-          alertTypes: { has: alertType }
-        }
+        is: { alertTypes: { has: alertType } }
       }
     },
     include: { alertSettings: true }
   });
+
+  userAlertCache.set(cacheKey, {
+    prefs: users,
+    expires: Date.now() + 5 * 60 * 1000  // 5 minute TTL
+  });
+
+  return users;
+}
+
+// Direct alert sending functions (replaces queue system)
+// Direct alert sending function (replaces queue system)
+async function sendDiscordAlert(trade: EnrichedTrade, alertType: "WHALE_MOVEMENT" | "SMART_MONEY_ENTRY") {
+  // Get all users who should receive this type of alert (cached)
+  const users = await getUserAlertPreferences(alertType);
 
   // Format the payload once
   const embed = formatDiscordAlert(trade);
@@ -68,9 +348,33 @@ async function sendDiscordAlert(trade: EnrichedTrade, alertType: "WHALE_MOVEMENT
 // Helper function for rate limiting delays
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Initialize services (remove alert queue)
-const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+// Adaptive rate limiter instance
+const rateLimiter = new AdaptiveRateLimiter();
 
+// User alert preferences cache with TTL
+const userAlertCache = new Map<string, { prefs: Awaited<ReturnType<typeof prisma.user.findMany>>; expires: number }>();
+
+// Error tracking and metrics
+const errorMetrics = {
+  websocketErrors: 0,
+  apiErrors: 0,
+  dbErrors: 0,
+  enrichmentFailures: 0,
+  lastReset: Date.now()
+};
+
+function logError(category: keyof typeof errorMetrics, error: Error, context?: any): void {
+  errorMetrics[category]++;
+
+  console.error(`[${category.toUpperCase()}]`, {
+    message: error.message,
+    context,
+    timestamp: new Date().toISOString(),
+    count: errorMetrics[category]
+  });
+}
+
+// Initialize services
 // Socket.io server on port 3001
 const httpServer = createServer();
 const io = new SocketIOServer(httpServer, {
@@ -93,12 +397,23 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log(`[Worker] Client disconnected: ${socket.id}`);
   });
+
+  // Health check endpoint
+  socket.on("health", (callback) => {
+    callback({
+      status: "healthy",
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      errorMetrics,
+      activeConnections: io.engine.clientsCount,
+      lastMetadataRefresh: marketsByCondition.size > 0 ? "recent" : "unknown"
+    });
+  });
 });
 
-// Market metadata cache
-// We use mutable maps to store state
-let marketsByCondition = new Map<string, MarketMeta>();
-let assetIdToOutcome = new Map<string, AssetOutcome>();
+// Market metadata cache with bounds to prevent memory accumulation
+let marketsByCondition = new BoundedMap<string, MarketMeta>(5000);
+let assetIdToOutcome = new BoundedMap<string, AssetOutcome>(10000);
 
 /**
  * Fetch market metadata and update local cache
@@ -109,9 +424,16 @@ async function updateMarketMetadata(): Promise<string[]> {
 
     const result = parseMarketData(markets);
 
-    // Update globals
-    marketsByCondition = result.marketsByCondition;
-    assetIdToOutcome = result.assetIdToOutcome;
+    // Update bounded maps (clear and repopulate to maintain bounds)
+    marketsByCondition.clear();
+    for (const [key, value] of result.marketsByCondition) {
+      marketsByCondition.set(key, value);
+    }
+
+    assetIdToOutcome.clear();
+    for (const [key, value] of result.assetIdToOutcome) {
+      assetIdToOutcome.set(key, value);
+    }
 
     console.log(
       `[Worker] Mapped ${marketsByCondition.size} markets and ${assetIdToOutcome.size} assets`
@@ -373,43 +695,45 @@ export async function processTrade(trade: PolymarketTrade) {
         profile.winRate > 0.7 &&
         profile.totalPnl > 10000;
 
-      // Update DB
+      // Update DB with batched transaction
       try {
-        await prisma.walletProfile.upsert({
-          where: { id: walletAddress.toLowerCase() },
-          update: {
-            label: profile.label || null,
-            totalPnl: profile.totalPnl,
-            winRate: profile.winRate,
-            isFresh: profile.isFresh,
-            txCount: profile.txCount,
-            maxTradeValue: Math.max(profile.maxTradeValue, value),
-            activityLevel: profile.activityLevel,
-            lastUpdated: new Date(),
-          },
-          create: {
-            id: walletAddress.toLowerCase(),
-            label: profile.label || null,
-            totalPnl: profile.totalPnl,
-            winRate: profile.winRate,
-            isFresh: profile.isFresh,
-            txCount: profile.txCount,
-            maxTradeValue: value,
-            activityLevel: profile.activityLevel,
-          },
-        });
+        await prisma.$transaction(async (tx) => {
+          await tx.walletProfile.upsert({
+            where: { id: walletAddress.toLowerCase() },
+            update: {
+              label: profile.label || null,
+              totalPnl: profile.totalPnl,
+              winRate: profile.winRate,
+              isFresh: profile.isFresh,
+              txCount: profile.txCount,
+              maxTradeValue: Math.max(profile.maxTradeValue, value),
+              activityLevel: profile.activityLevel,
+              lastUpdated: new Date(),
+            },
+            create: {
+              id: walletAddress.toLowerCase(),
+              label: profile.label || null,
+              totalPnl: profile.totalPnl,
+              winRate: profile.winRate,
+              isFresh: profile.isFresh,
+              txCount: profile.txCount,
+              maxTradeValue: value,
+              activityLevel: profile.activityLevel,
+            },
+          });
 
-        await prisma.trade.update({
-          where: { id: dbTrade.id },
-          data: {
-            walletAddress: walletAddress.toLowerCase(),
-            isSmartMoney,
-            isFresh,
-            isSweeper,
-            blockNumber,
-            logIndex,
-            enrichmentStatus,
-          }
+          await tx.trade.update({
+            where: { id: dbTrade.id },
+            data: {
+              walletAddress: walletAddress.toLowerCase(),
+              isSmartMoney,
+              isFresh,
+              isSweeper,
+              blockNumber,
+              logIndex,
+              enrichmentStatus,
+            }
+          });
         });
 
         // Trigger portfolio enrichment for interesting wallets
@@ -464,12 +788,12 @@ export async function processTrade(trade: PolymarketTrade) {
         if (isGodWhale || isSuperWhale || isMegaWhale || isWhale) {
           console.log(`[WORKER] 🚨 SENDING WHALE ALERT: $${value} trade`);
           await sendDiscordAlert(fullEnrichedTrade, "WHALE_MOVEMENT")
-            .catch(err => console.log(`[WORKER] Alert failed silently: ${(err as Error).message}`));
+            .catch(err => logError('apiErrors', err as Error, { alertType: "WHALE_MOVEMENT", tradeValue: value, walletAddress: walletAddress.slice(0, 8) }));
 
         } else if (isSmartMoney) {
           console.log(`[WORKER] 🧠 SENDING SMART MONEY ALERT: $${value} trade`);
           await sendDiscordAlert(fullEnrichedTrade, "SMART_MONEY_ENTRY")
-            .catch(err => console.log(`[WORKER] Alert failed silently: ${(err as Error).message}`));
+            .catch(err => logError('apiErrors', err as Error, { alertType: "SMART_MONEY_ENTRY", tradeValue: value, walletAddress: walletAddress.slice(0, 8) }));
         }
       } catch (alertError) {
         console.error("[Worker] Error generating alert:", alertError);
@@ -525,8 +849,8 @@ async function runBatchEnrichment() {
     let failedCount = 0;
 
     for (const trade of unenrichedTrades) {
-      // Rate limit to stay under 75 req/10s
-      await delay(CONFIG.ENRICHMENT.RATE_LIMIT_DELAY_MS);
+      // Rate limit to stay under 75 req/10s with adaptive delays
+      await rateLimiter.wait();
 
       try {
         let walletAddress = "";
@@ -536,31 +860,43 @@ async function runBatchEnrichment() {
 
         // Try Data-API matching first
         if (trade.transactionHash) {
-          const dataApiResult = await enrichTradeWithDataAPI({
-            assetId: trade.assetId,
-            price: trade.price,
-            size: trade.size,
-            timestamp: trade.timestamp,
-            transactionHash: trade.transactionHash,
-          });
+          try {
+            const dataApiResult = await enrichTradeWithDataAPI({
+              assetId: trade.assetId,
+              price: trade.price,
+              size: trade.size,
+              timestamp: trade.timestamp,
+              transactionHash: trade.transactionHash,
+            });
 
-          if (dataApiResult) {
-            walletAddress = dataApiResult.taker || dataApiResult.maker || "";
-            if (walletAddress) {
-              enrichmentStatus = "enriched";
+            if (dataApiResult) {
+              walletAddress = dataApiResult.taker || dataApiResult.maker || "";
+              if (walletAddress) {
+                enrichmentStatus = "enriched";
+              }
             }
+            rateLimiter.recordSuccess();
+          } catch (error) {
+            console.warn("[Worker] Data-API enrichment failed:", error);
+            rateLimiter.recordError();
           }
         }
 
         // Fall back to tx log parsing if Data-API didn't work
         if (!walletAddress && trade.transactionHash) {
-          const txResult = await getWalletsFromTx(trade.transactionHash);
-          walletAddress = txResult.taker || txResult.maker || "";
-          blockNumber = txResult.blockNumber;
-          logIndex = txResult.logIndex;
+          try {
+            const txResult = await getWalletsFromTx(trade.transactionHash);
+            walletAddress = txResult.taker || txResult.maker || "";
+            blockNumber = txResult.blockNumber;
+            logIndex = txResult.logIndex;
 
-          if (walletAddress) {
-            enrichmentStatus = "enriched";
+            if (walletAddress) {
+              enrichmentStatus = "enriched";
+            }
+            rateLimiter.recordSuccess();
+          } catch (error) {
+            console.warn("[Worker] Tx log parsing failed:", error);
+            rateLimiter.recordError();
           }
         }
 
@@ -648,6 +984,20 @@ function connectToPolymarket() {
   let ws: WebSocket | null = null;
   let heartbeatInterval: NodeJS.Timeout;
 
+  // Exponential backoff for reconnections
+  let reconnectAttempts = 0;
+  const MAX_RECONNECT_DELAY = 30000; // 30 seconds
+
+  function getReconnectDelay(): number {
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY);
+    reconnectAttempts++;
+    return delay;
+  }
+
+  function resetReconnectAttempts(): void {
+    reconnectAttempts = 0;
+  }
+
   const connect = async () => {
     const assetIds = await updateMarketMetadata();
     if (assetIds.length === 0) {
@@ -660,6 +1010,7 @@ function connectToPolymarket() {
 
     ws.on("open", () => {
       console.log("[Worker] Connected to Polymarket WebSocket");
+      resetReconnectAttempts(); // Reset on successful connection
 
       const msg = {
         type: "market",
@@ -694,26 +1045,52 @@ function connectToPolymarket() {
 
       // Run initial batch enrichment after a short delay
       setTimeout(runBatchEnrichment, 10000);
+
+      // Start leaderboard scraper (every 2 hours)
+      console.log("[Worker] Starting leaderboard scraper schedule (every 2h)...");
+      setInterval(scrapeLeaderboard, 2 * 60 * 60 * 1000);
+      // Run once on startup after a delay
+      setTimeout(scrapeLeaderboard, 30000);
+
+      // Cache cleanup interval
+      setInterval(() => {
+        const now = Date.now();
+
+        // Clean user alert cache
+        for (const [key, value] of userAlertCache.entries()) {
+          if (value.expires < now) {
+            userAlertCache.delete(key);
+          }
+        }
+
+        console.log(`[Worker] Cache cleanup: ${userAlertCache.size} alert prefs cached`);
+      }, 10 * 60 * 1000); // Every 10 minutes
     });
 
     ws.on("message", (data: WebSocket.Data) => {
       try {
         const parsed = JSON.parse(data.toString());
 
-        if (
-          parsed.event_type === "last_trade_price" ||
-          parsed.event_type === "trade"
-        ) {
-          const trades = Array.isArray(parsed) ? parsed : [parsed];
-
-          trades.forEach((trade: PolymarketTrade) => {
-            if (trade.price && trade.size && trade.asset_id) {
-              processTrade(trade).catch(console.error);
-            }
-          });
+        // Early return for non-trade messages
+        if (!parsed.event_type || !['last_trade_price', 'trade'].includes(parsed.event_type)) {
+          return;
         }
+
+        const trades = Array.isArray(parsed) ? parsed : [parsed];
+
+        // Process only valid trades
+        const validTrades = trades.filter((trade: PolymarketTrade) =>
+          trade.price && trade.size && trade.asset_id &&
+          Number(trade.price) * Number(trade.size) >= CONFIG.THRESHOLDS.MIN_VALUE
+        );
+
+        validTrades.forEach((trade: PolymarketTrade) => {
+          processTrade(trade).catch(console.error);
+        });
+
       } catch (error) {
-        console.warn("[Worker] Parse error:", error);
+        // Only log actual parsing errors, not filtered messages
+        console.warn("[Worker] Message parse error:", error);
       }
     });
 
@@ -722,9 +1099,9 @@ function connectToPolymarket() {
     });
 
     ws.on("close", () => {
-      // console.log('[Worker] WebSocket closed, reconnecting...');
+      console.log('[Worker] WebSocket closed, reconnecting...');
       clearInterval(heartbeatInterval);
-      setTimeout(connect, 3000);
+      setTimeout(connect, getReconnectDelay());
     });
   };
 
@@ -735,7 +1112,6 @@ function connectToPolymarket() {
 process.on("SIGINT", async () => {
   // console.log('[Worker] Shutting down...');
   await prisma.$disconnect();
-  await redis.quit();
   process.exit(0);
 });
 

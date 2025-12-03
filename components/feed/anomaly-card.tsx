@@ -114,22 +114,22 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                 )}
 
                 <Card className={cn(
-                    "relative z-10 h-full p-4 transition-all duration-300 ease-out rounded-xl overflow-hidden",
+                    "relative z-10 h-full p-4 transition-all duration-300 ease-out rounded-xl overflow-hidden border",
                     // Standard Tier (Default)
                     !isGod && !isSuper && !isMega && !isWhale &&
-                    "bg-zinc-950 shadow-[5px_5px_0px_0px_#27272a] group-hover:shadow-[6px_6px_0px_0px_#27272a] group-hover:-translate-y-1",
+                    "bg-zinc-950 border-zinc-700 shadow-[5px_5px_0px_0px_#27272a] group-hover:shadow-[6px_6px_0px_0px_#27272a] group-hover:-translate-y-1",
 
                     // Whale Tier - Subtle Blue
-                    isWhale && "bg-zinc-950 shadow-[5px_5px_0px_0px_#3b82f6] group-hover:shadow-[6px_6px_0px_0px_#3b82f6] group-hover:-translate-y-1",
+                    isWhale && "bg-zinc-950 border-blue-500/20 shadow-[5px_5px_0px_0px_#3b82f6] group-hover:shadow-[6px_6px_0px_0px_#3b82f6] group-hover:-translate-y-1",
 
                     // Mega Whale - Pulsing Purple
-                    isMega && "bg-zinc-950 shadow-[5px_5px_0px_0px_#a855f7] group-hover:shadow-[6px_6px_0px_0px_#a855f7] group-hover:-translate-y-1",
+                    isMega && "bg-zinc-950 border-purple-500/20 shadow-[5px_5px_0px_0px_#a855f7] group-hover:shadow-[6px_6px_0px_0px_#a855f7] group-hover:-translate-y-1",
 
                     // Super Whale - Aggressive Red
-                    isSuper && "bg-zinc-950 shadow-[5px_5px_0px_0px_#ef4444] group-hover:shadow-[6px_6px_0px_0px_#ef4444] group-hover:-translate-y-1",
+                    isSuper && "bg-zinc-950 border-red-500/20 shadow-[5px_5px_0px_0px_#ef4444] group-hover:shadow-[6px_6px_0px_0px_#ef4444] group-hover:-translate-y-1",
 
                     // God Whale - Mythic Gold
-                    isGod && "bg-zinc-950 shadow-[5px_5px_0px_0px_#fbbf24] group-hover:shadow-[6px_6px_0px_0px_#fbbf24] group-hover:-translate-y-1"
+                    isGod && "bg-zinc-950 border-yellow-500/20 shadow-[5px_5px_0px_0px_#fbbf24] group-hover:shadow-[6px_6px_0px_0px_#fbbf24] group-hover:-translate-y-1"
                 )}>
                     {/* God Tier: Cosmic Limit Break (Anime Style) */}
                     {isGod && (
@@ -246,7 +246,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 {/* Event Image (If Available) */}
                                 {/* Team Logo / Event Image */}
                                 <div className={cn(
-                                    "relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/20 shadow-2xl group-hover/title:border-white/30 transition-all duration-300 backdrop-blur-sm",
+                                    "relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/20 shadow-2xl backdrop-blur-sm",
                                     usePolymarketFallback ? "bg-white/5" : "bg-transparent"
                                 )}>
                                     {/* Modern Glass Effect - Only for Polymarket images */}
@@ -283,8 +283,8 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 <div className="relative flex-1 min-w-0">
                                     {/* Tier-Specific Accent Bar (Vertical) */}
                                     <div className={cn(
-                                        "absolute -left-2 top-1 bottom-1 w-1 rounded-full transition-all duration-300",
-                                        "opacity-40 group-hover/title:opacity-100 group-hover/title:w-1.5",
+                                        "absolute -left-2 top-1 bottom-1 w-1 rounded-full",
+                                        "opacity-40",
                                         isGod ? "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]" :
                                             isSuper ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
                                                 isMega ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" :
@@ -306,7 +306,6 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                                 "leading-tight md:leading-snug",
                                                 // Layout: Flex column for vertical centering of the inner text block
                                                 "min-h-10 flex flex-col justify-center",
-                                                "transition-all duration-300",
                                                 // Tier-specific text colors
                                                 isGod ? "text-yellow-100" :
                                                     isSuper ? "text-red-100" :
@@ -349,15 +348,12 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 "bg-zinc-950", // Deep solid background
                                 "border border-zinc-800", // Structural border
                                 "rounded-lg", // Consistent shape
-                                "px-4 py-2",
-                                "transition-all duration-300",
-                                "hover:border-zinc-700" // Subtle interaction
+                                "px-4 py-2"
                             )}>
                                 {/* Tier Indicator - Minimal Corner Accent */}
                                 <div className={cn(
                                     "absolute top-0 right-0 w-2 h-2",
                                     "border-t border-r rounded-tr-lg", // Corner bracket style
-                                    "transition-colors duration-300",
                                     isGod ? "border-yellow-500" :
                                         isSuper ? "border-red-500" :
                                             isMega ? "border-purple-500" :
@@ -369,7 +365,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 <div className={cn(
                                     "absolute bottom-0 left-0 w-2 h-2",
                                     "border-b border-l rounded-bl-lg", // Corner bracket style
-                                    "transition-colors duration-300 opacity-50",
+                                    "opacity-50",
                                     isGod ? "border-yellow-500" :
                                         isSuper ? "border-red-500" :
                                             isMega ? "border-purple-500" :
@@ -402,19 +398,10 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         <div className="flex items-end z-20">
                             <div className="flex flex-col justify-end">
                                 <div className="relative group/outcome cursor-default">
-                                    {/* Ambient Glow - Behind */}
-                                    <div className={cn(
-                                        "absolute -inset-2 opacity-0 group-hover/outcome:opacity-100 transition-opacity duration-500 blur-xl",
-                                        side === 'SELL' ? "bg-red-600/20" : "bg-emerald-500/20"
-                                    )} />
-
                                     {/* Main Container */}
                                     <div className={cn(
-                                        "relative flex flex-col min-w-[100px] overflow-hidden transition-all duration-300 rounded-lg",
-                                        "bg-zinc-950 border border-zinc-800",
-                                        side === 'SELL'
-                                            ? "hover:border-red-500/50"
-                                            : "hover:border-emerald-500/50"
+                                        "relative flex flex-col min-w-[100px] overflow-hidden rounded-lg",
+                                        "bg-zinc-950 border border-zinc-800"
                                     )}>
                                         {/* Decorative Top Bar */}
                                         <div className={cn(
@@ -445,21 +432,11 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                             <div className="relative">
                                                 <span className={cn(
                                                     // bricolage.className removed
-                                                    "block text-lg font-black italic tracking-tighter leading-none uppercase text-zinc-100",
-                                                    "group-hover/outcome:translate-x-0.5 transition-transform duration-300"
+                                                    "block text-lg font-black italic tracking-tighter leading-none uppercase text-zinc-100"
                                                 )}>
                                                     {outcome}
                                                 </span>
 
-                                                {/* Glitch/Echo Effect on Hover */}
-                                                <span className={cn(
-                                                    // bricolage.className removed
-                                                    "absolute inset-0 text-lg font-black italic tracking-tighter leading-none uppercase opacity-0 group-hover/outcome:opacity-40 transition-opacity duration-100 delay-75",
-                                                    "translate-x-[-1px] translate-y-[0.5px]",
-                                                    side === 'SELL' ? "text-red-500" : "text-emerald-500"
-                                                )}>
-                                                    {outcome}
-                                                </span>
                                             </div>
                                         </div>
 

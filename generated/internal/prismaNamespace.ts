@@ -390,7 +390,9 @@ export const ModelName = {
   User: 'User',
   WalletPortfolioSnapshot: 'WalletPortfolioSnapshot',
   WalletProfile: 'WalletProfile',
-  Watchlist: 'Watchlist'
+  Watchlist: 'Watchlist',
+  WalletLeaderboardSnapshot: 'WalletLeaderboardSnapshot',
+  WhalePositionSnapshot: 'WhalePositionSnapshot'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -406,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "alert" | "trade" | "userAlertSettings" | "user" | "walletPortfolioSnapshot" | "walletProfile" | "watchlist"
+    modelProps: "alert" | "trade" | "userAlertSettings" | "user" | "walletPortfolioSnapshot" | "walletProfile" | "watchlist" | "walletLeaderboardSnapshot" | "whalePositionSnapshot"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -928,6 +930,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    WalletLeaderboardSnapshot: {
+      payload: Prisma.$WalletLeaderboardSnapshotPayload<ExtArgs>
+      fields: Prisma.WalletLeaderboardSnapshotFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WalletLeaderboardSnapshotFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WalletLeaderboardSnapshotFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>
+        }
+        findFirst: {
+          args: Prisma.WalletLeaderboardSnapshotFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WalletLeaderboardSnapshotFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>
+        }
+        findMany: {
+          args: Prisma.WalletLeaderboardSnapshotFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>[]
+        }
+        create: {
+          args: Prisma.WalletLeaderboardSnapshotCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>
+        }
+        createMany: {
+          args: Prisma.WalletLeaderboardSnapshotCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WalletLeaderboardSnapshotCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>[]
+        }
+        delete: {
+          args: Prisma.WalletLeaderboardSnapshotDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>
+        }
+        update: {
+          args: Prisma.WalletLeaderboardSnapshotUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>
+        }
+        deleteMany: {
+          args: Prisma.WalletLeaderboardSnapshotDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WalletLeaderboardSnapshotUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WalletLeaderboardSnapshotUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>[]
+        }
+        upsert: {
+          args: Prisma.WalletLeaderboardSnapshotUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WalletLeaderboardSnapshotPayload>
+        }
+        aggregate: {
+          args: Prisma.WalletLeaderboardSnapshotAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWalletLeaderboardSnapshot>
+        }
+        groupBy: {
+          args: Prisma.WalletLeaderboardSnapshotGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WalletLeaderboardSnapshotGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WalletLeaderboardSnapshotCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WalletLeaderboardSnapshotCountAggregateOutputType> | number
+        }
+      }
+    }
+    WhalePositionSnapshot: {
+      payload: Prisma.$WhalePositionSnapshotPayload<ExtArgs>
+      fields: Prisma.WhalePositionSnapshotFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WhalePositionSnapshotFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WhalePositionSnapshotFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>
+        }
+        findFirst: {
+          args: Prisma.WhalePositionSnapshotFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WhalePositionSnapshotFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>
+        }
+        findMany: {
+          args: Prisma.WhalePositionSnapshotFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>[]
+        }
+        create: {
+          args: Prisma.WhalePositionSnapshotCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>
+        }
+        createMany: {
+          args: Prisma.WhalePositionSnapshotCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WhalePositionSnapshotCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>[]
+        }
+        delete: {
+          args: Prisma.WhalePositionSnapshotDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>
+        }
+        update: {
+          args: Prisma.WhalePositionSnapshotUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>
+        }
+        deleteMany: {
+          args: Prisma.WhalePositionSnapshotDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WhalePositionSnapshotUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WhalePositionSnapshotUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>[]
+        }
+        upsert: {
+          args: Prisma.WhalePositionSnapshotUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhalePositionSnapshotPayload>
+        }
+        aggregate: {
+          args: Prisma.WhalePositionSnapshotAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWhalePositionSnapshot>
+        }
+        groupBy: {
+          args: Prisma.WhalePositionSnapshotGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhalePositionSnapshotGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WhalePositionSnapshotCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhalePositionSnapshotCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1068,6 +1218,57 @@ export const WatchlistScalarFieldEnum = {
 } as const
 
 export type WatchlistScalarFieldEnum = (typeof WatchlistScalarFieldEnum)[keyof typeof WatchlistScalarFieldEnum]
+
+
+export const WalletLeaderboardSnapshotScalarFieldEnum = {
+  id: 'id',
+  walletAddress: 'walletAddress',
+  period: 'period',
+  rank: 'rank',
+  totalPnl: 'totalPnl',
+  totalVolume: 'totalVolume',
+  winRate: 'winRate',
+  snapshotAt: 'snapshotAt',
+  accountName: 'accountName'
+} as const
+
+export type WalletLeaderboardSnapshotScalarFieldEnum = (typeof WalletLeaderboardSnapshotScalarFieldEnum)[keyof typeof WalletLeaderboardSnapshotScalarFieldEnum]
+
+
+export const WhalePositionSnapshotScalarFieldEnum = {
+  id: 'id',
+  snapshotAt: 'snapshotAt',
+  timeframe: 'timeframe',
+  walletRank: 'walletRank',
+  positionRank: 'positionRank',
+  proxyWallet: 'proxyWallet',
+  conditionId: 'conditionId',
+  assetId: 'assetId',
+  eventId: 'eventId',
+  eventSlug: 'eventSlug',
+  marketTitle: 'marketTitle',
+  marketSlug: 'marketSlug',
+  iconUrl: 'iconUrl',
+  outcome: 'outcome',
+  outcomeIndex: 'outcomeIndex',
+  oppositeOutcome: 'oppositeOutcome',
+  oppositeAssetId: 'oppositeAssetId',
+  endDate: 'endDate',
+  negativeRisk: 'negativeRisk',
+  redeemable: 'redeemable',
+  size: 'size',
+  avgPrice: 'avgPrice',
+  curPrice: 'curPrice',
+  initialValue: 'initialValue',
+  currentValue: 'currentValue',
+  totalBought: 'totalBought',
+  cashPnl: 'cashPnl',
+  percentPnl: 'percentPnl',
+  realizedPnl: 'realizedPnl',
+  percentRealizedPnl: 'percentRealizedPnl'
+} as const
+
+export type WhalePositionSnapshotScalarFieldEnum = (typeof WhalePositionSnapshotScalarFieldEnum)[keyof typeof WhalePositionSnapshotScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1320,6 +1521,8 @@ export type GlobalOmitConfig = {
   walletPortfolioSnapshot?: Prisma.WalletPortfolioSnapshotOmit
   walletProfile?: Prisma.WalletProfileOmit
   watchlist?: Prisma.WatchlistOmit
+  walletLeaderboardSnapshot?: Prisma.WalletLeaderboardSnapshotOmit
+  whalePositionSnapshot?: Prisma.WhalePositionSnapshotOmit
 }
 
 /* Types for Logging */

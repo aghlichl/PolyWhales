@@ -158,3 +158,57 @@ enum SubscriptionTier {
   PRO
   WHALE
 }
+
+model WalletLeaderboardSnapshot {
+  id            String   @id @default(uuid())
+  walletAddress String
+  period        String   // "Daily" | "Weekly" | "Monthly" | "All Time"
+  rank          Int
+  totalPnl      Float
+  totalVolume   Float
+  winRate       Float
+  snapshotAt    DateTime
+  accountName   String?
+
+  @@index([walletAddress])
+  @@index([snapshotAt])
+  @@map("wallet_leaderboard_snapshots")
+}
+
+model WhalePositionSnapshot {
+  id                  String   @id @default(cuid())
+  snapshotAt          DateTime @map("snapshot_ts")
+  timeframe           String
+  walletRank          Int      @map("wallet_rank")
+  positionRank        Int      @map("position_rank")
+  proxyWallet         String   @map("proxy_wallet")
+  conditionId         String   @map("condition_id")
+  assetId             String   @map("asset_id")
+  eventId             String?  @map("event_id")
+  eventSlug           String?  @map("event_slug")
+  marketTitle         String?  @map("market_title")
+  marketSlug          String?  @map("market_slug")
+  iconUrl             String?  @map("icon_url")
+  outcome             String?
+  outcomeIndex        Int?     @map("outcome_index")
+  oppositeOutcome     String?  @map("opposite_outcome")
+  oppositeAssetId     String?  @map("opposite_asset_id")
+  endDate             DateTime? @map("end_date")
+  negativeRisk        Boolean? @map("negative_risk")
+  redeemable          Boolean?
+  size                Float
+  avgPrice            Float    @map("avg_price")
+  curPrice            Float    @map("cur_price")
+  initialValue        Float    @map("initial_value")
+  currentValue        Float    @map("current_value")
+  totalBought         Float    @map("total_bought")
+  cashPnl             Float    @map("cash_pnl")
+  percentPnl          Float    @map("percent_pnl")
+  realizedPnl         Float    @map("realized_pnl")
+  percentRealizedPnl  Float?   @map("percent_realized_pnl")
+
+  @@unique([snapshotAt, timeframe, proxyWallet, assetId])
+  @@index([proxyWallet])
+  @@index([snapshotAt])
+  @@map("whale_position_snapshots")
+}

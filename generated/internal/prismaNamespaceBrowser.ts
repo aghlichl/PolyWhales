@@ -57,7 +57,9 @@ export const ModelName = {
   User: 'User',
   WalletPortfolioSnapshot: 'WalletPortfolioSnapshot',
   WalletProfile: 'WalletProfile',
-  Watchlist: 'Watchlist'
+  Watchlist: 'Watchlist',
+  WalletLeaderboardSnapshot: 'WalletLeaderboardSnapshot',
+  WhalePositionSnapshot: 'WhalePositionSnapshot'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -177,6 +179,57 @@ export const WatchlistScalarFieldEnum = {
 } as const
 
 export type WatchlistScalarFieldEnum = (typeof WatchlistScalarFieldEnum)[keyof typeof WatchlistScalarFieldEnum]
+
+
+export const WalletLeaderboardSnapshotScalarFieldEnum = {
+  id: 'id',
+  walletAddress: 'walletAddress',
+  period: 'period',
+  rank: 'rank',
+  totalPnl: 'totalPnl',
+  totalVolume: 'totalVolume',
+  winRate: 'winRate',
+  snapshotAt: 'snapshotAt',
+  accountName: 'accountName'
+} as const
+
+export type WalletLeaderboardSnapshotScalarFieldEnum = (typeof WalletLeaderboardSnapshotScalarFieldEnum)[keyof typeof WalletLeaderboardSnapshotScalarFieldEnum]
+
+
+export const WhalePositionSnapshotScalarFieldEnum = {
+  id: 'id',
+  snapshotAt: 'snapshotAt',
+  timeframe: 'timeframe',
+  walletRank: 'walletRank',
+  positionRank: 'positionRank',
+  proxyWallet: 'proxyWallet',
+  conditionId: 'conditionId',
+  assetId: 'assetId',
+  eventId: 'eventId',
+  eventSlug: 'eventSlug',
+  marketTitle: 'marketTitle',
+  marketSlug: 'marketSlug',
+  iconUrl: 'iconUrl',
+  outcome: 'outcome',
+  outcomeIndex: 'outcomeIndex',
+  oppositeOutcome: 'oppositeOutcome',
+  oppositeAssetId: 'oppositeAssetId',
+  endDate: 'endDate',
+  negativeRisk: 'negativeRisk',
+  redeemable: 'redeemable',
+  size: 'size',
+  avgPrice: 'avgPrice',
+  curPrice: 'curPrice',
+  initialValue: 'initialValue',
+  currentValue: 'currentValue',
+  totalBought: 'totalBought',
+  cashPnl: 'cashPnl',
+  percentPnl: 'percentPnl',
+  realizedPnl: 'realizedPnl',
+  percentRealizedPnl: 'percentRealizedPnl'
+} as const
+
+export type WhalePositionSnapshotScalarFieldEnum = (typeof WhalePositionSnapshotScalarFieldEnum)[keyof typeof WhalePositionSnapshotScalarFieldEnum]
 
 
 export const SortOrder = {

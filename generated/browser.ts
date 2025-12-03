@@ -52,3 +52,13 @@ export type WalletProfile = Prisma.WalletProfileModel
  * 
  */
 export type Watchlist = Prisma.WatchlistModel
+/**
+ * Model WalletLeaderboardSnapshot
+ * 
+ */
+export type WalletLeaderboardSnapshot = Prisma.WalletLeaderboardSnapshotModel
+/**
+ * Model WhalePositionSnapshot
+ * 
+ */
+export type WhalePositionSnapshot = Prisma.WhalePositionSnapshotModel
