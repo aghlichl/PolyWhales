@@ -637,7 +637,12 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                                                     "text-zinc-500"
                                                 ) : "text-zinc-600"
                                             )}>
-                                                {period === 'All Time' ? 'ALL' : period.toUpperCase().slice(0, 3)}
+                                                {{
+                                                    'Daily': 'DAY',
+                                                    'Weekly': 'WEEK',
+                                                    'Monthly': 'MONTH',
+                                                    'All Time': 'ALL'
+                                                }[period]}
                                             </span>
                                             <span className={cn(
                                                 "text-[10px] lg:text-xs font-black",

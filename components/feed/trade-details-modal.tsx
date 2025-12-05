@@ -310,106 +310,104 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                     </div>
                 </div>
 
-                {/* Market Stats */}
-                {/* Market Stats - Minimalist Bar */}
-                <div className="px-3 md:px-4 lg:px-6 py-3 border-b border-zinc-800 bg-black/20 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
-                    <div className="flex items-center gap-2">
-                        <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Liq</span>
-                        <span className="text-zinc-200 font-medium">{formatUsdShort(liquidityValue)}</span>
+                {/* Unified Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-3 md:p-4 lg:p-6 border-b border-zinc-800 bg-black/20">
+                    {/* 1. Liquidity */}
+                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/50 flex flex-col justify-center">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5">Liq</span>
+                        <span className="text-sm font-medium text-zinc-200">{formatUsdShort(liquidityValue)}</span>
                     </div>
-                    <div className="w-px h-3 bg-zinc-800 hidden sm:block" />
-                    <div className="flex items-center gap-2">
-                        <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Vol</span>
-                        <span className="text-zinc-200 font-medium">{formatUsdShort(volumeValue)}</span>
-                    </div>
-                    {feeValue !== null && (
-                        <>
-                            <div className="w-px h-3 bg-zinc-800 hidden sm:block" />
-                            <div className="flex items-center gap-2">
-                                <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Fee</span>
-                                <span className="text-zinc-200 font-medium">{feeValue}bps</span>
-                            </div>
-                        </>
-                    )}
-                    {crowding?.top5_share != null && (
-                        <>
-                            <div className="w-px h-3 bg-zinc-800 hidden sm:block" />
-                            <div className="flex items-center gap-2">
-                                <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Crowding</span>
-                                <span className="text-zinc-200 font-medium">Top5 {formatShare(crowding.top5_share)}</span>
-                            </div>
-                        </>
-                    )}
-                    {closeTime && (
-                        <>
-                            <div className="w-px h-3 bg-zinc-800 hidden sm:block" />
-                            <div className="flex items-center gap-2 ml-auto">
-                                <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Closes</span>
-                                <span className="text-zinc-200 font-medium">{formatDateLabel(closeTime)}</span>
-                                <span className="text-zinc-500">({formatTimeRemaining(closeTime)})</span>
-                            </div>
-                        </>
-                    )}
-                </div>
 
-                {/* Trade Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-zinc-800 border-b border-zinc-800">
-                    <div className="p-2 md:p-3 lg:p-4 flex flex-col items-center justify-center bg-black/20">
-                        <span className="text-xs md:text-sm text-zinc-500 uppercase tracking-wider mb-1">Trade</span>
-                        <span className={cn("text-lg md:text-xl lg:text-2xl font-black", themeColor.split(' ')[0])}>
+                    {/* 2. Volume */}
+                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/50 flex flex-col justify-center">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5">Vol</span>
+                        <span className="text-sm font-medium text-zinc-200">{formatUsdShort(volumeValue)}</span>
+                    </div>
+
+                    {/* 3. Closes */}
+                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/50 flex flex-col justify-center">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Closes</span>
+                            {closeTime && (
+                                <span className={cn(
+                                    "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+                                    formatTimeRemaining(closeTime).includes('m') ? "bg-red-500/10 text-red-400" :
+                                        formatTimeRemaining(closeTime).includes('h') && parseInt(formatTimeRemaining(closeTime)) < 12 ? "bg-orange-500/10 text-orange-400" :
+                                            "bg-zinc-800 text-zinc-400"
+                                )}>
+                                    {formatTimeRemaining(closeTime)}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-sm font-medium text-zinc-200 truncate">
+                            {formatDateLabel(closeTime).split(',')[0]}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 truncate">
+                            {formatDateLabel(closeTime).split(',')[1] || ''}
+                        </span>
+                    </div>
+
+                    {/* 4. Trade Value */}
+                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/50 flex flex-col justify-center relative overflow-hidden group">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5">Trade</span>
+                        <span className={cn("text-lg font-black tracking-tight", themeColor.split(' ')[0])}>
                             <NumericDisplay
                                 value={`$${Math.round(value).toLocaleString()}`}
-                                size="2xl"
+                                size="lg"
                                 variant="bold"
                             />
                         </span>
                     </div>
 
-                    <div className="p-2 md:p-3 lg:p-4 flex flex-col items-center justify-center bg-black/20">
-                        <span className="text-xs md:text-sm text-zinc-500 uppercase tracking-wider mb-1">
-                            {historyData?.priceHistory && historyData.priceHistory.length > 0 ?
-                                `Price ${historyData.priceHistory[historyData.priceHistory.length - 1].price > odds ? '↗' : '↘'}` :
-                                'Price'
-                            }
+                    {/* 5. Price vs Odds */}
+                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/50 flex flex-col justify-center">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                            Price
+                            {historyData?.priceHistory && historyData.priceHistory.length > 0 && (
+                                <span className={cn(
+                                    "text-[9px]",
+                                    historyData.priceHistory[historyData.priceHistory.length - 1].price > odds ? "text-emerald-400" : "text-red-400"
+                                )}>
+                                    {historyData.priceHistory[historyData.priceHistory.length - 1].price > odds ? '↗' : '↘'}
+                                </span>
+                            )}
                         </span>
-                        <span className={cn(
-                            "text-base md:text-lg lg:text-xl font-bold",
-                            historyData?.priceHistory && historyData.priceHistory.length > 0 ?
-                                (historyData.priceHistory[historyData.priceHistory.length - 1].price > odds ?
-                                    "text-emerald-400" : "text-red-400") :
-                                "text-zinc-100"
-                        )}>
-                            <NumericDisplay
-                                value={historyData?.priceHistory && historyData.priceHistory.length > 0 ?
+                        <div className="flex items-baseline gap-1.5">
+                            <span className={cn(
+                                "text-base font-bold",
+                                historyData?.priceHistory && historyData.priceHistory.length > 0 ?
+                                    (historyData.priceHistory[historyData.priceHistory.length - 1].price > odds ?
+                                        "text-emerald-400" : "text-red-400") :
+                                    "text-zinc-100"
+                            )}>
+                                {historyData?.priceHistory && historyData.priceHistory.length > 0 ?
                                     `${Math.abs(historyData.priceHistory[historyData.priceHistory.length - 1].price - odds).toFixed(1)}¢` :
                                     '0¢'
                                 }
-                                size="lg"
-                                variant="bold"
-                            />
-                        </span>
-                        <span className="text-zinc-400 text-xs">vs bet price</span>
+                            </span>
+                            <span className="text-[10px] text-zinc-500">vs bet</span>
+                        </div>
                     </div>
-                    {/* Unrealized P/L Column */}
-                    <div className="p-2 md:p-3 lg:p-4 flex flex-col items-center justify-center bg-black/20">
-                        <span className="text-xs md:text-sm text-zinc-500 uppercase tracking-wider mb-1">P/L</span>
-                        <span className={cn(
-                            "text-base md:text-lg lg:text-xl font-bold",
-                            unrealizedPL > 0 ? "text-emerald-400" :
-                                unrealizedPL < 0 ? "text-red-400" : "text-zinc-100"
-                        )}>
-                            <NumericDisplay
-                                value={formatCurrency(unrealizedPL)}
-                                size="lg"
-                                variant="bold"
-                            />
-                        </span>
-                        <span className="text-zinc-400 text-xs">
-                            <NumericDisplay
-                                value={unrealizedPL !== 0 ? `${(unrealizedPL / value * 100).toFixed(1)}%` : '0%'}
-                                size="xs"
-                            />
-                        </span>
+
+                    {/* 6. P/L */}
+                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/50 flex flex-col justify-center">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5">P/L</span>
+                        <div className="flex items-baseline gap-1.5">
+                            <span className={cn(
+                                "text-base font-bold",
+                                unrealizedPL > 0 ? "text-emerald-400" :
+                                    unrealizedPL < 0 ? "text-red-400" : "text-zinc-100"
+                            )}>
+                                <NumericDisplay value={formatCurrency(unrealizedPL)} size="sm" variant="bold" />
+                            </span>
+                            <span className={cn(
+                                "text-[10px] font-medium",
+                                unrealizedPL > 0 ? "text-emerald-500/70" :
+                                    unrealizedPL < 0 ? "text-red-500/70" : "text-zinc-500"
+                            )}>
+                                {unrealizedPL !== 0 ? `${unrealizedPL > 0 ? '+' : ''}${(unrealizedPL / value * 100).toFixed(1)}%` : '0%'}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
