@@ -587,29 +587,51 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
     // Emit immediately to UI with wallet already known
     io.emit("trade", initialEnrichedTrade);
 
-    // Save initial trade to DB with wallet already known
+    // Save initial trade to DB with wallet already known.
+    // Ensure wallet profile exists first to satisfy FK constraint.
     let dbTrade;
     try {
-      dbTrade = await prisma.trade.create({
-        data: {
-          assetId: payload.asset,
-          side,
-          size,
-          price,
-          tradeValue: value,
-          timestamp,
-          walletAddress: walletAddress,
-          isWhale,
-          isSmartMoney: false,
-          isFresh: false,
-          isSweeper: false,
-          conditionId: payload.conditionId || assetInfo.conditionId,
-          outcome: payload.outcome || assetInfo.outcomeLabel,
-          question: payload.title || marketMeta.question,
-          image: payload.icon || marketMeta.image || null,
-          transactionHash: payload.transactionHash || null,
-          enrichmentStatus: "enriched", // Already enriched from RTDS
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.walletProfile.upsert({
+          where: { id: walletAddress },
+          update: {
+            lastUpdated: new Date(),
+            // Minimal touch; full enrichment happens later.
+          },
+          create: {
+            id: walletAddress,
+            label: payload.pseudonym || null,
+            totalPnl: 0,
+            winRate: 0,
+            isFresh: false,
+            txCount: 0,
+            maxTradeValue: value,
+            activityLevel: null,
+            lastUpdated: new Date(),
+          },
+        });
+
+        dbTrade = await tx.trade.create({
+          data: {
+            assetId: payload.asset,
+            side,
+            size,
+            price,
+            tradeValue: value,
+            timestamp,
+            walletAddress: walletAddress,
+            isWhale,
+            isSmartMoney: false,
+            isFresh: false,
+            isSweeper: false,
+            conditionId: payload.conditionId || assetInfo.conditionId,
+            outcome: payload.outcome || assetInfo.outcomeLabel,
+            question: payload.title || marketMeta.question,
+            image: payload.icon || marketMeta.image || null,
+            transactionHash: payload.transactionHash || null,
+            enrichmentStatus: "enriched", // Already enriched from RTDS
+          },
+        });
       });
     } catch (dbError) {
       console.error("[Worker] Failed to save initial trade:", dbError);

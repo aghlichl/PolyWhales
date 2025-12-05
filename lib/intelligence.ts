@@ -14,7 +14,7 @@ const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
 });
 
 redis.on('error', (err) => {
-  console.warn('[Intelligence] Redis connection error:', err.message);
+  // console.warn('[Intelligence] Redis connection error:', err.message);
 });
 
 // Attempt to connect (will fail gracefully if Redis is not available)

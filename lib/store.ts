@@ -252,8 +252,16 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
         return;
       }
       
+      // Normalize timestamp (socket deserializes Date to string/number)
+      const tsRaw = enrichedTrade.trade.timestamp;
+      const ts = tsRaw instanceof Date ? tsRaw : new Date(tsRaw);
+      if (Number.isNaN(ts.getTime())) {
+        console.warn('[STORE] Trade timestamp invalid, skipping');
+        return;
+      }
+
       const anomaly: Anomaly = {
-        id: enrichedTrade.trade.assetId + '_' + enrichedTrade.trade.timestamp.getTime(),
+        id: enrichedTrade.trade.assetId + '_' + ts.getTime(),
         type: enrichedTrade.analysis.tags.includes('GOD_WHALE') ? 'GOD_WHALE' :
           enrichedTrade.analysis.tags.includes('SUPER_WHALE') ? 'SUPER_WHALE' :
             enrichedTrade.analysis.tags.includes('MEGA_WHALE') ? 'MEGA_WHALE' :
@@ -263,7 +271,7 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
         outcome: enrichedTrade.market.outcome,
         odds: enrichedTrade.market.odds,
         value: enrichedTrade.trade.tradeValue,
-        timestamp: enrichedTrade.trade.timestamp.getTime(),
+        timestamp: ts.getTime(),
         side: enrichedTrade.trade.side as 'BUY' | 'SELL',
         image: enrichedTrade.market.image,
         wallet_context: {
