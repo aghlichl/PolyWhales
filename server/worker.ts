@@ -589,7 +589,7 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
 
     // Save initial trade to DB with wallet already known.
     // Ensure wallet profile exists first to satisfy FK constraint.
-    let dbTrade;
+    let dbTrade: Awaited<ReturnType<typeof prisma.trade.create>> | undefined;
     try {
       await prisma.$transaction(async (tx) => {
         await tx.walletProfile.upsert({
@@ -682,6 +682,8 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
             activityLevel: profile.activityLevel,
           },
         });
+
+        if (!dbTrade) return; // Safety check
 
         await tx.trade.update({
           where: { id: dbTrade.id },

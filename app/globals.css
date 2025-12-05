@@ -354,6 +354,11 @@ body {
   /* Safari and Chrome */
 }
 
+/* Text balance utility for better text wrapping */
+.text-balance {
+  text-wrap: balance;
+}
+
 /* Global scrollbar hiding - Phase 1 */
 html, body {
   /* Hide scrollbars on the root elements */

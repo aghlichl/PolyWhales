@@ -6,6 +6,7 @@ import { Gauge } from "./gauge";
 import { useState, memo, useMemo } from "react";
 import { TradeDetailsModal } from "./trade-details-modal";
 import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
+import { useAutoFitText } from "@/lib/useAutoFitText";
 
 // Import distinctive fonts following Spotify/DoorDash/Robinhood patterns
 import { Inter } from 'next/font/google';
@@ -33,6 +34,14 @@ export function convertAnomalyToCardProps(anomaly: Anomaly) {
 
 export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardProps) {
     const { event: title, value, outcome, odds, type, timestamp, side, image } = anomaly;
+
+    // Auto-fit text hook for responsive title sizing
+    const { textRef } = useAutoFitText({
+        minFontSize: 0.75, // 12px at base 16px
+        maxFontSize: 1.125, // 18px at base 16px
+        maxLines: 3,
+        lineHeight: 1.2,
+    });
 
     // Resolve team logo
     const { resolvedTeam, logoPath, usePolymarketFallback } = useMemo(() => {
@@ -293,19 +302,17 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                     )} />
 
                                     <div className="flex flex-col">
-                                        {/* Main Title - Two-line approach */}
+                                        {/* Main Title - Auto-fit with 3-line support */}
                                         <h3
+                                            ref={textRef as React.RefObject<HTMLHeadingElement>}
                                             className={cn(
-                                                // bricolage.className removed
-                                                // Responsive typography:
-                                                // - Mobile: text-sm (14px)
-                                                // - Tablet/Desktop: Scales fluidly up to text-lg (18px)
-                                                "text-[clamp(0.875rem,0.8rem+0.5vw,1.125rem)]",
                                                 "font-black uppercase tracking-tight",
-                                                // Responsive line-height for better readability at larger sizes
-                                                "leading-tight md:leading-snug",
-                                                // Layout: Flex column for vertical centering of the inner text block
+                                                // Line height for consistent spacing
+                                                "leading-[1.2]",
+                                                // Layout: Flex column for vertical centering
                                                 "min-h-10 flex flex-col justify-center",
+                                                // Balanced text wrapping for better readability
+                                                "text-balance",
                                                 // Tier-specific text colors
                                                 isGod ? "text-yellow-100" :
                                                     isSuper ? "text-red-100" :
@@ -316,24 +323,8 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                             title={title}
                                         >
                                             {/* Inner wrapper for line-clamp to work correctly within flex parent */}
-                                            <span className="line-clamp-2 w-full">
-                                                {/* Split long titles intelligently */}
-                                                {(() => {
-                                                    const words = title.split(' ');
-                                                    if (words.length <= 4) return title;
-
-                                                    const midPoint = Math.ceil(words.length / 2);
-                                                    const firstLine = words.slice(0, midPoint).join(' ');
-                                                    const secondLine = words.slice(midPoint).join(' ');
-
-                                                    return (
-                                                        <>
-                                                            <span>{firstLine}</span>
-                                                            {' '}
-                                                            <span className="text-[0.9em] font-bold opacity-90">{secondLine}</span>
-                                                        </>
-                                                    );
-                                                })()}
+                                            <span className="line-clamp-3 w-full">
+                                                {title}
                                             </span>
                                         </h3>
                                     </div>
