@@ -178,89 +178,6 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                     )}
 
                     <div className="relative z-10 p-3 md:p-4 lg:p-6">
-                        {/* Top 20 Trader Header - Premium Account Badge */}
-                        {displayAccountName && (
-                            <div className="flex flex-col gap-3 mb-4 pb-3 border-b border-zinc-800/50">
-                                {/* Top Row: Star + Account Name */}
-                                <div className="flex items-center gap-3">
-                                    {/* Crown/Star Icon for Top 20 */}
-                                    <div className={cn(
-                                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                                        isGod ? "bg-yellow-500/20 text-yellow-400" :
-                                            isSuper ? "bg-red-500/20 text-red-400" :
-                                                isMega ? "bg-purple-500/20 text-purple-400" :
-                                                    isWhale ? "bg-blue-500/20 text-blue-400" :
-                                                        "bg-zinc-800 text-zinc-400"
-                                    )}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                                        </svg>
-                                    </div>
-                                    {/* Account Name */}
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Top Trader</span>
-                                        <span className={cn(
-                                            "text-base md:text-lg font-bold tracking-tight truncate",
-                                            isGod ? "text-yellow-300" :
-                                                isSuper ? "text-red-300" :
-                                                    isMega ? "text-purple-300" :
-                                                        isWhale ? "text-blue-300" :
-                                                            "text-zinc-100"
-                                        )}>
-                                            {displayAccountName}
-                                        </span>
-                                    </div>
-                                </div>
-                                {/* Ranking Badges - Grid on mobile, flex row on desktop */}
-                                {walletRanks.length > 0 && (
-                                    <div className="grid grid-cols-2 md:flex md:flex-row gap-2">
-                                        {walletRanks.map((rank) => {
-                                            const formattedPnl = formatBadgePnl(rank.totalPnl);
-                                            return (
-                                                <div
-                                                    key={rank.period}
-                                                    className={cn(
-                                                        "flex flex-col md:flex-row items-center md:gap-1.5 px-2 py-1.5 md:px-2.5 rounded-lg text-xs font-semibold",
-                                                        "border backdrop-blur-sm",
-                                                        isGod ? "bg-yellow-500/10 border-yellow-500/30" :
-                                                            isSuper ? "bg-red-500/10 border-red-500/30" :
-                                                                isMega ? "bg-purple-500/10 border-purple-500/30" :
-                                                                    isWhale ? "bg-blue-500/10 border-blue-500/30" :
-                                                                        "bg-zinc-800/50 border-zinc-700/50"
-                                                    )}
-                                                >
-                                                    <span className={cn(
-                                                        "text-[10px] uppercase tracking-wider opacity-70",
-                                                        isGod ? "text-yellow-400" :
-                                                            isSuper ? "text-red-400" :
-                                                                isMega ? "text-purple-400" :
-                                                                    isWhale ? "text-blue-400" :
-                                                                        "text-zinc-500"
-                                                    )}>{rank.period}</span>
-                                                    <span className={cn(
-                                                        "font-black text-sm",
-                                                        isGod ? "text-yellow-300" :
-                                                            isSuper ? "text-red-300" :
-                                                                isMega ? "text-purple-300" :
-                                                                    isWhale ? "text-blue-300" :
-                                                                        "text-zinc-300"
-                                                    )}>#{rank.rank}</span>
-                                                    {formattedPnl && (
-                                                        <span className={cn(
-                                                            "text-xs font-medium",
-                                                            rank.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
-                                                        )}>
-                                                            {formattedPnl}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
                         {/* Main Hero Content */}
                         <div className="flex items-start gap-3 md:gap-4 lg:gap-6">
                             {/* Large Hero Thumbnail */}
@@ -698,7 +615,97 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                         </div>
                     )}
 
-                    <div className="flex flex-col items-center gap-2 pt-3 border-t border-zinc-800">
+                    {/* Top 20 Trader Section - Rankings & Account Name */}
+                    {displayAccountName && (
+                        <div className={cn(
+                            "flex flex-col gap-3 p-3 md:p-4 rounded-xl border mt-4",
+                            "bg-black/30",
+                            isGod ? "border-yellow-500/20" :
+                                isSuper ? "border-red-500/20" :
+                                    isMega ? "border-purple-500/20" :
+                                        isWhale ? "border-blue-500/20" :
+                                            "border-zinc-800"
+                        )}>
+                            {/* Account Name Row */}
+                            <div className="flex items-center gap-3">
+                                {/* Star Icon */}
+                                <div className={cn(
+                                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                                    isGod ? "bg-yellow-500/20 text-yellow-400" :
+                                        isSuper ? "bg-red-500/20 text-red-400" :
+                                            isMega ? "bg-purple-500/20 text-purple-400" :
+                                                isWhale ? "bg-blue-500/20 text-blue-400" :
+                                                    "bg-zinc-800 text-zinc-400"
+                                )}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                                    </svg>
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Top Trader</span>
+                                    <span className={cn(
+                                        "text-base md:text-lg font-bold tracking-tight truncate",
+                                        isGod ? "text-yellow-300" :
+                                            isSuper ? "text-red-300" :
+                                                isMega ? "text-purple-300" :
+                                                    isWhale ? "text-blue-300" :
+                                                        "text-zinc-100"
+                                    )}>
+                                        {displayAccountName}
+                                    </span>
+                                </div>
+                            </div>
+                            {/* Ranking Badges */}
+                            {walletRanks.length > 0 && (
+                                <div className="grid grid-cols-2 md:flex md:flex-row gap-2">
+                                    {walletRanks.map((rank) => {
+                                        const formattedPnl = formatBadgePnl(rank.totalPnl);
+                                        return (
+                                            <div
+                                                key={rank.period}
+                                                className={cn(
+                                                    "flex flex-col md:flex-row items-center md:gap-1.5 px-2 py-1.5 md:px-2.5 rounded-lg text-xs font-semibold",
+                                                    "border backdrop-blur-sm",
+                                                    isGod ? "bg-yellow-500/10 border-yellow-500/30" :
+                                                        isSuper ? "bg-red-500/10 border-red-500/30" :
+                                                            isMega ? "bg-purple-500/10 border-purple-500/30" :
+                                                                isWhale ? "bg-blue-500/10 border-blue-500/30" :
+                                                                    "bg-zinc-800/50 border-zinc-700/50"
+                                                )}
+                                            >
+                                                <span className={cn(
+                                                    "text-[10px] uppercase tracking-wider opacity-70",
+                                                    isGod ? "text-yellow-400" :
+                                                        isSuper ? "text-red-400" :
+                                                            isMega ? "text-purple-400" :
+                                                                isWhale ? "text-blue-400" :
+                                                                    "text-zinc-500"
+                                                )}>{rank.period}</span>
+                                                <span className={cn(
+                                                    "font-black text-sm",
+                                                    isGod ? "text-yellow-300" :
+                                                        isSuper ? "text-red-300" :
+                                                            isMega ? "text-purple-300" :
+                                                                isWhale ? "text-blue-300" :
+                                                                    "text-zinc-300"
+                                                )}>#{rank.rank}</span>
+                                                {formattedPnl && (
+                                                    <span className={cn(
+                                                        "text-xs font-medium",
+                                                        rank.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                                                    )}>
+                                                        {formattedPnl}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="flex flex-col items-center gap-2 pt-3 border-t border-zinc-800 mt-4">
                         <div className="flex items-center gap-2 text-xs text-zinc-500">
                             <span>WALLET:</span>
                             <span className="text-zinc-300">

@@ -2,12 +2,51 @@ import { create } from 'zustand';
 import { Anomaly, AnomalyType, UserPreferences } from './types';
 import { io } from 'socket.io-client';
 
+// Helper function to get top 20 wallet addresses from leaderboard ranks
+export function getTop20Wallets(leaderboardRanks: Record<string, LeaderboardRank[]>): Set<string> {
+  const wallets: Array<{ address: string; bestRank: number }> = [];
+
+  // For each wallet, find their best (lowest) rank across all periods
+  for (const [address, ranks] of Object.entries(leaderboardRanks)) {
+    if (!ranks || ranks.length === 0) continue;
+    
+    const bestRank = Math.min(...ranks.map(r => r.rank));
+    wallets.push({ address: address.toLowerCase(), bestRank });
+  }
+
+  // Sort by best rank (ascending) and take top 20
+  wallets.sort((a, b) => a.bestRank - b.bestRank);
+  const top20 = wallets.slice(0, 20);
+
+  return new Set(top20.map(w => w.address));
+}
+
 // Helper function to check if anomaly passes user preferences
-function passesPreferences(anomaly: Anomaly, preferences?: UserPreferences): boolean {
+function passesPreferences(
+  anomaly: Anomaly, 
+  preferences?: UserPreferences,
+  top20Wallets?: Set<string>
+): boolean {
   if (!preferences) return true; // No preferences means show all
 
   // Check minimum value threshold
   if (anomaly.value < preferences.minValueThreshold) return false;
+
+  // Check odds range
+  if (anomaly.odds < preferences.minOdds || anomaly.odds > preferences.maxOdds) return false;
+
+  // Check top players filter
+  if (preferences.filterTopPlayersOnly) {
+    if (!top20Wallets || top20Wallets.size === 0) {
+      // If leaderboard data not loaded yet, don't filter (show all)
+      // This prevents hiding everything while data loads
+      return true;
+    }
+    const walletAddress = anomaly.wallet_context?.address?.toLowerCase();
+    if (!walletAddress || !top20Wallets.has(walletAddress)) {
+      return false;
+    }
+  }
 
   // Check anomaly type filters
   switch (anomaly.type) {
@@ -34,6 +73,9 @@ interface Preferences {
   showGodWhale: boolean;
   showSports: boolean;
   minValueThreshold: number;
+  minOdds: number;
+  maxOdds: number;
+  filterTopPlayersOnly: boolean;
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -44,6 +86,9 @@ const DEFAULT_PREFERENCES: Preferences = {
   showGodWhale: true,
   showSports: true,
   minValueThreshold: 0,
+  minOdds: 1,
+  maxOdds: 99,
+  filterTopPlayersOnly: false,
 };
 
 interface PreferencesStore {
@@ -108,6 +153,7 @@ export interface LeaderboardRank {
   rank: number;
   totalPnl: number;
   accountName?: string | null;
+  rankChange?: number | null; // positive = moved up, negative = moved down, null = new
 }
 
 interface MarketStore {
@@ -173,8 +219,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
       const updatedAnomaly = {
         ...anomaly,
         // Ensure wallet_context is always preserved
-        wallet_context: (anomaly.wallet_context && anomaly.wallet_context.address) 
-          ? anomaly.wallet_context 
+        wallet_context: (anomaly.wallet_context && anomaly.wallet_context.address)
+          ? anomaly.wallet_context
           : (existing.wallet_context || anomaly.wallet_context || undefined),
       };
       newAnomalies = [...state.anomalies];
@@ -260,14 +306,14 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     socket.on('trade', (enrichedTrade) => {
       // Convert worker's enriched trade format to anomaly format
       console.log('[STORE] Enriched trade:', JSON.stringify(enrichedTrade, null, 2));
-      
+
       // Ensure wallet_context is always present and valid
       const walletContext = enrichedTrade.analysis?.wallet_context;
       if (!walletContext || !walletContext.address) {
         console.warn('[STORE] Trade missing wallet_context.address, skipping');
         return;
       }
-      
+
       // Normalize timestamp (socket deserializes Date to string/number)
       const tsRaw = enrichedTrade.trade.timestamp;
       const ts = tsRaw instanceof Date ? tsRaw : new Date(tsRaw);
@@ -312,6 +358,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
 
       // Only add if it passes user preferences
       const currentPreferences = getPreferences?.();
+      // Note: top20Wallets filtering is handled in app/page.tsx for display
+      // We skip it here to avoid circular dependencies between stores
       if (!currentPreferences || passesPreferences(anomaly, currentPreferences)) {
         get().addAnomaly(anomaly);
       }

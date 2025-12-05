@@ -23,6 +23,9 @@ export interface UserPreferences {
     showGodWhale: boolean;
     showSports: boolean;
     minValueThreshold: number;
+    minOdds: number;
+    maxOdds: number;
+    filterTopPlayersOnly: boolean;
 }
 
 export interface Anomaly {

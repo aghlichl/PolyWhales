@@ -55,27 +55,38 @@ export async function GET(request: Request) {
       return NextResponse.json(enriched);
     }
 
-    // New format: Return latest leaderboard snapshots for all periods
+    // New format: Return latest leaderboard snapshots for all periods with rank changes
     const periods = ['Daily', 'Weekly', 'Monthly', 'All Time'];
-    const result: Record<string, Array<{ period: string; rank: number; totalPnl: number; accountName?: string | null }>> = {};
+    const result: Record<string, Array<{
+      period: string;
+      rank: number;
+      totalPnl: number;
+      accountName?: string | null;
+      rankChange?: number | null; // positive = moved up, negative = moved down, null = new
+    }>> = {};
 
     for (const period of periods) {
-      // Get the latest snapshot timestamp for this period
-      const latestSnapshot = await prisma.walletLeaderboardSnapshot.findFirst({
+      // Get the two most recent snapshot timestamps for this period
+      const recentSnapshots = await prisma.walletLeaderboardSnapshot.findMany({
         where: { period },
         orderBy: { snapshotAt: 'desc' },
         select: { snapshotAt: true },
+        distinct: ['snapshotAt'],
+        take: 2,
       });
 
-      if (!latestSnapshot) {
+      if (recentSnapshots.length === 0) {
         continue; // Skip if no snapshot exists for this period
       }
 
-      // Fetch top 20 rows for this snapshot
-      const snapshots = await prisma.walletLeaderboardSnapshot.findMany({
+      const latestSnapshotAt = recentSnapshots[0].snapshotAt;
+      const previousSnapshotAt = recentSnapshots.length > 1 ? recentSnapshots[1].snapshotAt : null;
+
+      // Fetch top 20 rows for the latest snapshot
+      const latestSnapshots = await prisma.walletLeaderboardSnapshot.findMany({
         where: {
           period,
-          snapshotAt: latestSnapshot.snapshotAt,
+          snapshotAt: latestSnapshotAt,
           rank: { lte: 20 }, // Top 20 only
         },
         orderBy: { rank: 'asc' },
@@ -87,17 +98,47 @@ export async function GET(request: Request) {
         },
       });
 
+      // Build a map of previous ranks if we have a previous snapshot
+      const previousRanks: Record<string, number> = {};
+      if (previousSnapshotAt) {
+        const previousSnapshots = await prisma.walletLeaderboardSnapshot.findMany({
+          where: {
+            period,
+            snapshotAt: previousSnapshotAt,
+            rank: { lte: 20 },
+          },
+          select: {
+            walletAddress: true,
+            rank: true,
+          },
+        });
+        for (const prev of previousSnapshots) {
+          previousRanks[prev.walletAddress.toLowerCase()] = prev.rank;
+        }
+      }
+
       // Group by wallet address (normalize to lowercase for lookup)
-      for (const snapshot of snapshots) {
+      for (const snapshot of latestSnapshots) {
         const walletKey = snapshot.walletAddress.toLowerCase();
         if (!result[walletKey]) {
           result[walletKey] = [];
         }
+
+        // Calculate rank change
+        const previousRank = previousRanks[walletKey];
+        let rankChange: number | null = null;
+        if (previousRank !== undefined) {
+          // Positive means they moved UP (e.g., was #5, now #3 = +2)
+          rankChange = previousRank - snapshot.rank;
+        }
+        // If previousRank is undefined, they're new (rankChange stays null)
+
         result[walletKey].push({
           period,
           rank: snapshot.rank,
           totalPnl: snapshot.totalPnl,
           accountName: snapshot.accountName,
+          rankChange,
         });
       }
     }

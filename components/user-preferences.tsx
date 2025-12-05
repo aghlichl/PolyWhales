@@ -47,6 +47,8 @@ const getTierActiveColor = (tier: string) => {
 export function UserPreferences() {
   const { preferences, setPreferences } = usePreferencesStore();
   const [isDragging, setIsDragging] = React.useState(false);
+  const [isDraggingMinOdds, setIsDraggingMinOdds] = React.useState(false);
+  const [isDraggingMaxOdds, setIsDraggingMaxOdds] = React.useState(false);
 
   // Convert linear slider position (0-100) to exponential value
   const positionToValue = (position: number): number => {
@@ -102,8 +104,80 @@ export function UserPreferences() {
 
   const currentPosition = valueToPosition(preferences.minValueThreshold);
 
+  // Odds slider helpers (linear scale 1-99)
+  const oddsToPosition = (odds: number): number => {
+    return ((odds - 1) / (99 - 1)) * 100;
+  };
+
+  const positionToOdds = (position: number): number => {
+    return Math.round(1 + (position / 100) * (99 - 1));
+  };
+
+  const oddsSliderRef = React.useRef<HTMLDivElement>(null);
+
+  const handleOddsSliderMouseDown = (e: React.MouseEvent<HTMLDivElement>, isMin: boolean) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isMin) {
+      setIsDraggingMinOdds(true);
+    } else {
+      setIsDraggingMaxOdds(true);
+    }
+    if (oddsSliderRef.current) {
+      const rect = oddsSliderRef.current.getBoundingClientRect();
+      const position = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      const odds = positionToOdds(position);
+      
+      if (isMin) {
+        const newMinOdds = Math.min(odds, preferences.maxOdds - 1);
+        setPreferences({ minOdds: Math.max(1, newMinOdds) });
+      } else {
+        const newMaxOdds = Math.max(odds, preferences.minOdds + 1);
+        setPreferences({ maxOdds: Math.min(99, newMaxOdds) });
+      }
+    }
+  };
+
+  // Add global mouse move and up handlers for odds slider
+  React.useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (!oddsSliderRef.current) return;
+      
+      if (isDraggingMinOdds) {
+        const rect = oddsSliderRef.current.getBoundingClientRect();
+        const position = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+        const odds = positionToOdds(position);
+        const newMinOdds = Math.min(odds, preferences.maxOdds - 1);
+        setPreferences({ minOdds: Math.max(1, newMinOdds) });
+      } else if (isDraggingMaxOdds) {
+        const rect = oddsSliderRef.current.getBoundingClientRect();
+        const position = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+        const odds = positionToOdds(position);
+        const newMaxOdds = Math.max(odds, preferences.minOdds + 1);
+        setPreferences({ maxOdds: Math.min(99, newMaxOdds) });
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      setIsDraggingMinOdds(false);
+      setIsDraggingMaxOdds(false);
+    };
+
+    if (isDraggingMinOdds || isDraggingMaxOdds) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleGlobalMouseMove);
+        document.removeEventListener('mouseup', handleGlobalMouseUp);
+      };
+    }
+  }, [isDraggingMinOdds, isDraggingMaxOdds, preferences.minOdds, preferences.maxOdds, setPreferences]);
+
+  const minOddsPosition = oddsToPosition(preferences.minOdds);
+  const maxOddsPosition = oddsToPosition(preferences.maxOdds);
+
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-8">
 
       {/* Discord Join Button */}
       <div className="space-y-4">
@@ -111,8 +185,8 @@ export function UserPreferences() {
       </div>
 
       {/* Anomaly Type Filters */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-zinc-400">
+      <div className="space-y-4 pt-6 border-t border-zinc-800/50">
+        <h2 className="text-lg font-semibold text-zinc-400 text-center">
           CARD FILTERS
         </h2>
         {/* STANDARD Card */}
@@ -212,8 +286,8 @@ export function UserPreferences() {
       </div>
 
       {/* Content Filter */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-zinc-400">
+      <div className="space-y-4 pt-6 border-t border-zinc-800/50">
+        <h2 className="text-lg font-semibold text-zinc-400 text-center">
           CONTENT FILTERS
         </h2>
 
@@ -233,11 +307,28 @@ export function UserPreferences() {
               }`} />
           </div>
         </div>
+
+        {/* TOP PLAYERS ONLY Card */}
+        <div className={`relative p-4 border-2 transition-all duration-200 cursor-pointer rounded-xl ${preferences.filterTopPlayersOnly
+          ? 'border-cyan-500 bg-cyan-950/20 shadow-[3px_3px_0px_0px_rgba(34,211,238,0.8)]'
+          : 'border-cyan-700/50 bg-zinc-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.4)] opacity-60'
+          }`} onClick={() => setPreferences({ filterTopPlayersOnly: !preferences.filterTopPlayersOnly })}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-bold text-cyan-400">TOP PLAYERS ONLY</div>
+              <div className="text-xs text-zinc-600">Show only top 20 ranked wallets</div>
+            </div>
+            <div className={`w-4 h-4 border-2 transition-all duration-200 ${preferences.filterTopPlayersOnly
+              ? 'border-cyan-400 bg-cyan-400'
+              : 'border-cyan-600/50'
+              }`} />
+          </div>
+        </div>
       </div>
 
       {/* Enhanced Minimum Value Filter */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-zinc-400">
+      <div className="space-y-4 pt-6 border-t border-zinc-800/50">
+        <h2 className="text-lg font-semibold text-zinc-400 text-center">
           MINIMUM VALUE FILTER
         </h2>
 
@@ -359,6 +450,106 @@ export function UserPreferences() {
                     preferences.minValueThreshold >= CONFIG.THRESHOLDS.WHALE ? 'WHALE +' :
                       'ALL TRADES'}
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Odds Range Filter */}
+      <div className="space-y-4 pt-6 border-t border-zinc-800/50">
+        <h2 className="text-lg font-semibold text-zinc-400 text-center">
+          ODDS RANGE FILTER
+        </h2>
+
+        {/* Current Range Display */}
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-4 mb-1">
+            <div className="text-2xl font-bold text-primary">
+              <NumericDisplay
+                value={`${preferences.minOdds}¢`}
+                size="2xl"
+                variant="bold"
+              />
+            </div>
+            <div className="text-zinc-500">-</div>
+            <div className="text-2xl font-bold text-primary">
+              <NumericDisplay
+                value={`${preferences.maxOdds}¢`}
+                size="2xl"
+                variant="bold"
+              />
+            </div>
+          </div>
+          <div className="text-xs text-zinc-600">
+            Filter trades by odds range
+          </div>
+        </div>
+
+        {/* Dual-handle Slider */}
+        <div className="relative px-2">
+          <div
+            ref={oddsSliderRef}
+            className="relative h-6 bg-zinc-900 border border-zinc-700 rounded-full overflow-hidden mb-4 cursor-pointer"
+          >
+            {/* Background track */}
+            <div className="absolute inset-0 bg-zinc-800/50" />
+
+            {/* Active range fill */}
+            <div
+              className="absolute top-0 h-full bg-primary/30 transition-all duration-300"
+              style={{
+                left: `${minOddsPosition}%`,
+                width: `${maxOddsPosition - minOddsPosition}%`,
+              }}
+            />
+
+            {/* Min handle */}
+            <div
+              className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full shadow-lg cursor-grab active:cursor-grabbing transition-all duration-300 z-20 border-2 border-zinc-200"
+              style={{ left: `${minOddsPosition}%` }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleOddsSliderMouseDown(e, true);
+              }}
+            />
+
+            {/* Max handle */}
+            <div
+              className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full shadow-lg cursor-grab active:cursor-grabbing transition-all duration-300 z-20 border-2 border-zinc-200"
+              style={{ left: `${maxOddsPosition}%` }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleOddsSliderMouseDown(e, false);
+              }}
+            />
+
+            {/* Clickable track for setting values */}
+            <div
+              className="absolute inset-0"
+              onMouseDown={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const position = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+                const odds = positionToOdds(position);
+                const minDistance = Math.abs(odds - preferences.minOdds);
+                const maxDistance = Math.abs(odds - preferences.maxOdds);
+                
+                if (minDistance < maxDistance) {
+                  const newMinOdds = Math.min(odds, preferences.maxOdds - 1);
+                  setPreferences({ minOdds: Math.max(1, newMinOdds) });
+                } else {
+                  const newMaxOdds = Math.max(odds, preferences.minOdds + 1);
+                  setPreferences({ maxOdds: Math.min(99, newMaxOdds) });
+                }
+              }}
+            />
+          </div>
+
+          {/* Range markers */}
+          <div className="flex justify-between text-xs text-zinc-600">
+            <span>1¢</span>
+            <span>25¢</span>
+            <span>50¢</span>
+            <span>75¢</span>
+            <span>99¢</span>
           </div>
         </div>
       </div>

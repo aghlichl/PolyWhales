@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useMarketStore, usePreferencesStore } from "@/lib/store";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useMarketStore, usePreferencesStore, getTop20Wallets } from "@/lib/store";
 import { Anomaly, UserPreferences as UserPreferencesType } from "@/lib/types";
 import { Ticker } from "@/components/feed/ticker";
 import { SlotReel } from "@/components/feed/slot-reel";
@@ -20,9 +20,25 @@ import { PeriodSelector } from "@/components/period-selector";
 import { DesktopLayout } from "@/components/desktop-layout";
 
 // Helper function to check if anomaly passes user preferences
-function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType): boolean {
+function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType, top20Wallets?: Set<string>): boolean {
   // Check minimum value threshold
   if (anomaly.value < preferences.minValueThreshold) return false;
+
+  // Check odds range
+  if (anomaly.odds < preferences.minOdds || anomaly.odds > preferences.maxOdds) return false;
+
+  // Check top players filter
+  if (preferences.filterTopPlayersOnly) {
+    if (!top20Wallets || top20Wallets.size === 0) {
+      // If leaderboard data not loaded yet, don't filter (show all)
+      // This prevents hiding everything while data loads
+      return true;
+    }
+    const walletAddress = anomaly.wallet_context?.address?.toLowerCase();
+    if (!walletAddress || !top20Wallets.has(walletAddress)) {
+      return false;
+    }
+  }
 
   // Check sports filter FIRST - hide events containing "vs."
   if (
@@ -52,11 +68,19 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType): 
 }
 
 export default function Home() {
-  const { anomalies, startStream, isLoading, loadMoreHistory, hasMoreHistory, fetchLeaderboardRanks } = useMarketStore();
+  const { anomalies, startStream, isLoading, loadMoreHistory, hasMoreHistory, fetchLeaderboardRanks, leaderboardRanks } = useMarketStore();
   const { preferences, loadPreferences } = usePreferencesStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>();
+
+  // Compute top 20 wallets from leaderboard ranks
+  const top20Wallets = useMemo(() => {
+    if (!leaderboardRanks || Object.keys(leaderboardRanks).length === 0) {
+      return undefined;
+    }
+    return getTop20Wallets(leaderboardRanks);
+  }, [leaderboardRanks]);
 
   // Intersection Observer for Infinite Scroll
   const observer = useRef<IntersectionObserver | null>(null);
@@ -106,7 +130,7 @@ export default function Home() {
 
   // Filter anomalies based on preferences AND search query
   const filteredAnomalies = anomalies
-    .filter(anomaly => passesPreferences(anomaly, preferences))
+    .filter(anomaly => passesPreferences(anomaly, preferences, top20Wallets))
     .filter(anomaly => intelligentSearch(anomaly, searchQuery));
 
   useEffect(() => {
@@ -244,7 +268,7 @@ export default function Home() {
         {currentPage === 1 && (
           <SearchButton
             onSearch={setSearchQuery}
-            className="lg:absolute lg:right-8 lg:bottom-8"
+            className="lg:right-[calc(33.333%+2rem)] lg:bottom-8"
           />
         )}
 

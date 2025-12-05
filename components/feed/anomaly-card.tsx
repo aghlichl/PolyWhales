@@ -542,19 +542,40 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                         )}>
                                             {period}
                                         </span>
-                                        {/* Rank */}
-                                        <span className={cn(
-                                            "text-xs lg:text-sm font-black leading-tight",
-                                            hasRank ? (
-                                                isGod ? "text-yellow-300" :
-                                                    isSuper ? "text-red-300" :
-                                                        isMega ? "text-purple-300" :
-                                                            isWhale ? "text-blue-300" :
-                                                                "text-zinc-300"
-                                            ) : "text-zinc-600"
-                                        )}>
-                                            {hasRank ? `#${rankData.rank}` : '—'}
-                                        </span>
+                                        {/* Rank with Change Indicator */}
+                                        <div className="flex items-center gap-0.5">
+                                            <span className={cn(
+                                                "text-xs lg:text-sm font-black leading-tight",
+                                                hasRank ? (
+                                                    isGod ? "text-yellow-300" :
+                                                        isSuper ? "text-red-300" :
+                                                            isMega ? "text-purple-300" :
+                                                                isWhale ? "text-blue-300" :
+                                                                    "text-zinc-300"
+                                                ) : "text-zinc-600"
+                                            )}>
+                                                {hasRank ? `#${rankData.rank}` : '—'}
+                                            </span>
+                                            {/* Rank Change Indicator */}
+                                            {hasRank && rankData.rankChange !== undefined && (
+                                                rankData.rankChange === null ? (
+                                                    // New entry - "NEW" badge
+                                                    <span className="text-[8px] font-black text-cyan-400 ml-1 uppercase tracking-tight" title="New entry">
+                                                        NEW
+                                                    </span>
+                                                ) : rankData.rankChange > 0 ? (
+                                                    // Moved up - green arrow
+                                                    <span className="text-[9px] font-bold text-emerald-400 ml-0.5" title={`Up ${rankData.rankChange}`}>
+                                                        ↑{rankData.rankChange}
+                                                    </span>
+                                                ) : rankData.rankChange < 0 ? (
+                                                    // Moved down - red arrow
+                                                    <span className="text-[9px] font-bold text-red-400 ml-0.5" title={`Down ${Math.abs(rankData.rankChange)}`}>
+                                                        ↓{Math.abs(rankData.rankChange)}
+                                                    </span>
+                                                ) : null // No indicator if unchanged (rankChange === 0)
+                                            )}
+                                        </div>
                                         {/* PnL (only if has rank) */}
                                         {formattedPnl && rankData && (
                                             <span className={cn(
