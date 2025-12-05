@@ -286,7 +286,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                             <span className="w-1 h-3 bg-blue-500 rounded-full" />
                             Price History ({outcome})
                         </h3>
-                        <div className="h-32 md:h-40 lg:h-48 xl:h-56 w-full bg-black/20 rounded-xl border border-zinc-800/50 p-1 md:p-2">
+                        <div className="h-32 md:h-40 lg:h-48 xl:h-56 w-full bg-black/20 rounded-xl border border-zinc-800/50 p-1 md:p-2 [&_*]:outline-none [&_*]:focus:outline-none">
                             {isLoadingHistory ? (
                                 <div className="h-full flex items-center justify-center text-zinc-600 text-xs md:text-sm animate-pulse">Loading chart data...</div>
                             ) : historyData?.priceHistory?.length ? (
@@ -376,7 +376,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                             <span className="w-1 h-3 bg-emerald-500 rounded-full" />
                             Recent Wallet Activity
                         </h3>
-                        <div className="h-32 md:h-40 lg:h-48 xl:h-56 w-full bg-black/20 rounded-xl border border-zinc-800/50 p-1 md:p-2">
+                        <div className="h-32 md:h-40 lg:h-48 xl:h-56 w-full bg-black/20 rounded-xl border border-zinc-800/50 p-1 md:p-2 [&_*]:outline-none [&_*]:focus:outline-none">
                             {isLoadingHistory ? (
                                 <div className="h-full flex items-center justify-center text-zinc-600 text-xs md:text-sm animate-pulse">Loading wallet data...</div>
                             ) : historyData?.walletHistory?.length ? (
@@ -593,20 +593,15 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                             </span>
                         </div>
 
-                        {wallet_context?.address ? (
+                        {wallet_context?.address && (
                             <a
                                 href={`https://polymarket.com/profile/${wallet_context.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[10px] md:text-xs uppercase tracking-wider font-bold text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1"
+                                className="w-full justify-center group mt-2 flex items-center gap-2 px-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-xl hover:border-[#1B58FD] transition-all duration-300"
                             >
-                                View Polymarket Profile
-                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                                <img src="/logos/polym.png" alt="Polymarket" className="w-90 h-20 opacity-70 group-hover:opacity-100 transition-opacity" />
                             </a>
-                        ) : (
-                            <span className="text-[10px] md:text-xs uppercase tracking-wider font-bold text-zinc-600 flex items-center gap-1 cursor-not-allowed">
-                                Profile Unavailable
-                            </span>
                         )}
                     </div>
                 </div>

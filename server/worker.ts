@@ -6,12 +6,12 @@ import WebSocket from "ws";
 import {
   getTraderProfile,
   analyzeMarketImpact,
-  getWalletsFromTx,
+  getWalletsFromTx, // Only used in deprecated processTrade function
 } from "../lib/intelligence";
 import {
   fetchMarketsFromGamma,
   parseMarketData,
-  enrichTradeWithDataAPI,
+  enrichTradeWithDataAPI, // Only used in deprecated processTrade function
 } from "../lib/polymarket";
 import {
   MarketMeta,
@@ -19,6 +19,8 @@ import {
   PolymarketTrade,
   EnrichmentStatus,
   EnrichedTrade,
+  RTDSTradePayload,
+  RTDSMessage,
 } from "../lib/types";
 import { formatDiscordAlert } from "../lib/alerts/formatters";
 import { fetchPortfolio } from "../lib/gamma";
@@ -491,12 +493,266 @@ async function enrichWalletPortfolio(walletAddress: string) {
 }
 
 /**
+ * Process RTDS trade with proxyWallet already available
+ * No enrichment needed - wallet is provided directly from RTDS
+ */
+export async function processRTDSTrade(payload: RTDSTradePayload) {
+  try {
+    if (!payload.price || !payload.size || !payload.asset) return;
+
+    const price = payload.price;
+    const size = payload.size;
+    const value = price * size;
+
+    // Filter noise
+    if (value < CONFIG.THRESHOLDS.MIN_VALUE) return;
+
+    // Filter out very likely outcomes
+    if (price > CONFIG.CONSTANTS.ODDS_THRESHOLD) return;
+
+    // Lookup market metadata first (early exit if unknown asset)
+    const assetInfo = assetIdToOutcome.get(payload.asset);
+    if (!assetInfo) {
+      return;
+    }
+
+    const marketMeta = marketsByCondition.get(payload.conditionId || assetInfo.conditionId);
+    if (!marketMeta) {
+      return;
+    }
+
+    // Determine side (BUY or SELL)
+    const side = payload.side || "BUY";
+
+    // Initial classification (based on value only)
+    const isWhale = value >= CONFIG.THRESHOLDS.WHALE;
+    const isMegaWhale = value >= CONFIG.THRESHOLDS.MEGA_WHALE;
+    const isSuperWhale = value >= CONFIG.THRESHOLDS.SUPER_WHALE;
+    const isGodWhale = value >= CONFIG.THRESHOLDS.GOD_WHALE;
+
+    // Wallet is already available from RTDS
+    const walletAddress = payload.proxyWallet?.toLowerCase() || "";
+    if (!walletAddress) {
+      console.warn("[Worker] RTDS trade missing proxyWallet");
+      return;
+    }
+
+    // Convert timestamp from seconds to Date
+    const timestamp = new Date(payload.timestamp * 1000);
+
+    // Construct initial trade object with wallet already known
+    const initialEnrichedTrade: EnrichedTrade = {
+      type: "UNUSUAL_ACTIVITY",
+      market: {
+        question: payload.title || marketMeta.question,
+        outcome: payload.outcome || assetInfo.outcomeLabel,
+        conditionId: payload.conditionId || assetInfo.conditionId,
+        odds: Math.round(price * 100),
+        image: payload.icon || marketMeta.image || null,
+      },
+      trade: {
+        assetId: payload.asset,
+        size,
+        side,
+        price,
+        tradeValue: value,
+        timestamp,
+      },
+      analysis: {
+        tags: [
+          isGodWhale && "GOD_WHALE",
+          isSuperWhale && "SUPER_WHALE",
+          isMegaWhale && "MEGA_WHALE",
+          isWhale && "WHALE",
+        ].filter(Boolean) as string[],
+        wallet_context: {
+          address: walletAddress,
+          label: payload.pseudonym || walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4),
+          pnl_all_time: "...",
+          win_rate: "...",
+          is_fresh_wallet: false,
+        },
+        market_impact: {
+          swept_levels: 0,
+          slippage_induced: "0%",
+        },
+        trader_context: {
+          tx_count: 0,
+          max_trade_value: 0,
+          activity_level: null,
+        },
+      },
+    };
+
+    // Emit immediately to UI with wallet already known
+    io.emit("trade", initialEnrichedTrade);
+
+    // Save initial trade to DB with wallet already known
+    let dbTrade;
+    try {
+      dbTrade = await prisma.trade.create({
+        data: {
+          assetId: payload.asset,
+          side,
+          size,
+          price,
+          tradeValue: value,
+          timestamp,
+          walletAddress: walletAddress,
+          isWhale,
+          isSmartMoney: false,
+          isFresh: false,
+          isSweeper: false,
+          conditionId: payload.conditionId || assetInfo.conditionId,
+          outcome: payload.outcome || assetInfo.outcomeLabel,
+          question: payload.title || marketMeta.question,
+          image: payload.icon || marketMeta.image || null,
+          transactionHash: payload.transactionHash || null,
+          enrichmentStatus: "enriched", // Already enriched from RTDS
+        },
+      });
+    } catch (dbError) {
+      console.error("[Worker] Failed to save initial trade:", dbError);
+      return; // Can't proceed without DB record
+    }
+
+    // Enrich with trader profile for intelligence flags
+    const profile = await getTraderProfile(walletAddress);
+
+    // Analyze market impact
+    const impact = await analyzeMarketImpact(
+      payload.asset,
+      size,
+      side as "BUY" | "SELL"
+    );
+
+    const isSmartMoney = profile.isSmartMoney;
+    const isFresh = profile.isFresh;
+    const isSweeper = impact.isSweeper;
+    const isInsider =
+      profile.activityLevel === "LOW" &&
+      profile.winRate > 0.7 &&
+      profile.totalPnl > 10000;
+
+    // Update DB with batched transaction
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.walletProfile.upsert({
+          where: { id: walletAddress },
+          update: {
+            label: profile.label || payload.pseudonym || null,
+            totalPnl: profile.totalPnl,
+            winRate: profile.winRate,
+            isFresh: profile.isFresh,
+            txCount: profile.txCount,
+            maxTradeValue: Math.max(profile.maxTradeValue, value),
+            activityLevel: profile.activityLevel,
+            lastUpdated: new Date(),
+          },
+          create: {
+            id: walletAddress,
+            label: profile.label || payload.pseudonym || null,
+            totalPnl: profile.totalPnl,
+            winRate: profile.winRate,
+            isFresh: profile.isFresh,
+            txCount: profile.txCount,
+            maxTradeValue: value,
+            activityLevel: profile.activityLevel,
+          },
+        });
+
+        await tx.trade.update({
+          where: { id: dbTrade.id },
+          data: {
+            isSmartMoney,
+            isFresh,
+            isSweeper,
+            enrichmentStatus: "enriched",
+          }
+        });
+      });
+
+      // Trigger portfolio enrichment for interesting wallets
+      if (isWhale || isSmartMoney || isGodWhale || isSuperWhale || isMegaWhale) {
+        enrichWalletPortfolio(walletAddress).catch(err =>
+          console.error(`[Worker] Background portfolio enrichment failed:`, err)
+        );
+      }
+
+    } catch (dbUpdateError) {
+      console.error("[Worker] Failed to update enriched trade in DB:", dbUpdateError);
+    }
+
+    // Construct FULL enriched trade
+    const fullEnrichedTrade: EnrichedTrade = {
+      ...initialEnrichedTrade,
+      analysis: {
+        tags: [
+          isGodWhale && "GOD_WHALE",
+          isSuperWhale && "SUPER_WHALE",
+          isMegaWhale && "MEGA_WHALE",
+          isWhale && "WHALE",
+          isSmartMoney && "SMART_MONEY",
+          isFresh && "FRESH_WALLET",
+          isSweeper && "SWEEPER",
+          isInsider && "INSIDER",
+        ].filter(Boolean) as string[],
+        wallet_context: {
+          address: walletAddress,
+          label: profile.label || payload.pseudonym || "Unknown",
+          pnl_all_time: `$${profile.totalPnl.toLocaleString()}`,
+          win_rate: `${(profile.winRate * 100).toFixed(0)}%`,
+          is_fresh_wallet: isFresh,
+        },
+        market_impact: {
+          swept_levels: impact.isSweeper ? 3 : 0,
+          slippage_induced: `${impact.priceImpact.toFixed(2)}%`,
+        },
+        trader_context: {
+          tx_count: profile.txCount,
+          max_trade_value: Math.max(profile.maxTradeValue, value),
+          activity_level: profile.activityLevel,
+        },
+      }
+    };
+
+    // Emit UPDATE to UI
+    io.emit("trade", fullEnrichedTrade);
+
+    // === ALERT GENERATION ===
+    try {
+      if (isGodWhale || isSuperWhale || isMegaWhale || isWhale) {
+        console.log(`[WORKER] 🚨 SENDING WHALE ALERT: $${value} trade`);
+        await sendDiscordAlert(fullEnrichedTrade, "WHALE_MOVEMENT")
+          .catch(err => logError('apiErrors', err as Error, { alertType: "WHALE_MOVEMENT", tradeValue: value, walletAddress: walletAddress.slice(0, 8) }));
+
+      } else if (isSmartMoney) {
+        console.log(`[WORKER] 🧠 SENDING SMART MONEY ALERT: $${value} trade`);
+        await sendDiscordAlert(fullEnrichedTrade, "SMART_MONEY_ENTRY")
+          .catch(err => logError('apiErrors', err as Error, { alertType: "SMART_MONEY_ENTRY", tradeValue: value, walletAddress: walletAddress.slice(0, 8) }));
+      }
+    } catch (alertError) {
+      console.error("[Worker] Error generating alert:", alertError);
+    }
+
+    console.log(
+      `[Worker] Processed RTDS trade: $${value.toFixed(2)} from ${walletAddress.slice(0, 8)}...`
+    );
+
+  } catch (error) {
+    console.error("[Worker] Error processing RTDS trade:", error);
+  }
+}
+
+/**
  * Process and enrich a trade with wallet identity
  *
  * Enrichment pipeline:
  * 1. Try WebSocket fields (fast path) - ~10-20% success
  * 2. Try Data-API matching if txHash available - primary source
  * 3. Fall back to tx log parsing - last resort
+ * 
+ * @deprecated Use processRTDSTrade instead
  */
 export async function processTrade(trade: PolymarketTrade) {
   try {
@@ -818,7 +1074,10 @@ export async function processTrade(trade: PolymarketTrade) {
 /**
  * Batch enrichment job for trades missing wallet addresses
  * Runs periodically to retry enrichment on pending/failed trades
+ * 
+ * @deprecated No longer needed with RTDS - all trades come with proxyWallet
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function runBatchEnrichment() {
   try {
     const maxAgeMs = CONFIG.ENRICHMENT.MAX_AGE_HOURS * 60 * 60 * 1000;
@@ -978,7 +1237,7 @@ async function runBatchEnrichment() {
 }
 
 /**
- * Main WebSocket connection to Polymarket
+ * Main WebSocket connection to Polymarket RTDS
  */
 function connectToPolymarket() {
   let ws: WebSocket | null = null;
@@ -999,52 +1258,38 @@ function connectToPolymarket() {
   }
 
   const connect = async () => {
-    const assetIds = await updateMarketMetadata();
-    if (assetIds.length === 0) {
-      console.warn("[Worker] No assets found, retrying in 5s...");
-      setTimeout(connect, 5000);
-      return;
-    }
+    // Initialize market metadata (needed for asset lookups)
+    await updateMarketMetadata();
 
-    ws = new WebSocket(CONFIG.URLS.WS_CLOB);
+    ws = new WebSocket(CONFIG.URLS.WS_RTDS);
 
     ws.on("open", () => {
-      console.log("[Worker] Connected to Polymarket WebSocket");
+      console.log("[Worker] Connected to Polymarket RTDS WebSocket");
       resetReconnectAttempts(); // Reset on successful connection
 
-      const msg = {
-        type: "market",
-        assets_ids: assetIds,
-        channel: "trades",
+      // Subscribe to activity trades
+      const subscribeMsg = {
+        action: "subscribe",
+        subscriptions: [
+          {
+            topic: "activity",
+            type: "trades",
+            filters: ""
+          }
+        ]
       };
-      console.log("[Worker] Subscribing to", assetIds.length, "assets");
-      ws?.send(JSON.stringify(msg));
+      console.log("[Worker] Subscribing to RTDS activity trades");
+      ws?.send(JSON.stringify(subscribeMsg));
 
       heartbeatInterval = setInterval(() => {
         // console.log('[Worker] Heartbeat - Connected');
       }, CONFIG.CONSTANTS.HEARTBEAT_INTERVAL);
 
-      // Refresh metadata
+      // Refresh metadata periodically (still needed for asset lookups)
       setInterval(async () => {
         // console.log('[Worker] Refreshing metadata...');
-        const latestAssetIds = await updateMarketMetadata();
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(
-            JSON.stringify({
-              type: "market",
-              assets_ids: latestAssetIds,
-              channel: "trades",
-            })
-          );
-        }
+        await updateMarketMetadata();
       }, CONFIG.CONSTANTS.METADATA_REFRESH_INTERVAL);
-
-      // Start batch enrichment job
-      console.log("[Worker] Starting batch enrichment job...");
-      setInterval(runBatchEnrichment, CONFIG.ENRICHMENT.BATCH_INTERVAL_MS);
-
-      // Run initial batch enrichment after a short delay
-      setTimeout(runBatchEnrichment, 10000);
 
       // Start leaderboard scraper (every 2 hours)
       console.log("[Worker] Starting leaderboard scraper schedule (every 2h)...");
@@ -1069,37 +1314,35 @@ function connectToPolymarket() {
 
     ws.on("message", (data: WebSocket.Data) => {
       try {
-        const parsed = JSON.parse(data.toString());
+        const parsed: RTDSMessage = JSON.parse(data.toString());
 
-        // Early return for non-trade messages
-        if (!parsed.event_type || !['last_trade_price', 'trade'].includes(parsed.event_type)) {
+        // Only process activity/trades messages
+        if (parsed.topic !== "activity" || parsed.type !== "trades" || !parsed.payload) {
           return;
         }
 
-        const trades = Array.isArray(parsed) ? parsed : [parsed];
+        const payload = parsed.payload;
 
-        // Process only valid trades
-        const validTrades = trades.filter((trade: PolymarketTrade) =>
-          trade.price && trade.size && trade.asset_id &&
-          Number(trade.price) * Number(trade.size) >= CONFIG.THRESHOLDS.MIN_VALUE
-        );
+        // Validate required fields
+        if (!payload.asset || !payload.price || !payload.size || !payload.proxyWallet) {
+          return;
+        }
 
-        validTrades.forEach((trade: PolymarketTrade) => {
-          processTrade(trade).catch(console.error);
-        });
+        // Process RTDS trade
+        processRTDSTrade(payload).catch(console.error);
 
       } catch (error) {
         // Only log actual parsing errors, not filtered messages
-        console.warn("[Worker] Message parse error:", error);
+        console.warn("[Worker] RTDS message parse error:", error);
       }
     });
 
     ws.on("error", (error) => {
-      console.error("[Worker] WebSocket error:", error);
+      console.error("[Worker] RTDS WebSocket error:", error);
     });
 
     ws.on("close", () => {
-      console.log('[Worker] WebSocket closed, reconnecting...');
+      console.log('[Worker] RTDS WebSocket closed, reconnecting...');
       clearInterval(heartbeatInterval);
       setTimeout(connect, getReconnectDelay());
     });

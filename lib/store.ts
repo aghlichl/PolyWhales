@@ -152,9 +152,17 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     let newTickerItems = state.tickerItems;
 
     if (existingIndex >= 0) {
-      // Update existing anomaly
+      // Update existing anomaly - preserve wallet_context if new one is missing/empty
+      const existing = state.anomalies[existingIndex];
+      const updatedAnomaly = {
+        ...anomaly,
+        // Ensure wallet_context is always preserved
+        wallet_context: (anomaly.wallet_context && anomaly.wallet_context.address) 
+          ? anomaly.wallet_context 
+          : (existing.wallet_context || anomaly.wallet_context || undefined),
+      };
       newAnomalies = [...state.anomalies];
-      newAnomalies[existingIndex] = anomaly;
+      newAnomalies[existingIndex] = updatedAnomaly;
       // Don't update volume/ticker for updates to avoid double counting
     } else {
       // Add new anomaly
@@ -236,8 +244,16 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     socket.on('trade', (enrichedTrade) => {
       // Convert worker's enriched trade format to anomaly format
       console.log('[STORE] Enriched trade:', JSON.stringify(enrichedTrade, null, 2));
+      
+      // Ensure wallet_context is always present and valid
+      const walletContext = enrichedTrade.analysis?.wallet_context;
+      if (!walletContext || !walletContext.address) {
+        console.warn('[STORE] Trade missing wallet_context.address, skipping');
+        return;
+      }
+      
       const anomaly: Anomaly = {
-        id: enrichedTrade.trade.assetId + '_' + enrichedTrade.trade.timestamp,
+        id: enrichedTrade.trade.assetId + '_' + enrichedTrade.trade.timestamp.getTime(),
         type: enrichedTrade.analysis.tags.includes('GOD_WHALE') ? 'GOD_WHALE' :
           enrichedTrade.analysis.tags.includes('SUPER_WHALE') ? 'SUPER_WHALE' :
             enrichedTrade.analysis.tags.includes('MEGA_WHALE') ? 'MEGA_WHALE' :
@@ -247,19 +263,28 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
         outcome: enrichedTrade.market.outcome,
         odds: enrichedTrade.market.odds,
         value: enrichedTrade.trade.tradeValue,
-        timestamp: new Date(Date.now()).getTime(),
+        timestamp: enrichedTrade.trade.timestamp.getTime(),
         side: enrichedTrade.trade.side as 'BUY' | 'SELL',
         image: enrichedTrade.market.image,
         wallet_context: {
-          address: enrichedTrade.analysis.wallet_context.address,
-          label: enrichedTrade.analysis.wallet_context.label,
-          pnl_all_time: enrichedTrade.analysis.wallet_context.pnl_all_time,
-          win_rate: enrichedTrade.analysis.wallet_context.win_rate,
-          is_fresh_wallet: enrichedTrade.analysis.wallet_context.is_fresh_wallet,
+          address: walletContext.address,
+          label: walletContext.label || walletContext.address.slice(0, 6) + '...' + walletContext.address.slice(-4),
+          pnl_all_time: walletContext.pnl_all_time || '...',
+          win_rate: walletContext.win_rate || '...',
+          is_fresh_wallet: walletContext.is_fresh_wallet || false,
+        },
+        trader_context: enrichedTrade.analysis.trader_context,
+        market_impact: enrichedTrade.analysis.market_impact,
+        analysis: {
+          tags: enrichedTrade.analysis.tags,
         }
       };
 
-      console.log('[STORE] Created anomaly with image:', anomaly.image);
+      if (anomaly.wallet_context) {
+        console.log('[STORE] Created anomaly with wallet:', anomaly.wallet_context.address, 'label:', anomaly.wallet_context.label);
+      } else {
+        console.warn('[STORE] Anomaly missing wallet_context');
+      }
 
       // Only add if it passes user preferences
       const currentPreferences = getPreferences?.();

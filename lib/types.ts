@@ -170,6 +170,37 @@ export interface DataAPIActivity {
     asset_id: string;
 }
 
+// RTDS (Real-Time Data Stream) trade payload from Polymarket
+export interface RTDSTradePayload {
+    asset: string; // asset_id
+    bio?: string;
+    conditionId: string;
+    eventSlug?: string;
+    icon?: string;
+    name?: string;
+    outcome: string;
+    outcomeIndex?: number;
+    price: number;
+    profileImage?: string;
+    proxyWallet: string;
+    pseudonym?: string;
+    side: 'BUY' | 'SELL';
+    size: number;
+    slug?: string;
+    timestamp: number; // Unix timestamp in seconds
+    title: string;
+    transactionHash: string;
+}
+
+// RTDS WebSocket message structure
+export interface RTDSMessage {
+    connection_id?: string;
+    payload: RTDSTradePayload;
+    timestamp: number; // Unix timestamp in milliseconds
+    topic: string;
+    type: string;
+}
+
 // Enrichment status for trade wallet identity
 export type EnrichmentStatus = 'pending' | 'enriched' | 'failed';
 
