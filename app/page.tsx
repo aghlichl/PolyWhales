@@ -52,7 +52,7 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType): 
 }
 
 export default function Home() {
-  const { anomalies, startStream, isLoading, loadMoreHistory, hasMoreHistory } = useMarketStore();
+  const { anomalies, startStream, isLoading, loadMoreHistory, hasMoreHistory, fetchLeaderboardRanks } = useMarketStore();
   const { preferences, loadPreferences } = usePreferencesStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,7 +112,9 @@ export default function Home() {
   useEffect(() => {
     // Load user preferences on mount
     loadPreferences();
-  }, [loadPreferences]);
+    // Fetch leaderboard ranks on mount
+    fetchLeaderboardRanks();
+  }, [loadPreferences, fetchLeaderboardRanks]);
 
   useEffect(() => {
     const cleanup = startStream(() => preferences);

@@ -6,6 +6,7 @@ import { cn, formatShortNumber, calculatePositionPL, formatCurrency } from "@/li
 import { NumericDisplay } from "@/components/ui/numeric-display";
 import { useState, useEffect, useMemo } from "react";
 import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
+import { useMarketStore } from "@/lib/store";
 import { WalletPortfolio } from "@/components/wallet-portfolio";
 import {
     AreaChart,
@@ -26,8 +27,24 @@ interface TradeDetailsModalProps {
     anomaly: Anomaly;
 }
 
+const formatBadgePnl = (pnl?: number | null) => {
+    if (pnl === undefined || pnl === null || Number.isNaN(pnl)) return null;
+    const sign = pnl >= 0 ? '+' : '-';
+    const abs = Math.abs(pnl);
+    let value: string;
+    if (abs >= 1_000_000) {
+        value = (abs / 1_000_000).toFixed(1) + 'M';
+    } else if (abs >= 1_000) {
+        value = (abs / 1_000).toFixed(1) + 'K';
+    } else {
+        value = abs.toFixed(1);
+    }
+    return `${sign}$${value}`;
+};
+
 export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModalProps) {
     const { event, outcome, odds, value, side, trader_context, wallet_context, analysis, image } = anomaly;
+    const { leaderboardRanks } = useMarketStore();
 
     // Resolve team logo
     const { resolvedTeam, logoPath, usePolymarketFallback } = useMemo(() => {
@@ -48,6 +65,31 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
             usePolymarketFallback: noTeamMatch && hasPolymarketImage
         };
     }, [event, outcome, image]);
+
+    // Get leaderboard ranks for this wallet
+    const walletRanks = useMemo(() => {
+        if (!wallet_context?.address) return [];
+        const walletKey = wallet_context.address.toLowerCase();
+        return leaderboardRanks[walletKey] || [];
+    }, [wallet_context?.address, leaderboardRanks]);
+
+    // Prefer named leaderboard entry, else wallet label, else short address
+    const accountName = useMemo(() => {
+        const named = walletRanks.find((r) => r.accountName && r.accountName.trim());
+        if (named?.accountName) return named.accountName.trim();
+        if (wallet_context?.label) return wallet_context.label;
+        if (wallet_context?.address) {
+            const addr = wallet_context.address;
+            return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+        }
+        return null;
+    }, [walletRanks, wallet_context?.label, wallet_context?.address]);
+
+    const isTop20Account = useMemo(() => {
+        return walletRanks.some((r) => typeof r.rank === 'number' && r.rank > 0 && r.rank <= 20);
+    }, [walletRanks]);
+
+    const displayAccountName = isTop20Account ? accountName : null;
 
     // Fallback to analysis tags if trader_context is missing (for older trades)
     const isInsider = analysis?.tags?.includes('INSIDER');
@@ -136,8 +178,91 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                     )}
 
                     <div className="relative z-10 p-3 md:p-4 lg:p-6">
+                        {/* Top 20 Trader Header - Premium Account Badge */}
+                        {displayAccountName && (
+                            <div className="flex flex-col gap-3 mb-4 pb-3 border-b border-zinc-800/50">
+                                {/* Top Row: Star + Account Name */}
+                                <div className="flex items-center gap-3">
+                                    {/* Crown/Star Icon for Top 20 */}
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                                        isGod ? "bg-yellow-500/20 text-yellow-400" :
+                                            isSuper ? "bg-red-500/20 text-red-400" :
+                                                isMega ? "bg-purple-500/20 text-purple-400" :
+                                                    isWhale ? "bg-blue-500/20 text-blue-400" :
+                                                        "bg-zinc-800 text-zinc-400"
+                                    )}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                                        </svg>
+                                    </div>
+                                    {/* Account Name */}
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Top Trader</span>
+                                        <span className={cn(
+                                            "text-base md:text-lg font-bold tracking-tight truncate",
+                                            isGod ? "text-yellow-300" :
+                                                isSuper ? "text-red-300" :
+                                                    isMega ? "text-purple-300" :
+                                                        isWhale ? "text-blue-300" :
+                                                            "text-zinc-100"
+                                        )}>
+                                            {displayAccountName}
+                                        </span>
+                                    </div>
+                                </div>
+                                {/* Ranking Badges - Grid on mobile, flex row on desktop */}
+                                {walletRanks.length > 0 && (
+                                    <div className="grid grid-cols-2 md:flex md:flex-row gap-2">
+                                        {walletRanks.map((rank) => {
+                                            const formattedPnl = formatBadgePnl(rank.totalPnl);
+                                            return (
+                                                <div
+                                                    key={rank.period}
+                                                    className={cn(
+                                                        "flex flex-col md:flex-row items-center md:gap-1.5 px-2 py-1.5 md:px-2.5 rounded-lg text-xs font-semibold",
+                                                        "border backdrop-blur-sm",
+                                                        isGod ? "bg-yellow-500/10 border-yellow-500/30" :
+                                                            isSuper ? "bg-red-500/10 border-red-500/30" :
+                                                                isMega ? "bg-purple-500/10 border-purple-500/30" :
+                                                                    isWhale ? "bg-blue-500/10 border-blue-500/30" :
+                                                                        "bg-zinc-800/50 border-zinc-700/50"
+                                                    )}
+                                                >
+                                                    <span className={cn(
+                                                        "text-[10px] uppercase tracking-wider opacity-70",
+                                                        isGod ? "text-yellow-400" :
+                                                            isSuper ? "text-red-400" :
+                                                                isMega ? "text-purple-400" :
+                                                                    isWhale ? "text-blue-400" :
+                                                                        "text-zinc-500"
+                                                    )}>{rank.period}</span>
+                                                    <span className={cn(
+                                                        "font-black text-sm",
+                                                        isGod ? "text-yellow-300" :
+                                                            isSuper ? "text-red-300" :
+                                                                isMega ? "text-purple-300" :
+                                                                    isWhale ? "text-blue-300" :
+                                                                        "text-zinc-300"
+                                                    )}>#{rank.rank}</span>
+                                                    {formattedPnl && (
+                                                        <span className={cn(
+                                                            "text-xs font-medium",
+                                                            rank.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                                                        )}>
+                                                            {formattedPnl}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Main Hero Content */}
                         <div className="flex items-start gap-3 md:gap-4 lg:gap-6">
-                            {/* Large Hero Thumbnail */}
                             {/* Large Hero Thumbnail */}
                             <div className="relative shrink-0">
                                 <div className="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl group-hover:border-white/30 transition-all duration-300 backdrop-blur-sm bg-white/5">
@@ -151,14 +276,9 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                         alt={resolvedTeam?.name || event}
                                         className="w-full h-full object-cover relative z-10"
                                         onError={(e) => {
-                                            // If logo fails, try falling back to original Polymarket image if available, or hide
                                             if (image && (e.target as HTMLImageElement).src !== image) {
                                                 (e.target as HTMLImageElement).src = image;
-                                                (e.target as HTMLImageElement).className = "w-full h-full object-cover relative z-10"; // Reset style for event image
-                                            } else {
-                                                // Don't hide, show placeholder? logoPath should be valid generic at least.
-                                                // (e.target as HTMLImageElement).style.display = 'none';
-                                                // Don't hide, show placeholder? logoPath should be valid generic at least.
+                                                (e.target as HTMLImageElement).className = "w-full h-full object-cover relative z-10";
                                             }
                                         }}
                                     />
@@ -168,15 +288,13 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
 
                                     {/* Subtle Glow Effect */}
                                     <div className="absolute inset-0 ring-1 ring-white/10 group-hover:ring-white/20 transition-all duration-300" />
-
-                                    {/* Hover Scale Animation */}
-                                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                 </div>
                             </div>
 
-                            {/* Title and Badges */}
+                            {/* Title and Trade Info */}
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-3 md:mb-4">
+                                {/* Type Badge Row */}
+                                <div className="flex items-center gap-2 mb-2">
                                     <span className={cn("text-xs md:text-sm font-bold px-3 py-1 border rounded-full bg-black/60 backdrop-blur-sm", themeColor)}>
                                         {anomaly.type.replace('_', ' ')}
                                     </span>
@@ -187,19 +305,18 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                     )}
                                 </div>
 
-                                <h2 className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-black text-zinc-100 leading-tight uppercase tracking-tight mb-1 md:mb-2">
+                                {/* Event Title */}
+                                <h2 className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-black text-zinc-100 leading-tight uppercase tracking-tight mb-2">
                                     {event}
                                 </h2>
 
-                                {/* Event Subtitle */}
-                                <div className="flex items-center gap-3 md:gap-4 text-sm md:text-base text-zinc-400">
-                                    <span className="font-bold">
-                                        {outcome}
-                                    </span>
+                                {/* Event Subtitle - Outcome, Side, Odds */}
+                                <div className="flex items-center gap-3 text-sm md:text-base text-zinc-400">
+                                    <span className="font-bold">{outcome}</span>
                                     <span className={cn("font-bold px-2 py-0.5 rounded text-xs uppercase", side === 'BUY' ? "text-emerald-400 bg-emerald-400/10" : "text-red-400 bg-red-400/10")}>
                                         {side}
                                     </span>
-                                    <span className="text-zinc-500">•</span>
+                                    <span className="text-zinc-600">•</span>
                                     <NumericDisplay value={`${odds}¢`} />
                                 </div>
                             </div>
@@ -600,7 +717,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                 rel="noopener noreferrer"
                                 className="w-full justify-center group mt-2 flex items-center gap-2 px-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-xl hover:border-[#1B58FD] transition-all duration-300"
                             >
-                                <img src="/logos/polym.png" alt="Polymarket" className="w-90 h-20 opacity-70 group-hover:opacity-100 transition-opacity" />
+                                <img src="/logos/polym.png" alt="Polymarket" className="w-50 h-10 opacity-70 group-hover:opacity-100 transition-opacity" />
                             </a>
                         )}
                     </div>

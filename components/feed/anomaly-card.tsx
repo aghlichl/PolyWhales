@@ -7,6 +7,7 @@ import { useState, memo, useMemo } from "react";
 import { TradeDetailsModal } from "./trade-details-modal";
 import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
 import { useAutoFitText } from "@/lib/useAutoFitText";
+import { useMarketStore } from "@/lib/store";
 
 // Import distinctive fonts following Spotify/DoorDash/Robinhood patterns
 import { Inter } from 'next/font/google';
@@ -32,8 +33,52 @@ export function convertAnomalyToCardProps(anomaly: Anomaly) {
     };
 }
 
+const formatBadgePnl = (pnl?: number | null) => {
+    if (pnl === undefined || pnl === null || Number.isNaN(pnl)) return null;
+
+    const sign = pnl >= 0 ? '+' : '-';
+    const abs = Math.abs(pnl);
+
+    let value: string;
+    if (abs >= 1_000_000) {
+        value = (abs / 1_000_000).toFixed(1) + 'M';
+    } else if (abs >= 1_000) {
+        value = (abs / 1_000).toFixed(1) + 'K';
+    } else {
+        value = abs.toFixed(1);
+    }
+
+    return `${sign}$${value}`;
+};
+
 export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardProps) {
     const { event: title, value, outcome, odds, type, timestamp, side, image } = anomaly;
+    const { leaderboardRanks } = useMarketStore();
+
+    // Get leaderboard ranks for this wallet
+    const walletRanks = useMemo(() => {
+        if (!anomaly.wallet_context?.address) return [];
+        const walletKey = anomaly.wallet_context.address.toLowerCase();
+        return leaderboardRanks[walletKey] || [];
+    }, [anomaly.wallet_context?.address, leaderboardRanks]);
+
+    // Prefer named leaderboard entry, else wallet label, else short address
+    const accountName = useMemo(() => {
+        const named = walletRanks.find((r) => r.accountName && r.accountName.trim());
+        if (named?.accountName) return named.accountName.trim();
+        if (anomaly.wallet_context?.label) return anomaly.wallet_context.label;
+        if (anomaly.wallet_context?.address) {
+            const addr = anomaly.wallet_context.address;
+            return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+        }
+        return null;
+    }, [walletRanks, anomaly.wallet_context?.label, anomaly.wallet_context?.address]);
+
+    const isTop20Account = useMemo(() => {
+        return walletRanks.some((r) => typeof r.rank === 'number' && r.rank > 0 && r.rank <= 20);
+    }, [walletRanks]);
+
+    const displayAccountName = isTop20Account ? accountName : null;
 
     // Auto-fit text hook for responsive title sizing
     const { textRef } = useAutoFitText({
@@ -252,7 +297,6 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         {/* Top Left: Title - REDESIGNED (Tactical HUD) */}
                         <div className="flex items-start min-w-0 pr-2">
                             <div className="relative group/title w-full flex gap-3">
-                                {/* Event Image (If Available) */}
                                 {/* Team Logo / Event Image */}
                                 <div className={cn(
                                     "relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/20 shadow-2xl backdrop-blur-sm",
@@ -301,7 +345,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                                         "bg-zinc-600"
                                     )} />
 
-                                    <div className="flex flex-col">
+                                    <div className="flex flex-col gap-1">
                                         {/* Main Title - Auto-fit with 3-line support */}
                                         <h3
                                             ref={textRef as React.RefObject<HTMLHeadingElement>}
@@ -450,6 +494,109 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         </div>
                     </div>
                 </Card>
+
+                {/* Top 20 Trader Section - Layered underneath the card */}
+                {displayAccountName && walletRanks.length > 0 && (
+                    <div className={cn(
+                        "relative -mt-2 mx-1 pt-5 pb-3 px-3 rounded-b-xl",
+                        "bg-black border border-t-0 border-zinc-800/60",
+                        // Tier-specific subtle accent on the bottom edge
+                        isGod && "border-b-yellow-500/20",
+                        isSuper && "border-b-red-500/20",
+                        isMega && "border-b-purple-500/20",
+                        isWhale && "border-b-blue-500/20"
+                    )}>
+                        {/* Rankings Row */}
+                        <div className="flex items-center gap-1.5">
+                            {(['Daily', 'Weekly', 'Monthly', 'All Time'] as const).map((period) => {
+                                // Period display names match the database period values directly
+                                const rankData = walletRanks.find(r => r.period === period);
+                                const hasRank = rankData && typeof rankData.rank === 'number' && rankData.rank > 0;
+                                const formattedPnl = hasRank ? formatBadgePnl(rankData.totalPnl) : null;
+
+                                return (
+                                    <div
+                                        key={period}
+                                        className={cn(
+                                            "flex-1 flex flex-col items-center py-1.5 px-2 rounded-md text-xs lg:text-sm",
+                                            "border",
+                                            hasRank ? (
+                                                isGod ? "bg-yellow-500/10 border-yellow-500/30" :
+                                                    isSuper ? "bg-red-500/10 border-red-500/30" :
+                                                        isMega ? "bg-purple-500/10 border-purple-500/30" :
+                                                            isWhale ? "bg-blue-500/10 border-blue-500/30" :
+                                                                "bg-zinc-800/50 border-zinc-700/50"
+                                            ) : "bg-zinc-900/30 border-zinc-800/30"
+                                        )}
+                                    >
+                                        {/* Period Label */}
+                                        <span className={cn(
+                                            "uppercase font-medium text-[10px] lg:text-xs",
+                                            hasRank ? (
+                                                isGod ? "text-yellow-400/70" :
+                                                    isSuper ? "text-red-400/70" :
+                                                        isMega ? "text-purple-400/70" :
+                                                            isWhale ? "text-blue-400/70" :
+                                                                "text-zinc-500"
+                                            ) : "text-zinc-600"
+                                        )}>
+                                            {period}
+                                        </span>
+                                        {/* Rank */}
+                                        <span className={cn(
+                                            "text-xs lg:text-sm font-black leading-tight",
+                                            hasRank ? (
+                                                isGod ? "text-yellow-300" :
+                                                    isSuper ? "text-red-300" :
+                                                        isMega ? "text-purple-300" :
+                                                            isWhale ? "text-blue-300" :
+                                                                "text-zinc-300"
+                                            ) : "text-zinc-600"
+                                        )}>
+                                            {hasRank ? `#${rankData.rank}` : '—'}
+                                        </span>
+                                        {/* PnL (only if has rank) */}
+                                        {formattedPnl && rankData && (
+                                            <span className={cn(
+                                                "text-[10px] lg:text-xs font-semibold leading-tight",
+                                                rankData.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                                            )}>
+                                                {formattedPnl}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {/* Account Name Row - Centered */}
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                            {/* Star Icon */}
+                            <div className={cn(
+                                "shrink-0 w-4 h-4 flex items-center justify-center",
+                                isGod ? "text-yellow-400" :
+                                    isSuper ? "text-red-400" :
+                                        isMega ? "text-purple-400" :
+                                            isWhale ? "text-blue-400" :
+                                                "text-zinc-400"
+                            )}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="drop-shadow-sm">
+                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                                </svg>
+                            </div>
+                            {/* Account Name */}
+                            <span className={cn(
+                                "text-sm font-bold truncate tracking-tight",
+                                isGod ? "text-yellow-200" :
+                                    isSuper ? "text-red-200" :
+                                        isMega ? "text-purple-200" :
+                                            isWhale ? "text-blue-200" :
+                                                "text-zinc-100"
+                            )}>
+                                {displayAccountName}
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Card Docked Plate - Timestamp Footer */}
                 <div className={cn(

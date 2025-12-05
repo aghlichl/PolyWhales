@@ -128,6 +128,8 @@ const LEADERBOARD_URLS = [
   { url: "https://polymarket.com/leaderboard/overall/all/profit", timeframe: "All Time" },
 ];
 
+const LEADERBOARD_SCRAPE_INTERVAL_MS = 60 * 60 * 1000; // Every 1 hour
+
 function parseCurrency(label: string): number | null {
   const trimmed = label.trim();
   if (!trimmed || trimmed === "—") return null;
@@ -212,77 +214,23 @@ async function scrapeLeaderboard() {
     if (allRows.length > 0) {
       const snapshotAt = new Date();
 
-      // Insert into DB using Prisma
-      // We do this in a transaction to ensure consistency
-      await prisma.$transaction(async (tx) => {
-        for (const row of allRows) {
-          const totalPnl = parseCurrency(row.profitLabel) ?? 0;
-          const totalVolume = parseCurrency(row.volumeLabel) ?? 0;
+      // Batch insert snapshots to avoid interactive transaction timeout
+      const rowsToInsert = allRows.map((row) => ({
+        walletAddress: row.wallet,
+        period: row.timeframe,
+        rank: row.rank,
+        totalPnl: parseCurrency(row.profitLabel) ?? 0,
+        totalVolume: parseCurrency(row.volumeLabel) ?? 0,
+        winRate: 0, // Not available in this view
+        snapshotAt,
+        accountName: row.displayName,
+      }));
 
-          await tx.walletLeaderboardSnapshot.create({
-            data: {
-              walletAddress: row.wallet,
-              period: row.timeframe,
-              rank: row.rank,
-              totalPnl,
-              totalVolume,
-              winRate: 0, // Not available in this view
-              snapshotAt,
-              accountName: row.displayName,
-            }
-          });
-
-          // Fetch and insert positions
-          // Add adaptive delay to respect rate limits
-          await rateLimiter.wait();
-          let positions: PositionResponse[] = [];
-          try {
-            positions = await fetchWhalePositions(row.wallet);
-            rateLimiter.recordSuccess();
-          } catch (error) {
-            console.warn(`[Worker] Failed to fetch positions for ${row.wallet}:`, error);
-            rateLimiter.recordError();
-          }
-
-          let positionRank = 1;
-          for (const pos of positions) {
-            await tx.whalePositionSnapshot.create({
-              data: {
-                snapshotAt,
-                timeframe: row.timeframe,
-                walletRank: row.rank,
-                positionRank: positionRank++,
-                proxyWallet: pos.proxyWallet,
-                conditionId: pos.conditionId,
-                assetId: pos.asset,
-                eventId: pos.eventId,
-                eventSlug: pos.eventSlug,
-                marketTitle: pos.title,
-                marketSlug: pos.slug,
-                iconUrl: pos.icon,
-                outcome: pos.outcome,
-                outcomeIndex: pos.outcomeIndex,
-                oppositeOutcome: pos.oppositeOutcome,
-                oppositeAssetId: pos.oppositeAsset,
-                endDate: pos.endDate ? new Date(pos.endDate) : null,
-                negativeRisk: pos.negativeRisk,
-                redeemable: pos.redeemable,
-                size: pos.size,
-                avgPrice: pos.avgPrice,
-                curPrice: pos.curPrice,
-                initialValue: pos.initialValue,
-                currentValue: pos.currentValue,
-                totalBought: pos.totalBought,
-                cashPnl: pos.cashPnl,
-                percentPnl: pos.percentPnl,
-                realizedPnl: pos.realizedPnl,
-                percentRealizedPnl: pos.percentRealizedPnl,
-              }
-            });
-          }
-        }
+      await prisma.walletLeaderboardSnapshot.createMany({
+        data: rowsToInsert,
       });
-      console.log("[Worker] Successfully saved leaderboard snapshots and positions");
+
+      console.log("[Worker] Successfully saved leaderboard snapshots");
     }
 
   } catch (error) {
@@ -1315,9 +1263,9 @@ function connectToPolymarket() {
         await updateMarketMetadata();
       }, CONFIG.CONSTANTS.METADATA_REFRESH_INTERVAL);
 
-      // Start leaderboard scraper (every 2 hours)
-      console.log("[Worker] Starting leaderboard scraper schedule (every 2h)...");
-      setInterval(scrapeLeaderboard, 2 * 60 * 60 * 1000);
+      // Start leaderboard scraper (hourly)
+      console.log("[Worker] Starting leaderboard scraper schedule (hourly)...");
+      setInterval(scrapeLeaderboard, LEADERBOARD_SCRAPE_INTERVAL_MS);
       // Run once on startup after a delay
       setTimeout(scrapeLeaderboard, 30000);
 

@@ -103,6 +103,13 @@ interface HistoryResponse {
   nextCursor?: string;
 }
 
+export interface LeaderboardRank {
+  period: string;
+  rank: number;
+  totalPnl: number;
+  accountName?: string | null;
+}
+
 interface MarketStore {
   anomalies: Anomaly[];
   volume: number;
@@ -126,6 +133,11 @@ interface MarketStore {
   fetchTopTrades: (period: TopTradesPeriod, cursor?: string) => Promise<void>;
   loadMoreTopTrades: () => void;
   setSelectedPeriod: (period: TopTradesPeriod) => void;
+
+  // Leaderboard ranks functionality
+  leaderboardRanks: Record<string, LeaderboardRank[]>; // wallet (lowercase) -> ranks
+  leaderboardRanksLoading: boolean;
+  fetchLeaderboardRanks: () => Promise<void>;
 }
 
 export const useMarketStore = create<MarketStore>((set, get) => ({
@@ -142,6 +154,10 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
   selectedPeriod: 'today',
   nextCursor: undefined,
   hasMore: true,
+
+  // Leaderboard ranks state
+  leaderboardRanks: {},
+  leaderboardRanksLoading: false,
 
   addAnomaly: (anomaly) => set((state) => {
     // Check if anomaly already exists
@@ -354,5 +370,33 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
   setSelectedPeriod: (period) => {
     set({ selectedPeriod: period });
     get().fetchTopTrades(period);
+  },
+
+  // Leaderboard ranks functions
+  fetchLeaderboardRanks: async () => {
+    // Don't refetch if already loading or if we have data
+    const { leaderboardRanksLoading, leaderboardRanks } = get();
+    if (leaderboardRanksLoading || Object.keys(leaderboardRanks).length > 0) {
+      return;
+    }
+
+    set({ leaderboardRanksLoading: true });
+
+    try {
+      const url = new URL('/api/leaderboard', window.location.origin);
+      url.searchParams.set('format', 'snapshots');
+
+      const response = await fetch(url.toString());
+      if (response.ok) {
+        const data: Record<string, LeaderboardRank[]> = await response.json();
+        set({ leaderboardRanks: data, leaderboardRanksLoading: false });
+      } else {
+        console.error('Failed to fetch leaderboard ranks');
+        set({ leaderboardRanksLoading: false });
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard ranks:', error);
+      set({ leaderboardRanksLoading: false });
+    }
   }
 }));
