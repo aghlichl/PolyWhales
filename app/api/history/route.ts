@@ -50,38 +50,41 @@ export async function GET(request: Request) {
       const value = trade.tradeValue;
       const price = trade.price;
 
-  // Determine anomaly type based on trade value (matching market-stream.ts logic)
-  let type: 'GOD_WHALE' | 'SUPER_WHALE' | 'MEGA_WHALE' | 'WHALE' | 'STANDARD' = 'STANDARD';
-  if (value > 100000) type = 'GOD_WHALE';
-  else if (value > 50000) type = 'SUPER_WHALE';
-  else if (value > 15000) type = 'MEGA_WHALE';
-  else if (value > 8000) type = 'WHALE';
+      // Determine anomaly type based on trade value (matching market-stream.ts logic)
+      let type: 'GOD_WHALE' | 'SUPER_WHALE' | 'MEGA_WHALE' | 'WHALE' | 'STANDARD' = 'STANDARD';
+      if (value > 100000) type = 'GOD_WHALE';
+      else if (value > 50000) type = 'SUPER_WHALE';
+      else if (value > 15000) type = 'MEGA_WHALE';
+      else if (value > 8000) type = 'WHALE';
 
-  // Get image from current market metadata
-  const marketMeta = trade.conditionId ? marketsByCondition.get(trade.conditionId) : undefined;
-  const image = marketMeta?.image || trade.image || undefined;
+      // Get image from current market metadata
+      const marketMeta = trade.conditionId ? marketsByCondition.get(trade.conditionId) : undefined;
+      const image = marketMeta?.image || trade.image || undefined;
 
-  const marketContext = {
-    category: trade.marketCategory || null,
-    sport: trade.sport || null,
-    league: trade.league || null,
-    feeBps: trade.feeBps ?? null,
-    liquidity: trade.liquidity ?? null,
-    volume24h: trade.volume24h ?? null,
-    closeTime: trade.closeTime?.toISOString() || null,
-    openTime: trade.openTime?.toISOString() || null,
-    denominationToken: trade.denominationToken || null,
-    liquidity_bucket: trade.marketDepthBucket || null,
-    time_to_close_bucket: trade.timeToCloseBucket || null,
-  };
+      const marketContext = {
+        category: marketMeta?.category || trade.marketCategory || null,
+        sport: marketMeta?.sport || trade.sport || null,
+        league: marketMeta?.league || trade.league || null,
+        feeBps: marketMeta?.feeBps ?? trade.feeBps ?? null,
+        // Prioritize fresh stats from marketMeta
+        liquidity: marketMeta?.liquidity ?? trade.liquidity ?? null,
+        volume24h: marketMeta?.volume24h ?? trade.volume24h ?? null,
+        closeTime: marketMeta?.closeTime || trade.closeTime?.toISOString() || null,
+        openTime: marketMeta?.openTime || trade.openTime?.toISOString() || null,
+        resolutionTime: marketMeta?.resolutionTime || trade.resolutionTime?.toISOString() || null,
+        resolutionSource: marketMeta?.resolutionSource || trade.resolutionSource || null,
+        denominationToken: marketMeta?.denominationToken || trade.denominationToken || null,
+        liquidity_bucket: trade.marketDepthBucket || null, // Keep snapshot buckets for now, or re-compute if needed
+        time_to_close_bucket: trade.timeToCloseBucket || null,
+      };
 
-  const eventContext = {
-    id: trade.eventId || undefined,
-    title: trade.eventTitle || undefined,
-    slug: trade.eventSlug || null,
-  };
+      const eventContext = {
+        id: trade.eventId || undefined,
+        title: trade.eventTitle || undefined,
+        slug: trade.eventSlug || null,
+      };
 
-  return {
+      return {
         id: trade.id, // Use actual trade ID instead of random
         type,
         event: trade.question || 'Unknown Market',
@@ -99,6 +102,8 @@ export async function GET(request: Request) {
         volume24h: trade.volume24h ?? null,
         closeTime: trade.closeTime?.toISOString() || null,
         openTime: trade.openTime?.toISOString() || null,
+        resolutionTime: trade.resolutionTime?.toISOString() || null,
+        resolutionSource: trade.resolutionSource || null,
         denominationToken: trade.denominationToken || null,
         liquidity_bucket: trade.marketDepthBucket || null,
         time_to_close_bucket: trade.timeToCloseBucket || null,

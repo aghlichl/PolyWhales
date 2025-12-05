@@ -348,6 +348,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
         volume24h: marketContext?.volume24h ?? null,
         closeTime: marketContext?.closeTime || null,
         openTime: marketContext?.openTime || null,
+        resolutionTime: marketContext?.resolutionTime || null,
+        resolutionSource: marketContext?.resolutionSource || null,
         denominationToken: marketContext?.denominationToken || null,
         liquidity_bucket: marketContext?.liquidity_bucket || null,
         time_to_close_bucket: marketContext?.time_to_close_bucket || null,

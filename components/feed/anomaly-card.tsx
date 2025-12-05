@@ -1,6 +1,6 @@
 import { Anomaly } from "@/lib/types";
 import { MarketMeta } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatShortNumber } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Gauge } from "./gauge";
 import { useState, memo, useMemo } from "react";
@@ -142,6 +142,55 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
         : anomaly.feeBps != null
             ? `${anomaly.feeBps} bps fee`
             : null;
+    const liquidityValue = marketContext?.liquidity ?? anomaly.liquidity ?? null;
+    const volumeValue = marketContext?.volume24h ?? anomaly.volume24h ?? null;
+    const feeValue = marketContext?.feeBps ?? anomaly.feeBps ?? null;
+    const denomination = (marketContext?.denominationToken || anomaly.denominationToken || '').toUpperCase() || null;
+    const closeTime = marketContext?.closeTime || anomaly.closeTime || null;
+    const resolutionTime = marketContext?.resolutionTime || anomaly.resolutionTime || null;
+
+    const formatUsdShort = (num: number | null) => {
+        if (num === null || Number.isNaN(num)) return null;
+        return `$${formatShortNumber(num)}`;
+    };
+
+    const formatTimeRemaining = (iso: string | null) => {
+        if (!iso) return null;
+        const target = new Date(iso).getTime();
+        if (Number.isNaN(target)) return null;
+        const diff = target - Date.now();
+        if (diff <= 0) return 'Closed';
+        const mins = Math.ceil(diff / 60000);
+        if (mins < 60) return `${mins}m left`;
+        const hours = Math.ceil(diff / 3600000);
+        if (hours < 48) return `${hours}h left`;
+        const days = Math.ceil(diff / 86400000);
+        return `${days}d left`;
+    };
+
+    const getRelevantTimeLabel = () => {
+        const now = Date.now();
+        const closeMs = closeTime ? new Date(closeTime).getTime() : 0;
+        const resMs = resolutionTime ? new Date(resolutionTime).getTime() : 0;
+
+        // 1. If betting close time is in the future, show that
+        if (closeTime && closeMs > now) {
+            return formatTimeRemaining(closeTime);
+        }
+
+        // 2. If betting is "closed" but resolution is in the future, show resolution time
+        if (resolutionTime && resMs > now) {
+            const dist = formatTimeRemaining(resolutionTime);
+            return dist && dist !== 'Closed' ? `Resolves ${dist.replace(' left', '')}` : null;
+        }
+
+        // 3. If both passed, don't show "Closed" for a live anomaly card (confusing)
+        return null;
+    };
+
+    const closeTimeLabel = getRelevantTimeLabel();
+    // Resolution label is no longer needed as a separate variable since we integrated logic
+    const resolutionLabel = null;
 
     return (
         <>
@@ -382,31 +431,38 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                                 {title}
                                             </span>
                                         </h3>
-                                        {(categoryLabel || sportLeague || timeToClose || liquidityBucket || feeLabel) && (
-                                            <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-zinc-400">
-                                                {categoryLabel && (
-                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
-                                                        {categoryLabel}
+                                        {(closeTimeLabel || volumeValue || liquidityValue) && (
+                                            <div className="mt-1.5 flex items-center gap-2 text-[10px] font-medium text-zinc-500">
+                                                {/* Time Left - High urgency signal */}
+                                                {closeTimeLabel && (
+                                                    <span className={cn(
+                                                        closeTimeLabel.includes('m left') ? "text-red-400" :
+                                                            closeTimeLabel.includes('h left') && parseInt(closeTimeLabel) < 12 ? "text-orange-400" :
+                                                                "text-zinc-500"
+                                                    )}>
+                                                        {closeTimeLabel}
                                                     </span>
                                                 )}
-                                                {sportLeague && (
-                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
-                                                        {sportLeague}
+
+                                                {(closeTimeLabel && (volumeValue || liquidityValue)) && (
+                                                    <span className="text-zinc-700 mx-px">•</span>
+                                                )}
+
+                                                {/* Volume - Primary Market Signal */}
+                                                {volumeValue !== null && (
+                                                    <span className="text-zinc-400">
+                                                        Vol <span className="text-zinc-300">{formatUsdShort(volumeValue)}</span>
                                                     </span>
                                                 )}
-                                                {timeToClose && (
-                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
-                                                        {timeToClose}
-                                                    </span>
+
+                                                {(volumeValue && liquidityValue) && (
+                                                    <span className="text-zinc-700 mx-px">•</span>
                                                 )}
-                                                {liquidityBucket && (
-                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
-                                                        Lq {liquidityBucket}
-                                                    </span>
-                                                )}
-                                                {feeLabel && (
-                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
-                                                        {feeLabel}
+
+                                                {/* Liquidity - Secondary Signal */}
+                                                {liquidityValue !== null && (
+                                                    <span className="text-zinc-500">
+                                                        Liq <span className="text-zinc-400">{formatUsdShort(liquidityValue)}</span>
                                                     </span>
                                                 )}
                                             </div>

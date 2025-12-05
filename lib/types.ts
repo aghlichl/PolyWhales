@@ -71,6 +71,8 @@ export interface Anomaly {
             volume24h?: number | null;
             closeTime?: string | null;
             openTime?: string | null;
+            resolutionTime?: string | null;
+            resolutionSource?: string | null;
             denominationToken?: string | null;
             liquidity_bucket?: string | null;
             time_to_close_bucket?: string | null;
@@ -92,6 +94,8 @@ export interface Anomaly {
     volume24h?: number | null;
     closeTime?: string | null;
     openTime?: string | null;
+    resolutionTime?: string | null;
+    resolutionSource?: string | null;
     denominationToken?: string | null;
     liquidity_bucket?: string | null;
     time_to_close_bucket?: string | null;
@@ -218,6 +222,8 @@ export interface EnrichedTrade {
             volume24h?: number | null;
             closeTime?: string | null;
             openTime?: string | null;
+            resolutionTime?: string | null;
+            resolutionSource?: string | null;
             denominationToken?: string | null;
             liquidity_bucket?: string | null;
             time_to_close_bucket?: string | null;

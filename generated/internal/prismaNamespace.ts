@@ -1145,6 +1145,32 @@ export const TradeScalarFieldEnum = {
   outcome: 'outcome',
   question: 'question',
   image: 'image',
+  marketCategory: 'marketCategory',
+  marketType: 'marketType',
+  formatType: 'formatType',
+  feeBps: 'feeBps',
+  denominationToken: 'denominationToken',
+  liquidity: 'liquidity',
+  volume24h: 'volume24h',
+  openTime: 'openTime',
+  closeTime: 'closeTime',
+  resolutionTime: 'resolutionTime',
+  resolutionSource: 'resolutionSource',
+  eventId: 'eventId',
+  eventTitle: 'eventTitle',
+  eventSlug: 'eventSlug',
+  eventStart: 'eventStart',
+  eventEnd: 'eventEnd',
+  tags: 'tags',
+  sport: 'sport',
+  league: 'league',
+  marketGroup: 'marketGroup',
+  marketDepthBucket: 'marketDepthBucket',
+  timeToCloseBucket: 'timeToCloseBucket',
+  holderTop5Share: 'holderTop5Share',
+  holderTop10Share: 'holderTop10Share',
+  holderCount: 'holderCount',
+  smartHolderCount: 'smartHolderCount',
   transactionHash: 'transactionHash',
   blockNumber: 'blockNumber',
   logIndex: 'logIndex',
@@ -1395,20 +1421,6 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
- * Reference to a field of type 'BigInt'
- */
-export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
-    
-
-
-/**
- * Reference to a field of type 'BigInt[]'
- */
-export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
-    
-
-
-/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1419,6 +1431,20 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BigInt'
+ */
+export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+/**
+ * Reference to a field of type 'BigInt[]'
+ */
+export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 

@@ -50,6 +50,48 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
         id: anomaly.eventId,
         title: anomaly.eventTitle,
     };
+    const liquidityValue = marketContext?.liquidity ?? anomaly.liquidity ?? null;
+    const volumeValue = marketContext?.volume24h ?? anomaly.volume24h ?? null;
+    const feeValue = marketContext?.feeBps ?? anomaly.feeBps ?? null;
+    const denomination = (marketContext?.denominationToken || anomaly.denominationToken || '').toUpperCase() || null;
+    const openTime = marketContext?.openTime || anomaly.openTime || null;
+    const closeTime = marketContext?.closeTime || anomaly.closeTime || null;
+    const resolutionTime = marketContext?.resolutionTime || anomaly.resolutionTime || null;
+    const crowding = anomaly.crowding || analysis?.crowding;
+
+    const formatUsdShort = (num: number | null) => {
+        if (num === null || Number.isNaN(num)) return '—';
+        return `$${formatShortNumber(num)}`;
+    };
+
+    const formatTimeRemaining = (iso: string | null) => {
+        if (!iso) return '—';
+        const target = new Date(iso).getTime();
+        if (Number.isNaN(target)) return '—';
+        const diff = target - Date.now();
+        if (diff <= 0) return 'Closed';
+        const mins = Math.ceil(diff / 60000);
+        if (mins < 60) return `${mins}m left`;
+        const hours = Math.ceil(diff / 3600000);
+        if (hours < 48) return `${hours}h left`;
+        const days = Math.ceil(diff / 86400000);
+        return `${days}d left`;
+    };
+
+    const formatDateLabel = (iso: string | null) => {
+        if (!iso) return '—';
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return '—';
+        return date.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    };
+
+    const formatShare = (value: number | null | undefined) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return null;
+        const pct = value > 1 ? value : value * 100;
+        return `${pct.toFixed(0)}%`;
+    };
+    const top5Share = formatShare(crowding?.top5_share);
+    const top10Share = formatShare(crowding?.top10_share);
 
     // Resolve team logo
     const { resolvedTeam, logoPath, usePolymarketFallback } = useMemo(() => {
@@ -268,8 +310,50 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                     </div>
                 </div>
 
+                {/* Market Stats */}
+                {/* Market Stats - Minimalist Bar */}
+                <div className="px-3 md:px-4 lg:px-6 py-3 border-b border-zinc-800 bg-black/20 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                        <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Liq</span>
+                        <span className="text-zinc-200 font-medium">{formatUsdShort(liquidityValue)}</span>
+                    </div>
+                    <div className="w-px h-3 bg-zinc-800 hidden sm:block" />
+                    <div className="flex items-center gap-2">
+                        <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Vol</span>
+                        <span className="text-zinc-200 font-medium">{formatUsdShort(volumeValue)}</span>
+                    </div>
+                    {feeValue !== null && (
+                        <>
+                            <div className="w-px h-3 bg-zinc-800 hidden sm:block" />
+                            <div className="flex items-center gap-2">
+                                <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Fee</span>
+                                <span className="text-zinc-200 font-medium">{feeValue}bps</span>
+                            </div>
+                        </>
+                    )}
+                    {crowding?.top5_share != null && (
+                        <>
+                            <div className="w-px h-3 bg-zinc-800 hidden sm:block" />
+                            <div className="flex items-center gap-2">
+                                <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Crowding</span>
+                                <span className="text-zinc-200 font-medium">Top5 {formatShare(crowding.top5_share)}</span>
+                            </div>
+                        </>
+                    )}
+                    {closeTime && (
+                        <>
+                            <div className="w-px h-3 bg-zinc-800 hidden sm:block" />
+                            <div className="flex items-center gap-2 ml-auto">
+                                <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Closes</span>
+                                <span className="text-zinc-200 font-medium">{formatDateLabel(closeTime)}</span>
+                                <span className="text-zinc-500">({formatTimeRemaining(closeTime)})</span>
+                            </div>
+                        </>
+                    )}
+                </div>
+
                 {/* Trade Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-zinc-800 border-b border-zinc-800">
+                <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-zinc-800 border-b border-zinc-800">
                     <div className="p-2 md:p-3 lg:p-4 flex flex-col items-center justify-center bg-black/20">
                         <span className="text-xs md:text-sm text-zinc-500 uppercase tracking-wider mb-1">Trade</span>
                         <span className={cn("text-lg md:text-xl lg:text-2xl font-black", themeColor.split(' ')[0])}>
@@ -280,17 +364,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                             />
                         </span>
                     </div>
-                    <div className="p-2 md:p-3 lg:p-4 flex flex-col items-center justify-center bg-black/20">
-                        <span className="text-xs md:text-sm text-zinc-500 uppercase tracking-wider mb-1">Volume</span>
-                        <span className="text-base md:text-lg lg:text-xl font-bold text-zinc-100">
-                            <NumericDisplay
-                                value={`$${formatShortNumber(historyData?.priceHistory?.reduce((sum, trade) => sum + trade.tradeValue, 0) || 0)}`}
-                                size="lg"
-                                variant="bold"
-                            />
-                        </span>
-                        <span className="text-zinc-400 text-xs">24h total</span>
-                    </div>
+
                     <div className="p-2 md:p-3 lg:p-4 flex flex-col items-center justify-center bg-black/20">
                         <span className="text-xs md:text-sm text-zinc-500 uppercase tracking-wider mb-1">
                             {historyData?.priceHistory && historyData.priceHistory.length > 0 ?

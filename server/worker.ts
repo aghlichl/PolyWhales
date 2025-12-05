@@ -515,6 +515,8 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
       volume24h: marketMeta.volume24h ?? null,
       closeTime: marketMeta.closeTime || null,
       openTime: marketMeta.openTime || null,
+      resolutionTime: marketMeta.resolutionTime || null,
+      resolutionSource: marketMeta.resolutionSource || null,
       denominationToken: marketMeta.denominationToken || null,
       liquidity_bucket: liquidityBucket,
       time_to_close_bucket: timeToCloseBucket,

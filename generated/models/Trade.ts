@@ -30,6 +30,13 @@ export type TradeAvgAggregateOutputType = {
   size: number | null
   price: number | null
   tradeValue: number | null
+  feeBps: number | null
+  liquidity: number | null
+  volume24h: number | null
+  holderTop5Share: number | null
+  holderTop10Share: number | null
+  holderCount: number | null
+  smartHolderCount: number | null
   blockNumber: number | null
   logIndex: number | null
 }
@@ -38,6 +45,13 @@ export type TradeSumAggregateOutputType = {
   size: number | null
   price: number | null
   tradeValue: number | null
+  feeBps: number | null
+  liquidity: number | null
+  volume24h: number | null
+  holderTop5Share: number | null
+  holderTop10Share: number | null
+  holderCount: number | null
+  smartHolderCount: number | null
   blockNumber: bigint | null
   logIndex: number | null
 }
@@ -59,6 +73,31 @@ export type TradeMinAggregateOutputType = {
   outcome: string | null
   question: string | null
   image: string | null
+  marketCategory: string | null
+  marketType: string | null
+  formatType: string | null
+  feeBps: number | null
+  denominationToken: string | null
+  liquidity: number | null
+  volume24h: number | null
+  openTime: Date | null
+  closeTime: Date | null
+  resolutionTime: Date | null
+  resolutionSource: string | null
+  eventId: string | null
+  eventTitle: string | null
+  eventSlug: string | null
+  eventStart: Date | null
+  eventEnd: Date | null
+  sport: string | null
+  league: string | null
+  marketGroup: string | null
+  marketDepthBucket: string | null
+  timeToCloseBucket: string | null
+  holderTop5Share: number | null
+  holderTop10Share: number | null
+  holderCount: number | null
+  smartHolderCount: number | null
   transactionHash: string | null
   blockNumber: bigint | null
   logIndex: number | null
@@ -82,6 +121,31 @@ export type TradeMaxAggregateOutputType = {
   outcome: string | null
   question: string | null
   image: string | null
+  marketCategory: string | null
+  marketType: string | null
+  formatType: string | null
+  feeBps: number | null
+  denominationToken: string | null
+  liquidity: number | null
+  volume24h: number | null
+  openTime: Date | null
+  closeTime: Date | null
+  resolutionTime: Date | null
+  resolutionSource: string | null
+  eventId: string | null
+  eventTitle: string | null
+  eventSlug: string | null
+  eventStart: Date | null
+  eventEnd: Date | null
+  sport: string | null
+  league: string | null
+  marketGroup: string | null
+  marketDepthBucket: string | null
+  timeToCloseBucket: string | null
+  holderTop5Share: number | null
+  holderTop10Share: number | null
+  holderCount: number | null
+  smartHolderCount: number | null
   transactionHash: string | null
   blockNumber: bigint | null
   logIndex: number | null
@@ -105,6 +169,32 @@ export type TradeCountAggregateOutputType = {
   outcome: number
   question: number
   image: number
+  marketCategory: number
+  marketType: number
+  formatType: number
+  feeBps: number
+  denominationToken: number
+  liquidity: number
+  volume24h: number
+  openTime: number
+  closeTime: number
+  resolutionTime: number
+  resolutionSource: number
+  eventId: number
+  eventTitle: number
+  eventSlug: number
+  eventStart: number
+  eventEnd: number
+  tags: number
+  sport: number
+  league: number
+  marketGroup: number
+  marketDepthBucket: number
+  timeToCloseBucket: number
+  holderTop5Share: number
+  holderTop10Share: number
+  holderCount: number
+  smartHolderCount: number
   transactionHash: number
   blockNumber: number
   logIndex: number
@@ -117,6 +207,13 @@ export type TradeAvgAggregateInputType = {
   size?: true
   price?: true
   tradeValue?: true
+  feeBps?: true
+  liquidity?: true
+  volume24h?: true
+  holderTop5Share?: true
+  holderTop10Share?: true
+  holderCount?: true
+  smartHolderCount?: true
   blockNumber?: true
   logIndex?: true
 }
@@ -125,6 +222,13 @@ export type TradeSumAggregateInputType = {
   size?: true
   price?: true
   tradeValue?: true
+  feeBps?: true
+  liquidity?: true
+  volume24h?: true
+  holderTop5Share?: true
+  holderTop10Share?: true
+  holderCount?: true
+  smartHolderCount?: true
   blockNumber?: true
   logIndex?: true
 }
@@ -146,6 +250,31 @@ export type TradeMinAggregateInputType = {
   outcome?: true
   question?: true
   image?: true
+  marketCategory?: true
+  marketType?: true
+  formatType?: true
+  feeBps?: true
+  denominationToken?: true
+  liquidity?: true
+  volume24h?: true
+  openTime?: true
+  closeTime?: true
+  resolutionTime?: true
+  resolutionSource?: true
+  eventId?: true
+  eventTitle?: true
+  eventSlug?: true
+  eventStart?: true
+  eventEnd?: true
+  sport?: true
+  league?: true
+  marketGroup?: true
+  marketDepthBucket?: true
+  timeToCloseBucket?: true
+  holderTop5Share?: true
+  holderTop10Share?: true
+  holderCount?: true
+  smartHolderCount?: true
   transactionHash?: true
   blockNumber?: true
   logIndex?: true
@@ -169,6 +298,31 @@ export type TradeMaxAggregateInputType = {
   outcome?: true
   question?: true
   image?: true
+  marketCategory?: true
+  marketType?: true
+  formatType?: true
+  feeBps?: true
+  denominationToken?: true
+  liquidity?: true
+  volume24h?: true
+  openTime?: true
+  closeTime?: true
+  resolutionTime?: true
+  resolutionSource?: true
+  eventId?: true
+  eventTitle?: true
+  eventSlug?: true
+  eventStart?: true
+  eventEnd?: true
+  sport?: true
+  league?: true
+  marketGroup?: true
+  marketDepthBucket?: true
+  timeToCloseBucket?: true
+  holderTop5Share?: true
+  holderTop10Share?: true
+  holderCount?: true
+  smartHolderCount?: true
   transactionHash?: true
   blockNumber?: true
   logIndex?: true
@@ -192,6 +346,32 @@ export type TradeCountAggregateInputType = {
   outcome?: true
   question?: true
   image?: true
+  marketCategory?: true
+  marketType?: true
+  formatType?: true
+  feeBps?: true
+  denominationToken?: true
+  liquidity?: true
+  volume24h?: true
+  openTime?: true
+  closeTime?: true
+  resolutionTime?: true
+  resolutionSource?: true
+  eventId?: true
+  eventTitle?: true
+  eventSlug?: true
+  eventStart?: true
+  eventEnd?: true
+  tags?: true
+  sport?: true
+  league?: true
+  marketGroup?: true
+  marketDepthBucket?: true
+  timeToCloseBucket?: true
+  holderTop5Share?: true
+  holderTop10Share?: true
+  holderCount?: true
+  smartHolderCount?: true
   transactionHash?: true
   blockNumber?: true
   logIndex?: true
@@ -302,6 +482,32 @@ export type TradeGroupByOutputType = {
   outcome: string | null
   question: string | null
   image: string | null
+  marketCategory: string | null
+  marketType: string | null
+  formatType: string | null
+  feeBps: number | null
+  denominationToken: string | null
+  liquidity: number | null
+  volume24h: number | null
+  openTime: Date | null
+  closeTime: Date | null
+  resolutionTime: Date | null
+  resolutionSource: string | null
+  eventId: string | null
+  eventTitle: string | null
+  eventSlug: string | null
+  eventStart: Date | null
+  eventEnd: Date | null
+  tags: string[]
+  sport: string | null
+  league: string | null
+  marketGroup: string | null
+  marketDepthBucket: string | null
+  timeToCloseBucket: string | null
+  holderTop5Share: number | null
+  holderTop10Share: number | null
+  holderCount: number | null
+  smartHolderCount: number | null
   transactionHash: string | null
   blockNumber: bigint | null
   logIndex: number | null
@@ -348,6 +554,32 @@ export type TradeWhereInput = {
   outcome?: Prisma.StringNullableFilter<"Trade"> | string | null
   question?: Prisma.StringNullableFilter<"Trade"> | string | null
   image?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketCategory?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketType?: Prisma.StringNullableFilter<"Trade"> | string | null
+  formatType?: Prisma.StringNullableFilter<"Trade"> | string | null
+  feeBps?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  denominationToken?: Prisma.StringNullableFilter<"Trade"> | string | null
+  liquidity?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  volume24h?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  openTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  closeTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  resolutionTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  resolutionSource?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventId?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventTitle?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventSlug?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventStart?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  eventEnd?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  tags?: Prisma.StringNullableListFilter<"Trade">
+  sport?: Prisma.StringNullableFilter<"Trade"> | string | null
+  league?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketGroup?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketDepthBucket?: Prisma.StringNullableFilter<"Trade"> | string | null
+  timeToCloseBucket?: Prisma.StringNullableFilter<"Trade"> | string | null
+  holderTop5Share?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  holderTop10Share?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  holderCount?: Prisma.IntNullableFilter<"Trade"> | number | null
+  smartHolderCount?: Prisma.IntNullableFilter<"Trade"> | number | null
   transactionHash?: Prisma.StringNullableFilter<"Trade"> | string | null
   blockNumber?: Prisma.BigIntNullableFilter<"Trade"> | bigint | number | null
   logIndex?: Prisma.IntNullableFilter<"Trade"> | number | null
@@ -372,6 +604,32 @@ export type TradeOrderByWithRelationInput = {
   outcome?: Prisma.SortOrderInput | Prisma.SortOrder
   question?: Prisma.SortOrderInput | Prisma.SortOrder
   image?: Prisma.SortOrderInput | Prisma.SortOrder
+  marketCategory?: Prisma.SortOrderInput | Prisma.SortOrder
+  marketType?: Prisma.SortOrderInput | Prisma.SortOrder
+  formatType?: Prisma.SortOrderInput | Prisma.SortOrder
+  feeBps?: Prisma.SortOrderInput | Prisma.SortOrder
+  denominationToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  liquidity?: Prisma.SortOrderInput | Prisma.SortOrder
+  volume24h?: Prisma.SortOrderInput | Prisma.SortOrder
+  openTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  closeTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  resolutionTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  resolutionSource?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventId?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventTitle?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventSlug?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventStart?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventEnd?: Prisma.SortOrderInput | Prisma.SortOrder
+  tags?: Prisma.SortOrder
+  sport?: Prisma.SortOrderInput | Prisma.SortOrder
+  league?: Prisma.SortOrderInput | Prisma.SortOrder
+  marketGroup?: Prisma.SortOrderInput | Prisma.SortOrder
+  marketDepthBucket?: Prisma.SortOrderInput | Prisma.SortOrder
+  timeToCloseBucket?: Prisma.SortOrderInput | Prisma.SortOrder
+  holderTop5Share?: Prisma.SortOrderInput | Prisma.SortOrder
+  holderTop10Share?: Prisma.SortOrderInput | Prisma.SortOrder
+  holderCount?: Prisma.SortOrderInput | Prisma.SortOrder
+  smartHolderCount?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionHash?: Prisma.SortOrderInput | Prisma.SortOrder
   blockNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   logIndex?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -399,6 +657,32 @@ export type TradeWhereUniqueInput = Prisma.AtLeast<{
   outcome?: Prisma.StringNullableFilter<"Trade"> | string | null
   question?: Prisma.StringNullableFilter<"Trade"> | string | null
   image?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketCategory?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketType?: Prisma.StringNullableFilter<"Trade"> | string | null
+  formatType?: Prisma.StringNullableFilter<"Trade"> | string | null
+  feeBps?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  denominationToken?: Prisma.StringNullableFilter<"Trade"> | string | null
+  liquidity?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  volume24h?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  openTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  closeTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  resolutionTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  resolutionSource?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventId?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventTitle?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventSlug?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventStart?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  eventEnd?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  tags?: Prisma.StringNullableListFilter<"Trade">
+  sport?: Prisma.StringNullableFilter<"Trade"> | string | null
+  league?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketGroup?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketDepthBucket?: Prisma.StringNullableFilter<"Trade"> | string | null
+  timeToCloseBucket?: Prisma.StringNullableFilter<"Trade"> | string | null
+  holderTop5Share?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  holderTop10Share?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  holderCount?: Prisma.IntNullableFilter<"Trade"> | number | null
+  smartHolderCount?: Prisma.IntNullableFilter<"Trade"> | number | null
   transactionHash?: Prisma.StringNullableFilter<"Trade"> | string | null
   blockNumber?: Prisma.BigIntNullableFilter<"Trade"> | bigint | number | null
   logIndex?: Prisma.IntNullableFilter<"Trade"> | number | null
@@ -423,6 +707,32 @@ export type TradeOrderByWithAggregationInput = {
   outcome?: Prisma.SortOrderInput | Prisma.SortOrder
   question?: Prisma.SortOrderInput | Prisma.SortOrder
   image?: Prisma.SortOrderInput | Prisma.SortOrder
+  marketCategory?: Prisma.SortOrderInput | Prisma.SortOrder
+  marketType?: Prisma.SortOrderInput | Prisma.SortOrder
+  formatType?: Prisma.SortOrderInput | Prisma.SortOrder
+  feeBps?: Prisma.SortOrderInput | Prisma.SortOrder
+  denominationToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  liquidity?: Prisma.SortOrderInput | Prisma.SortOrder
+  volume24h?: Prisma.SortOrderInput | Prisma.SortOrder
+  openTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  closeTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  resolutionTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  resolutionSource?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventId?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventTitle?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventSlug?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventStart?: Prisma.SortOrderInput | Prisma.SortOrder
+  eventEnd?: Prisma.SortOrderInput | Prisma.SortOrder
+  tags?: Prisma.SortOrder
+  sport?: Prisma.SortOrderInput | Prisma.SortOrder
+  league?: Prisma.SortOrderInput | Prisma.SortOrder
+  marketGroup?: Prisma.SortOrderInput | Prisma.SortOrder
+  marketDepthBucket?: Prisma.SortOrderInput | Prisma.SortOrder
+  timeToCloseBucket?: Prisma.SortOrderInput | Prisma.SortOrder
+  holderTop5Share?: Prisma.SortOrderInput | Prisma.SortOrder
+  holderTop10Share?: Prisma.SortOrderInput | Prisma.SortOrder
+  holderCount?: Prisma.SortOrderInput | Prisma.SortOrder
+  smartHolderCount?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionHash?: Prisma.SortOrderInput | Prisma.SortOrder
   blockNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   logIndex?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -454,6 +764,32 @@ export type TradeScalarWhereWithAggregatesInput = {
   outcome?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
   question?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
   image?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  marketCategory?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  marketType?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  formatType?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  feeBps?: Prisma.FloatNullableWithAggregatesFilter<"Trade"> | number | null
+  denominationToken?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  liquidity?: Prisma.FloatNullableWithAggregatesFilter<"Trade"> | number | null
+  volume24h?: Prisma.FloatNullableWithAggregatesFilter<"Trade"> | number | null
+  openTime?: Prisma.DateTimeNullableWithAggregatesFilter<"Trade"> | Date | string | null
+  closeTime?: Prisma.DateTimeNullableWithAggregatesFilter<"Trade"> | Date | string | null
+  resolutionTime?: Prisma.DateTimeNullableWithAggregatesFilter<"Trade"> | Date | string | null
+  resolutionSource?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  eventId?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  eventTitle?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  eventSlug?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  eventStart?: Prisma.DateTimeNullableWithAggregatesFilter<"Trade"> | Date | string | null
+  eventEnd?: Prisma.DateTimeNullableWithAggregatesFilter<"Trade"> | Date | string | null
+  tags?: Prisma.StringNullableListFilter<"Trade">
+  sport?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  league?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  marketGroup?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  marketDepthBucket?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  timeToCloseBucket?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
+  holderTop5Share?: Prisma.FloatNullableWithAggregatesFilter<"Trade"> | number | null
+  holderTop10Share?: Prisma.FloatNullableWithAggregatesFilter<"Trade"> | number | null
+  holderCount?: Prisma.IntNullableWithAggregatesFilter<"Trade"> | number | null
+  smartHolderCount?: Prisma.IntNullableWithAggregatesFilter<"Trade"> | number | null
   transactionHash?: Prisma.StringNullableWithAggregatesFilter<"Trade"> | string | null
   blockNumber?: Prisma.BigIntNullableWithAggregatesFilter<"Trade"> | bigint | number | null
   logIndex?: Prisma.IntNullableWithAggregatesFilter<"Trade"> | number | null
@@ -476,6 +812,32 @@ export type TradeCreateInput = {
   outcome?: string | null
   question?: string | null
   image?: string | null
+  marketCategory?: string | null
+  marketType?: string | null
+  formatType?: string | null
+  feeBps?: number | null
+  denominationToken?: string | null
+  liquidity?: number | null
+  volume24h?: number | null
+  openTime?: Date | string | null
+  closeTime?: Date | string | null
+  resolutionTime?: Date | string | null
+  resolutionSource?: string | null
+  eventId?: string | null
+  eventTitle?: string | null
+  eventSlug?: string | null
+  eventStart?: Date | string | null
+  eventEnd?: Date | string | null
+  tags?: Prisma.TradeCreatetagsInput | string[]
+  sport?: string | null
+  league?: string | null
+  marketGroup?: string | null
+  marketDepthBucket?: string | null
+  timeToCloseBucket?: string | null
+  holderTop5Share?: number | null
+  holderTop10Share?: number | null
+  holderCount?: number | null
+  smartHolderCount?: number | null
   transactionHash?: string | null
   blockNumber?: bigint | number | null
   logIndex?: number | null
@@ -500,6 +862,32 @@ export type TradeUncheckedCreateInput = {
   outcome?: string | null
   question?: string | null
   image?: string | null
+  marketCategory?: string | null
+  marketType?: string | null
+  formatType?: string | null
+  feeBps?: number | null
+  denominationToken?: string | null
+  liquidity?: number | null
+  volume24h?: number | null
+  openTime?: Date | string | null
+  closeTime?: Date | string | null
+  resolutionTime?: Date | string | null
+  resolutionSource?: string | null
+  eventId?: string | null
+  eventTitle?: string | null
+  eventSlug?: string | null
+  eventStart?: Date | string | null
+  eventEnd?: Date | string | null
+  tags?: Prisma.TradeCreatetagsInput | string[]
+  sport?: string | null
+  league?: string | null
+  marketGroup?: string | null
+  marketDepthBucket?: string | null
+  timeToCloseBucket?: string | null
+  holderTop5Share?: number | null
+  holderTop10Share?: number | null
+  holderCount?: number | null
+  smartHolderCount?: number | null
   transactionHash?: string | null
   blockNumber?: bigint | number | null
   logIndex?: number | null
@@ -522,6 +910,32 @@ export type TradeUpdateInput = {
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  formatType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feeBps?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  denominationToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  liquidity?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volume24h?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  openTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closeTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  eventEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tags?: Prisma.TradeUpdatetagsInput | string[]
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  league?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketDepthBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeToCloseBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  holderTop5Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderTop10Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  smartHolderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   transactionHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   blockNumber?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   logIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -546,6 +960,32 @@ export type TradeUncheckedUpdateInput = {
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  formatType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feeBps?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  denominationToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  liquidity?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volume24h?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  openTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closeTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  eventEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tags?: Prisma.TradeUpdatetagsInput | string[]
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  league?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketDepthBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeToCloseBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  holderTop5Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderTop10Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  smartHolderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   transactionHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   blockNumber?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   logIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -569,6 +1009,32 @@ export type TradeCreateManyInput = {
   outcome?: string | null
   question?: string | null
   image?: string | null
+  marketCategory?: string | null
+  marketType?: string | null
+  formatType?: string | null
+  feeBps?: number | null
+  denominationToken?: string | null
+  liquidity?: number | null
+  volume24h?: number | null
+  openTime?: Date | string | null
+  closeTime?: Date | string | null
+  resolutionTime?: Date | string | null
+  resolutionSource?: string | null
+  eventId?: string | null
+  eventTitle?: string | null
+  eventSlug?: string | null
+  eventStart?: Date | string | null
+  eventEnd?: Date | string | null
+  tags?: Prisma.TradeCreatetagsInput | string[]
+  sport?: string | null
+  league?: string | null
+  marketGroup?: string | null
+  marketDepthBucket?: string | null
+  timeToCloseBucket?: string | null
+  holderTop5Share?: number | null
+  holderTop10Share?: number | null
+  holderCount?: number | null
+  smartHolderCount?: number | null
   transactionHash?: string | null
   blockNumber?: bigint | number | null
   logIndex?: number | null
@@ -591,6 +1057,32 @@ export type TradeUpdateManyMutationInput = {
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  formatType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feeBps?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  denominationToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  liquidity?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volume24h?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  openTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closeTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  eventEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tags?: Prisma.TradeUpdatetagsInput | string[]
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  league?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketDepthBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeToCloseBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  holderTop5Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderTop10Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  smartHolderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   transactionHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   blockNumber?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   logIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -614,10 +1106,44 @@ export type TradeUncheckedUpdateManyInput = {
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  formatType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feeBps?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  denominationToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  liquidity?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volume24h?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  openTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closeTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  eventEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tags?: Prisma.TradeUpdatetagsInput | string[]
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  league?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketDepthBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeToCloseBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  holderTop5Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderTop10Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  smartHolderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   transactionHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   blockNumber?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   logIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   enrichmentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type StringNullableListFilter<$PrismaModel = never> = {
+  equals?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  has?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
+  hasEvery?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
+  hasSome?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
+  isEmpty?: boolean
 }
 
 export type TradeCountOrderByAggregateInput = {
@@ -637,6 +1163,32 @@ export type TradeCountOrderByAggregateInput = {
   outcome?: Prisma.SortOrder
   question?: Prisma.SortOrder
   image?: Prisma.SortOrder
+  marketCategory?: Prisma.SortOrder
+  marketType?: Prisma.SortOrder
+  formatType?: Prisma.SortOrder
+  feeBps?: Prisma.SortOrder
+  denominationToken?: Prisma.SortOrder
+  liquidity?: Prisma.SortOrder
+  volume24h?: Prisma.SortOrder
+  openTime?: Prisma.SortOrder
+  closeTime?: Prisma.SortOrder
+  resolutionTime?: Prisma.SortOrder
+  resolutionSource?: Prisma.SortOrder
+  eventId?: Prisma.SortOrder
+  eventTitle?: Prisma.SortOrder
+  eventSlug?: Prisma.SortOrder
+  eventStart?: Prisma.SortOrder
+  eventEnd?: Prisma.SortOrder
+  tags?: Prisma.SortOrder
+  sport?: Prisma.SortOrder
+  league?: Prisma.SortOrder
+  marketGroup?: Prisma.SortOrder
+  marketDepthBucket?: Prisma.SortOrder
+  timeToCloseBucket?: Prisma.SortOrder
+  holderTop5Share?: Prisma.SortOrder
+  holderTop10Share?: Prisma.SortOrder
+  holderCount?: Prisma.SortOrder
+  smartHolderCount?: Prisma.SortOrder
   transactionHash?: Prisma.SortOrder
   blockNumber?: Prisma.SortOrder
   logIndex?: Prisma.SortOrder
@@ -647,6 +1199,13 @@ export type TradeAvgOrderByAggregateInput = {
   size?: Prisma.SortOrder
   price?: Prisma.SortOrder
   tradeValue?: Prisma.SortOrder
+  feeBps?: Prisma.SortOrder
+  liquidity?: Prisma.SortOrder
+  volume24h?: Prisma.SortOrder
+  holderTop5Share?: Prisma.SortOrder
+  holderTop10Share?: Prisma.SortOrder
+  holderCount?: Prisma.SortOrder
+  smartHolderCount?: Prisma.SortOrder
   blockNumber?: Prisma.SortOrder
   logIndex?: Prisma.SortOrder
 }
@@ -668,6 +1227,31 @@ export type TradeMaxOrderByAggregateInput = {
   outcome?: Prisma.SortOrder
   question?: Prisma.SortOrder
   image?: Prisma.SortOrder
+  marketCategory?: Prisma.SortOrder
+  marketType?: Prisma.SortOrder
+  formatType?: Prisma.SortOrder
+  feeBps?: Prisma.SortOrder
+  denominationToken?: Prisma.SortOrder
+  liquidity?: Prisma.SortOrder
+  volume24h?: Prisma.SortOrder
+  openTime?: Prisma.SortOrder
+  closeTime?: Prisma.SortOrder
+  resolutionTime?: Prisma.SortOrder
+  resolutionSource?: Prisma.SortOrder
+  eventId?: Prisma.SortOrder
+  eventTitle?: Prisma.SortOrder
+  eventSlug?: Prisma.SortOrder
+  eventStart?: Prisma.SortOrder
+  eventEnd?: Prisma.SortOrder
+  sport?: Prisma.SortOrder
+  league?: Prisma.SortOrder
+  marketGroup?: Prisma.SortOrder
+  marketDepthBucket?: Prisma.SortOrder
+  timeToCloseBucket?: Prisma.SortOrder
+  holderTop5Share?: Prisma.SortOrder
+  holderTop10Share?: Prisma.SortOrder
+  holderCount?: Prisma.SortOrder
+  smartHolderCount?: Prisma.SortOrder
   transactionHash?: Prisma.SortOrder
   blockNumber?: Prisma.SortOrder
   logIndex?: Prisma.SortOrder
@@ -691,6 +1275,31 @@ export type TradeMinOrderByAggregateInput = {
   outcome?: Prisma.SortOrder
   question?: Prisma.SortOrder
   image?: Prisma.SortOrder
+  marketCategory?: Prisma.SortOrder
+  marketType?: Prisma.SortOrder
+  formatType?: Prisma.SortOrder
+  feeBps?: Prisma.SortOrder
+  denominationToken?: Prisma.SortOrder
+  liquidity?: Prisma.SortOrder
+  volume24h?: Prisma.SortOrder
+  openTime?: Prisma.SortOrder
+  closeTime?: Prisma.SortOrder
+  resolutionTime?: Prisma.SortOrder
+  resolutionSource?: Prisma.SortOrder
+  eventId?: Prisma.SortOrder
+  eventTitle?: Prisma.SortOrder
+  eventSlug?: Prisma.SortOrder
+  eventStart?: Prisma.SortOrder
+  eventEnd?: Prisma.SortOrder
+  sport?: Prisma.SortOrder
+  league?: Prisma.SortOrder
+  marketGroup?: Prisma.SortOrder
+  marketDepthBucket?: Prisma.SortOrder
+  timeToCloseBucket?: Prisma.SortOrder
+  holderTop5Share?: Prisma.SortOrder
+  holderTop10Share?: Prisma.SortOrder
+  holderCount?: Prisma.SortOrder
+  smartHolderCount?: Prisma.SortOrder
   transactionHash?: Prisma.SortOrder
   blockNumber?: Prisma.SortOrder
   logIndex?: Prisma.SortOrder
@@ -701,6 +1310,13 @@ export type TradeSumOrderByAggregateInput = {
   size?: Prisma.SortOrder
   price?: Prisma.SortOrder
   tradeValue?: Prisma.SortOrder
+  feeBps?: Prisma.SortOrder
+  liquidity?: Prisma.SortOrder
+  volume24h?: Prisma.SortOrder
+  holderTop5Share?: Prisma.SortOrder
+  holderTop10Share?: Prisma.SortOrder
+  holderCount?: Prisma.SortOrder
+  smartHolderCount?: Prisma.SortOrder
   blockNumber?: Prisma.SortOrder
   logIndex?: Prisma.SortOrder
 }
@@ -713,6 +1329,10 @@ export type TradeListRelationFilter = {
 
 export type TradeOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type TradeCreatetagsInput = {
+  set: string[]
 }
 
 export type FloatFieldUpdateOperationsInput = {
@@ -731,12 +1351,21 @@ export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
 
-export type NullableBigIntFieldUpdateOperationsInput = {
-  set?: bigint | number | null
-  increment?: bigint | number
-  decrement?: bigint | number
-  multiply?: bigint | number
-  divide?: bigint | number
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
+export type TradeUpdatetagsInput = {
+  set?: string[]
+  push?: string | string[]
 }
 
 export type NullableIntFieldUpdateOperationsInput = {
@@ -745,6 +1374,14 @@ export type NullableIntFieldUpdateOperationsInput = {
   decrement?: number
   multiply?: number
   divide?: number
+}
+
+export type NullableBigIntFieldUpdateOperationsInput = {
+  set?: bigint | number | null
+  increment?: bigint | number
+  decrement?: bigint | number
+  multiply?: bigint | number
+  divide?: bigint | number
 }
 
 export type TradeCreateNestedManyWithoutWalletProfileInput = {
@@ -805,6 +1442,32 @@ export type TradeCreateWithoutWalletProfileInput = {
   outcome?: string | null
   question?: string | null
   image?: string | null
+  marketCategory?: string | null
+  marketType?: string | null
+  formatType?: string | null
+  feeBps?: number | null
+  denominationToken?: string | null
+  liquidity?: number | null
+  volume24h?: number | null
+  openTime?: Date | string | null
+  closeTime?: Date | string | null
+  resolutionTime?: Date | string | null
+  resolutionSource?: string | null
+  eventId?: string | null
+  eventTitle?: string | null
+  eventSlug?: string | null
+  eventStart?: Date | string | null
+  eventEnd?: Date | string | null
+  tags?: Prisma.TradeCreatetagsInput | string[]
+  sport?: string | null
+  league?: string | null
+  marketGroup?: string | null
+  marketDepthBucket?: string | null
+  timeToCloseBucket?: string | null
+  holderTop5Share?: number | null
+  holderTop10Share?: number | null
+  holderCount?: number | null
+  smartHolderCount?: number | null
   transactionHash?: string | null
   blockNumber?: bigint | number | null
   logIndex?: number | null
@@ -827,6 +1490,32 @@ export type TradeUncheckedCreateWithoutWalletProfileInput = {
   outcome?: string | null
   question?: string | null
   image?: string | null
+  marketCategory?: string | null
+  marketType?: string | null
+  formatType?: string | null
+  feeBps?: number | null
+  denominationToken?: string | null
+  liquidity?: number | null
+  volume24h?: number | null
+  openTime?: Date | string | null
+  closeTime?: Date | string | null
+  resolutionTime?: Date | string | null
+  resolutionSource?: string | null
+  eventId?: string | null
+  eventTitle?: string | null
+  eventSlug?: string | null
+  eventStart?: Date | string | null
+  eventEnd?: Date | string | null
+  tags?: Prisma.TradeCreatetagsInput | string[]
+  sport?: string | null
+  league?: string | null
+  marketGroup?: string | null
+  marketDepthBucket?: string | null
+  timeToCloseBucket?: string | null
+  holderTop5Share?: number | null
+  holderTop10Share?: number | null
+  holderCount?: number | null
+  smartHolderCount?: number | null
   transactionHash?: string | null
   blockNumber?: bigint | number | null
   logIndex?: number | null
@@ -879,6 +1568,32 @@ export type TradeScalarWhereInput = {
   outcome?: Prisma.StringNullableFilter<"Trade"> | string | null
   question?: Prisma.StringNullableFilter<"Trade"> | string | null
   image?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketCategory?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketType?: Prisma.StringNullableFilter<"Trade"> | string | null
+  formatType?: Prisma.StringNullableFilter<"Trade"> | string | null
+  feeBps?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  denominationToken?: Prisma.StringNullableFilter<"Trade"> | string | null
+  liquidity?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  volume24h?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  openTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  closeTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  resolutionTime?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  resolutionSource?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventId?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventTitle?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventSlug?: Prisma.StringNullableFilter<"Trade"> | string | null
+  eventStart?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  eventEnd?: Prisma.DateTimeNullableFilter<"Trade"> | Date | string | null
+  tags?: Prisma.StringNullableListFilter<"Trade">
+  sport?: Prisma.StringNullableFilter<"Trade"> | string | null
+  league?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketGroup?: Prisma.StringNullableFilter<"Trade"> | string | null
+  marketDepthBucket?: Prisma.StringNullableFilter<"Trade"> | string | null
+  timeToCloseBucket?: Prisma.StringNullableFilter<"Trade"> | string | null
+  holderTop5Share?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  holderTop10Share?: Prisma.FloatNullableFilter<"Trade"> | number | null
+  holderCount?: Prisma.IntNullableFilter<"Trade"> | number | null
+  smartHolderCount?: Prisma.IntNullableFilter<"Trade"> | number | null
   transactionHash?: Prisma.StringNullableFilter<"Trade"> | string | null
   blockNumber?: Prisma.BigIntNullableFilter<"Trade"> | bigint | number | null
   logIndex?: Prisma.IntNullableFilter<"Trade"> | number | null
@@ -901,6 +1616,32 @@ export type TradeCreateManyWalletProfileInput = {
   outcome?: string | null
   question?: string | null
   image?: string | null
+  marketCategory?: string | null
+  marketType?: string | null
+  formatType?: string | null
+  feeBps?: number | null
+  denominationToken?: string | null
+  liquidity?: number | null
+  volume24h?: number | null
+  openTime?: Date | string | null
+  closeTime?: Date | string | null
+  resolutionTime?: Date | string | null
+  resolutionSource?: string | null
+  eventId?: string | null
+  eventTitle?: string | null
+  eventSlug?: string | null
+  eventStart?: Date | string | null
+  eventEnd?: Date | string | null
+  tags?: Prisma.TradeCreatetagsInput | string[]
+  sport?: string | null
+  league?: string | null
+  marketGroup?: string | null
+  marketDepthBucket?: string | null
+  timeToCloseBucket?: string | null
+  holderTop5Share?: number | null
+  holderTop10Share?: number | null
+  holderCount?: number | null
+  smartHolderCount?: number | null
   transactionHash?: string | null
   blockNumber?: bigint | number | null
   logIndex?: number | null
@@ -923,6 +1664,32 @@ export type TradeUpdateWithoutWalletProfileInput = {
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  formatType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feeBps?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  denominationToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  liquidity?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volume24h?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  openTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closeTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  eventEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tags?: Prisma.TradeUpdatetagsInput | string[]
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  league?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketDepthBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeToCloseBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  holderTop5Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderTop10Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  smartHolderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   transactionHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   blockNumber?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   logIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -945,6 +1712,32 @@ export type TradeUncheckedUpdateWithoutWalletProfileInput = {
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  formatType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feeBps?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  denominationToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  liquidity?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volume24h?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  openTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closeTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  eventEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tags?: Prisma.TradeUpdatetagsInput | string[]
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  league?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketDepthBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeToCloseBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  holderTop5Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderTop10Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  smartHolderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   transactionHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   blockNumber?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   logIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -967,6 +1760,32 @@ export type TradeUncheckedUpdateManyWithoutWalletProfileInput = {
   outcome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   question?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  formatType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feeBps?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  denominationToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  liquidity?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volume24h?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  openTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closeTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolutionSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventSlug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eventStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  eventEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tags?: Prisma.TradeUpdatetagsInput | string[]
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  league?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  marketDepthBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeToCloseBucket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  holderTop5Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderTop10Share?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  holderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  smartHolderCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   transactionHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   blockNumber?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   logIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -992,6 +1811,32 @@ export type TradeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   outcome?: boolean
   question?: boolean
   image?: boolean
+  marketCategory?: boolean
+  marketType?: boolean
+  formatType?: boolean
+  feeBps?: boolean
+  denominationToken?: boolean
+  liquidity?: boolean
+  volume24h?: boolean
+  openTime?: boolean
+  closeTime?: boolean
+  resolutionTime?: boolean
+  resolutionSource?: boolean
+  eventId?: boolean
+  eventTitle?: boolean
+  eventSlug?: boolean
+  eventStart?: boolean
+  eventEnd?: boolean
+  tags?: boolean
+  sport?: boolean
+  league?: boolean
+  marketGroup?: boolean
+  marketDepthBucket?: boolean
+  timeToCloseBucket?: boolean
+  holderTop5Share?: boolean
+  holderTop10Share?: boolean
+  holderCount?: boolean
+  smartHolderCount?: boolean
   transactionHash?: boolean
   blockNumber?: boolean
   logIndex?: boolean
@@ -1016,6 +1861,32 @@ export type TradeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   outcome?: boolean
   question?: boolean
   image?: boolean
+  marketCategory?: boolean
+  marketType?: boolean
+  formatType?: boolean
+  feeBps?: boolean
+  denominationToken?: boolean
+  liquidity?: boolean
+  volume24h?: boolean
+  openTime?: boolean
+  closeTime?: boolean
+  resolutionTime?: boolean
+  resolutionSource?: boolean
+  eventId?: boolean
+  eventTitle?: boolean
+  eventSlug?: boolean
+  eventStart?: boolean
+  eventEnd?: boolean
+  tags?: boolean
+  sport?: boolean
+  league?: boolean
+  marketGroup?: boolean
+  marketDepthBucket?: boolean
+  timeToCloseBucket?: boolean
+  holderTop5Share?: boolean
+  holderTop10Share?: boolean
+  holderCount?: boolean
+  smartHolderCount?: boolean
   transactionHash?: boolean
   blockNumber?: boolean
   logIndex?: boolean
@@ -1040,6 +1911,32 @@ export type TradeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   outcome?: boolean
   question?: boolean
   image?: boolean
+  marketCategory?: boolean
+  marketType?: boolean
+  formatType?: boolean
+  feeBps?: boolean
+  denominationToken?: boolean
+  liquidity?: boolean
+  volume24h?: boolean
+  openTime?: boolean
+  closeTime?: boolean
+  resolutionTime?: boolean
+  resolutionSource?: boolean
+  eventId?: boolean
+  eventTitle?: boolean
+  eventSlug?: boolean
+  eventStart?: boolean
+  eventEnd?: boolean
+  tags?: boolean
+  sport?: boolean
+  league?: boolean
+  marketGroup?: boolean
+  marketDepthBucket?: boolean
+  timeToCloseBucket?: boolean
+  holderTop5Share?: boolean
+  holderTop10Share?: boolean
+  holderCount?: boolean
+  smartHolderCount?: boolean
   transactionHash?: boolean
   blockNumber?: boolean
   logIndex?: boolean
@@ -1064,13 +1961,39 @@ export type TradeSelectScalar = {
   outcome?: boolean
   question?: boolean
   image?: boolean
+  marketCategory?: boolean
+  marketType?: boolean
+  formatType?: boolean
+  feeBps?: boolean
+  denominationToken?: boolean
+  liquidity?: boolean
+  volume24h?: boolean
+  openTime?: boolean
+  closeTime?: boolean
+  resolutionTime?: boolean
+  resolutionSource?: boolean
+  eventId?: boolean
+  eventTitle?: boolean
+  eventSlug?: boolean
+  eventStart?: boolean
+  eventEnd?: boolean
+  tags?: boolean
+  sport?: boolean
+  league?: boolean
+  marketGroup?: boolean
+  marketDepthBucket?: boolean
+  timeToCloseBucket?: boolean
+  holderTop5Share?: boolean
+  holderTop10Share?: boolean
+  holderCount?: boolean
+  smartHolderCount?: boolean
   transactionHash?: boolean
   blockNumber?: boolean
   logIndex?: boolean
   enrichmentStatus?: boolean
 }
 
-export type TradeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "assetId" | "side" | "size" | "price" | "tradeValue" | "timestamp" | "walletAddress" | "isWhale" | "isSmartMoney" | "isFresh" | "isSweeper" | "conditionId" | "outcome" | "question" | "image" | "transactionHash" | "blockNumber" | "logIndex" | "enrichmentStatus", ExtArgs["result"]["trade"]>
+export type TradeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "assetId" | "side" | "size" | "price" | "tradeValue" | "timestamp" | "walletAddress" | "isWhale" | "isSmartMoney" | "isFresh" | "isSweeper" | "conditionId" | "outcome" | "question" | "image" | "marketCategory" | "marketType" | "formatType" | "feeBps" | "denominationToken" | "liquidity" | "volume24h" | "openTime" | "closeTime" | "resolutionTime" | "resolutionSource" | "eventId" | "eventTitle" | "eventSlug" | "eventStart" | "eventEnd" | "tags" | "sport" | "league" | "marketGroup" | "marketDepthBucket" | "timeToCloseBucket" | "holderTop5Share" | "holderTop10Share" | "holderCount" | "smartHolderCount" | "transactionHash" | "blockNumber" | "logIndex" | "enrichmentStatus", ExtArgs["result"]["trade"]>
 export type TradeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   walletProfile?: boolean | Prisma.Trade$walletProfileArgs<ExtArgs>
 }
@@ -1103,6 +2026,32 @@ export type $TradePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     outcome: string | null
     question: string | null
     image: string | null
+    marketCategory: string | null
+    marketType: string | null
+    formatType: string | null
+    feeBps: number | null
+    denominationToken: string | null
+    liquidity: number | null
+    volume24h: number | null
+    openTime: Date | null
+    closeTime: Date | null
+    resolutionTime: Date | null
+    resolutionSource: string | null
+    eventId: string | null
+    eventTitle: string | null
+    eventSlug: string | null
+    eventStart: Date | null
+    eventEnd: Date | null
+    tags: string[]
+    sport: string | null
+    league: string | null
+    marketGroup: string | null
+    marketDepthBucket: string | null
+    timeToCloseBucket: string | null
+    holderTop5Share: number | null
+    holderTop10Share: number | null
+    holderCount: number | null
+    smartHolderCount: number | null
     transactionHash: string | null
     blockNumber: bigint | null
     logIndex: number | null
@@ -1547,6 +2496,32 @@ export interface TradeFieldRefs {
   readonly outcome: Prisma.FieldRef<"Trade", 'String'>
   readonly question: Prisma.FieldRef<"Trade", 'String'>
   readonly image: Prisma.FieldRef<"Trade", 'String'>
+  readonly marketCategory: Prisma.FieldRef<"Trade", 'String'>
+  readonly marketType: Prisma.FieldRef<"Trade", 'String'>
+  readonly formatType: Prisma.FieldRef<"Trade", 'String'>
+  readonly feeBps: Prisma.FieldRef<"Trade", 'Float'>
+  readonly denominationToken: Prisma.FieldRef<"Trade", 'String'>
+  readonly liquidity: Prisma.FieldRef<"Trade", 'Float'>
+  readonly volume24h: Prisma.FieldRef<"Trade", 'Float'>
+  readonly openTime: Prisma.FieldRef<"Trade", 'DateTime'>
+  readonly closeTime: Prisma.FieldRef<"Trade", 'DateTime'>
+  readonly resolutionTime: Prisma.FieldRef<"Trade", 'DateTime'>
+  readonly resolutionSource: Prisma.FieldRef<"Trade", 'String'>
+  readonly eventId: Prisma.FieldRef<"Trade", 'String'>
+  readonly eventTitle: Prisma.FieldRef<"Trade", 'String'>
+  readonly eventSlug: Prisma.FieldRef<"Trade", 'String'>
+  readonly eventStart: Prisma.FieldRef<"Trade", 'DateTime'>
+  readonly eventEnd: Prisma.FieldRef<"Trade", 'DateTime'>
+  readonly tags: Prisma.FieldRef<"Trade", 'String[]'>
+  readonly sport: Prisma.FieldRef<"Trade", 'String'>
+  readonly league: Prisma.FieldRef<"Trade", 'String'>
+  readonly marketGroup: Prisma.FieldRef<"Trade", 'String'>
+  readonly marketDepthBucket: Prisma.FieldRef<"Trade", 'String'>
+  readonly timeToCloseBucket: Prisma.FieldRef<"Trade", 'String'>
+  readonly holderTop5Share: Prisma.FieldRef<"Trade", 'Float'>
+  readonly holderTop10Share: Prisma.FieldRef<"Trade", 'Float'>
+  readonly holderCount: Prisma.FieldRef<"Trade", 'Int'>
+  readonly smartHolderCount: Prisma.FieldRef<"Trade", 'Int'>
   readonly transactionHash: Prisma.FieldRef<"Trade", 'String'>
   readonly blockNumber: Prisma.FieldRef<"Trade", 'BigInt'>
   readonly logIndex: Prisma.FieldRef<"Trade", 'Int'>
