@@ -210,7 +210,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                             <div className="absolute inset-1 bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,rgba(239,68,68,1.0)_30deg,rgba(251,191,36,1.0)_60deg,rgba(239,68,68,0.9)_90deg,transparent_120deg,rgba(251,191,36,0.8)_150deg,rgba(239,68,68,1.0)_180deg,rgba(251,191,36,0.9)_210deg,transparent_240deg,rgba(168,85,247,0.7)_270deg,rgba(239,68,68,0.8)_300deg,rgba(251,191,36,1.0)_330deg,transparent_360deg)] animate-spin-reverse opacity-60 blur-sm rounded-xl" />
                         </div>
 
-                        Energy Wisps - Floating Demonic Particles Around Border
+                        {/* Energy Wisps - Floating Demonic Particles Around Border */}
                         <div className="absolute -inset-0.5 z-0">
                             {/* Top wisps */}
                             <div className="absolute -top-0.5 left-1/4 w-0.5 h-3 bg-linear-to-t from-transparent via-yellow-400 to-transparent animate-energy-wisp" style={{ animationDelay: '0s' }} />
@@ -826,4 +826,3 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
         </>
     );
 });
-

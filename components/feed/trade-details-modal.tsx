@@ -825,7 +825,11 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                 rel="noopener noreferrer"
                                 className="w-full justify-center group mt-2 flex items-center gap-2 px-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-xl hover:border-[#1B58FD] transition-all duration-300"
                             >
-                                <img src="/logos/polym.png" alt="Polymarket" className="w-50 h-10 opacity-70 group-hover:opacity-100 transition-opacity" />
+                                <img
+                                    src="/logos/polym.png"
+                                    alt="Polymarket"
+                                    className="h-10 w-auto opacity-70 object-contain group-hover:opacity-100 transition-opacity"
+                                />
                             </a>
                         )}
                     </div>

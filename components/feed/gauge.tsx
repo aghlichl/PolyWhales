@@ -63,8 +63,8 @@ export function Gauge({ value, size = 60, strokeWidth = 8, className, label }: G
                     <span className={cn(
                         "text-[9px] font-bold uppercase mt-0.5",
                         label.toLowerCase() === 'sell' ? "text-red-500" :
-                        label.toLowerCase() === 'buy' ? "text-green-500" :
-                        "text-zinc-500"
+                            label.toLowerCase() === 'buy' ? "text-green-500" :
+                                "text-zinc-500"
                     )}>
                         {label}
                     </span>
