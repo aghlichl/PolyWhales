@@ -79,20 +79,31 @@ export function parseMarketData(markets: PolymarketMarket[]): {
                 outcomes = JSON.parse(market.outcomes);
             }
 
-            const eventTitle = market.events && market.events.length > 0 ? market.events[0].title : 'Unknown Event';
+            const event = market.events && market.events.length > 0 ? market.events[0] : undefined;
+            const eventTitle = event?.title || 'Unknown Event';
 
             // Extract image URL (prioritize twitterCardImage > image > icon)
             // Check market level first, then event level
             let imageUrl = market.twitterCardImage || market.image || market.icon;
 
-            if (!imageUrl && market.events && market.events.length > 0) {
-                const event = market.events[0];
+            if (!imageUrl && event) {
                 imageUrl = event.image || event.icon;
             }
 
+            // Numeric helpers
+            const numOrNull = (val: any): number | null => {
+                if (val === undefined || val === null) return null;
+                const n = Number(val);
+                return Number.isFinite(n) ? n : null;
+            };
+
+            // Tags
+            const tagIds = Array.isArray(market.tags) ? market.tags.map((t: any) => t.id).filter(Boolean) : [];
+            const tagNames = Array.isArray(market.tags) ? market.tags.map((t: any) => t.name || t.slug).filter(Boolean) : [];
+
             const meta: MarketMeta = {
                 conditionId: market.conditionId,
-                eventId: market.events && market.events.length > 0 ? market.events[0].id : '',
+                eventId: event?.id || '',
                 eventTitle,
                 question: market.question,
                 marketType: market.marketType,
@@ -100,7 +111,27 @@ export function parseMarketData(markets: PolymarketMarket[]): {
                 clobTokenIds: tokenIds,
                 image: imageUrl ?? null,
                 outcomePrices: typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : market.outcomePrices,
-                closed: market.closed
+                closed: market.closed,
+                category: market.category,
+                formatType: market.formatType,
+                feeBps: numOrNull((market as any).fee),
+                denominationToken: market.denominationToken || null,
+                liquidity: numOrNull(market.liquidity),
+                volume24h: numOrNull((market as any).volume24hr ?? (market as any).volume24h),
+                openTime: (market as any).openTime || null,
+                closeTime: (market as any).endDate || null,
+                resolutionTime: market.resolutionTime || null,
+                resolutionSource: market.resolutionSource || null,
+                sponsor: market.sponsor || null,
+                tagIds: tagIds.length ? tagIds : undefined,
+                tagNames: tagNames.length ? tagNames : undefined,
+                sport: event?.sport || null,
+                league: event?.league || null,
+                eventSlug: event?.slug || null,
+                eventStartTime: event?.startTime || null,
+                eventEndTime: event?.endTime || null,
+                eventImage: event?.image || event?.icon || null,
+                relatedMarketIds: Array.isArray(market.relatedMarkets) ? market.relatedMarkets : undefined,
             };
 
             marketsByCondition.set(market.conditionId, meta);
@@ -282,6 +313,44 @@ async function fetchActivityWithAddress(userAddress: string, params: DataAPIActi
 }
 
 /**
+ * Fetches closed positions for a user
+ */
+export interface ClosedPosition {
+    asset: string;
+    conditionId: string;
+    payout: number;
+    buyPrice: number;
+    sellPrice: number;
+    amount: number;
+    timestamp: number;
+    transactionHash: string;
+    realizedPnl: number;
+}
+
+export async function fetchClosedPositions(userAddress: string): Promise<ClosedPosition[]> {
+    try {
+        const url = `https://data-api.polymarket.com/closed-positions?user=${userAddress}`;
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'OddsGods/1.0',
+            }
+        });
+
+        if (!response.ok) {
+            console.warn(`[DataAPI] Failed to fetch closed positions: ${response.status} ${response.statusText}`);
+            return [];
+        }
+
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error('[DataAPI] Error fetching closed positions:', error);
+        return [];
+    }
+}
+
+/**
  * Input for trade enrichment - matches our Trade model fields
  */
 export interface TradeForEnrichment {
@@ -374,4 +443,30 @@ export async function enrichTradeWithDataAPI(trade: TradeForEnrichment): Promise
         console.error('[DataAPI] Error enriching trade:', error);
         return null;
     }
+}
+
+// Placeholder holder concentration cache (filled by future Data-API integration)
+export interface HolderMetrics {
+    top5Share: number | null;
+    top10Share: number | null;
+    holderCount: number | null;
+    smartHolderCount: number | null;
+    fetchedAt: number;
+}
+
+const holderCache = new Map<string, HolderMetrics>();
+
+export function getCachedHolderMetrics(assetId: string): HolderMetrics | null {
+    const cached = holderCache.get(assetId);
+    if (!cached) return null;
+    // simple TTL: 10 minutes
+    if (Date.now() - cached.fetchedAt > 10 * 60 * 1000) {
+        holderCache.delete(assetId);
+        return null;
+    }
+    return cached;
+}
+
+export function setCachedHolderMetrics(assetId: string, metrics: HolderMetrics) {
+    holderCache.set(assetId, metrics);
 }

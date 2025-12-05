@@ -7,10 +7,12 @@ import {
   getTraderProfile,
   analyzeMarketImpact,
   getWalletsFromTx, // Only used in deprecated processTrade function
+  fetchWalletTradeStats,
 } from "../lib/intelligence";
 import {
   fetchMarketsFromGamma,
   parseMarketData,
+  getCachedHolderMetrics,
   enrichTradeWithDataAPI, // Only used in deprecated processTrade function
 } from "../lib/polymarket";
 import {
@@ -301,6 +303,29 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Adaptive rate limiter instance
 const rateLimiter = new AdaptiveRateLimiter();
 
+// --- Market enrichment helpers ---
+function computeLiquidityBucket(liquidity?: number | null): string | null {
+  if (liquidity === null || liquidity === undefined || Number.isNaN(liquidity)) return null;
+  if (liquidity >= 50000) return "50k+";
+  if (liquidity >= 25000) return "25k-50k";
+  if (liquidity >= 10000) return "10k-25k";
+  if (liquidity >= 5000) return "5k-10k";
+  return "<5k";
+}
+
+function computeTimeToCloseBucket(closeTimeIso?: string | null): string | null {
+  if (!closeTimeIso) return null;
+  const closeDate = new Date(closeTimeIso);
+  if (Number.isNaN(closeDate.getTime())) return null;
+  const diffMs = closeDate.getTime() - Date.now();
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  if (diffDays < 0) return "closed";
+  if (diffDays <= 1) return "<24h";
+  if (diffDays <= 7) return "1-7d";
+  if (diffDays <= 30) return "7-30d";
+  return ">30d";
+}
+
 // User alert preferences cache with TTL
 const userAlertCache = new Map<string, { prefs: Awaited<ReturnType<typeof prisma.user.findMany>>; expires: number }>();
 
@@ -469,6 +494,46 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
       return;
     }
 
+    const closeTimeIso = marketMeta.closeTime || null;
+    const liquidityBucket = computeLiquidityBucket(marketMeta.liquidity);
+    const timeToCloseBucket = computeTimeToCloseBucket(closeTimeIso);
+    const additionalTags = (marketMeta.tagNames || []).filter(Boolean);
+    const baseWhaleTags = [
+      value >= CONFIG.THRESHOLDS.GOD_WHALE && "GOD_WHALE",
+      value >= CONFIG.THRESHOLDS.SUPER_WHALE && "SUPER_WHALE",
+      value >= CONFIG.THRESHOLDS.MEGA_WHALE && "MEGA_WHALE",
+      value >= CONFIG.THRESHOLDS.WHALE && "WHALE",
+    ].filter(Boolean) as string[];
+    const mergedTags = Array.from(new Set([...baseWhaleTags, ...additionalTags]));
+
+    const marketContext = {
+      category: marketMeta.category || null,
+      sport: marketMeta.sport || null,
+      league: marketMeta.league || null,
+      feeBps: marketMeta.feeBps ?? null,
+      liquidity: marketMeta.liquidity ?? null,
+      volume24h: marketMeta.volume24h ?? null,
+      closeTime: marketMeta.closeTime || null,
+      openTime: marketMeta.openTime || null,
+      denominationToken: marketMeta.denominationToken || null,
+      liquidity_bucket: liquidityBucket,
+      time_to_close_bucket: timeToCloseBucket,
+    };
+
+    const eventContext = {
+      id: marketMeta.eventId || undefined,
+      title: marketMeta.eventTitle || undefined,
+      slug: marketMeta.eventSlug || null,
+    };
+    const cachedCrowding = getCachedHolderMetrics(payload.asset);
+    const crowdingContext = cachedCrowding ? {
+      top5_share: cachedCrowding.top5Share,
+      top10_share: cachedCrowding.top10Share,
+      holder_count: cachedCrowding.holderCount,
+      smart_holder_count: cachedCrowding.smartHolderCount,
+      label: "crowding",
+    } : undefined;
+
     // Determine side (BUY or SELL)
     const side = payload.side || "BUY";
 
@@ -507,12 +572,10 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
         timestamp,
       },
       analysis: {
-        tags: [
-          isGodWhale && "GOD_WHALE",
-          isSuperWhale && "SUPER_WHALE",
-          isMegaWhale && "MEGA_WHALE",
-          isWhale && "WHALE",
-        ].filter(Boolean) as string[],
+        tags: mergedTags,
+        event: eventContext,
+        market_context: marketContext,
+        crowding: crowdingContext,
         wallet_context: {
           address: walletAddress,
           label: payload.pseudonym || walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4),
@@ -578,6 +641,32 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
             image: payload.icon || marketMeta.image || null,
             transactionHash: payload.transactionHash || null,
             enrichmentStatus: "enriched", // Already enriched from RTDS
+            marketCategory: marketMeta.category || null,
+            marketType: marketMeta.marketType || null,
+            formatType: marketMeta.formatType || null,
+            feeBps: marketMeta.feeBps ?? null,
+            denominationToken: marketMeta.denominationToken || null,
+            liquidity: marketMeta.liquidity ?? null,
+            volume24h: marketMeta.volume24h ?? null,
+            openTime: marketMeta.openTime ? new Date(marketMeta.openTime) : null,
+            closeTime: marketMeta.closeTime ? new Date(marketMeta.closeTime) : null,
+            resolutionTime: marketMeta.resolutionTime ? new Date(marketMeta.resolutionTime) : null,
+            resolutionSource: marketMeta.resolutionSource || null,
+            eventId: marketMeta.eventId || null,
+            eventTitle: marketMeta.eventTitle || null,
+            eventSlug: marketMeta.eventSlug || null,
+            eventStart: marketMeta.eventStartTime ? new Date(marketMeta.eventStartTime) : null,
+            eventEnd: marketMeta.eventEndTime ? new Date(marketMeta.eventEndTime) : null,
+            tags: additionalTags as any,
+            sport: marketMeta.sport || null,
+            league: marketMeta.league || null,
+            marketGroup: marketMeta.eventId || marketMeta.eventSlug || null,
+            marketDepthBucket: null,
+            timeToCloseBucket: timeToCloseBucket || null,
+            holderTop5Share: cachedCrowding?.top5Share ?? null,
+            holderTop10Share: cachedCrowding?.top10Share ?? null,
+            holderCount: cachedCrowding?.holderCount ?? null,
+            smartHolderCount: cachedCrowding?.smartHolderCount ?? null,
           },
         });
       });
@@ -587,7 +676,11 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
     }
 
     // Enrich with trader profile for intelligence flags
-    const profile = await getTraderProfile(walletAddress);
+    // Also fetch real trading stats (activity count, max value)
+    const [profile, tradeStats] = await Promise.all([
+      getTraderProfile(walletAddress),
+      fetchWalletTradeStats(walletAddress)
+    ]);
 
     // Analyze market impact
     const impact = await analyzeMarketImpact(
@@ -597,10 +690,10 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
     );
 
     const isSmartMoney = profile.isSmartMoney;
-    const isFresh = profile.isFresh;
+    const isFresh = tradeStats.tradeCount < 10;
     const isSweeper = impact.isSweeper;
     const isInsider =
-      profile.activityLevel === "LOW" &&
+      tradeStats.activityLevel === "LOW" &&
       profile.winRate > 0.7 &&
       profile.totalPnl > 10000;
 
@@ -613,10 +706,10 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
             label: profile.label || payload.pseudonym || null,
             totalPnl: profile.totalPnl,
             winRate: profile.winRate,
-            isFresh: profile.isFresh,
-            txCount: profile.txCount,
-            maxTradeValue: Math.max(profile.maxTradeValue, value),
-            activityLevel: profile.activityLevel,
+            isFresh: tradeStats.tradeCount < 10,
+            txCount: tradeStats.tradeCount,
+            maxTradeValue: Math.max(tradeStats.maxTradeValue, value),
+            activityLevel: tradeStats.activityLevel,
             lastUpdated: new Date(),
           },
           create: {
@@ -624,10 +717,10 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
             label: profile.label || payload.pseudonym || null,
             totalPnl: profile.totalPnl,
             winRate: profile.winRate,
-            isFresh: profile.isFresh,
-            txCount: profile.txCount,
-            maxTradeValue: value,
-            activityLevel: profile.activityLevel,
+            isFresh: tradeStats.tradeCount < 10,
+            txCount: tradeStats.tradeCount,
+            maxTradeValue: Math.max(tradeStats.maxTradeValue, value),
+            activityLevel: tradeStats.activityLevel,
           },
         });
 
@@ -659,7 +752,7 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
     const fullEnrichedTrade: EnrichedTrade = {
       ...initialEnrichedTrade,
       analysis: {
-        tags: [
+        tags: Array.from(new Set([
           isGodWhale && "GOD_WHALE",
           isSuperWhale && "SUPER_WHALE",
           isMegaWhale && "MEGA_WHALE",
@@ -668,7 +761,11 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
           isFresh && "FRESH_WALLET",
           isSweeper && "SWEEPER",
           isInsider && "INSIDER",
-        ].filter(Boolean) as string[],
+          ...additionalTags,
+        ].filter(Boolean) as string[])),
+        event: eventContext,
+        market_context: marketContext,
+        crowding: crowdingContext,
         wallet_context: {
           address: walletAddress,
           label: profile.label || payload.pseudonym || "Unknown",
@@ -681,9 +778,9 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
           slippage_induced: `${impact.priceImpact.toFixed(2)}%`,
         },
         trader_context: {
-          tx_count: profile.txCount,
-          max_trade_value: Math.max(profile.maxTradeValue, value),
-          activity_level: profile.activityLevel,
+          tx_count: tradeStats.tradeCount,
+          max_trade_value: Math.max(tradeStats.maxTradeValue, value),
+          activity_level: tradeStats.activityLevel,
         },
       }
     };

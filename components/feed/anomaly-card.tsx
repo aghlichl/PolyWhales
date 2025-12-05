@@ -132,6 +132,17 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    const marketContext = anomaly.analysis?.market_context;
+    const categoryLabel = marketContext?.category || anomaly.category || null;
+    const sportLeague = marketContext?.league || anomaly.league || marketContext?.sport || anomaly.sport || null;
+    const timeToClose = marketContext?.time_to_close_bucket || anomaly.time_to_close_bucket || null;
+    const liquidityBucket = marketContext?.liquidity_bucket || anomaly.liquidity_bucket || null;
+    const feeLabel = marketContext?.feeBps != null
+        ? `${marketContext.feeBps} bps fee`
+        : anomaly.feeBps != null
+            ? `${anomaly.feeBps} bps fee`
+            : null;
+
     return (
         <>
             <div
@@ -371,6 +382,35 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                                 {title}
                                             </span>
                                         </h3>
+                                        {(categoryLabel || sportLeague || timeToClose || liquidityBucket || feeLabel) && (
+                                            <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-zinc-400">
+                                                {categoryLabel && (
+                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
+                                                        {categoryLabel}
+                                                    </span>
+                                                )}
+                                                {sportLeague && (
+                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
+                                                        {sportLeague}
+                                                    </span>
+                                                )}
+                                                {timeToClose && (
+                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
+                                                        {timeToClose}
+                                                    </span>
+                                                )}
+                                                {liquidityBucket && (
+                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
+                                                        Lq {liquidityBucket}
+                                                    </span>
+                                                )}
+                                                {feeLabel && (
+                                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800/60 border border-zinc-700/60">
+                                                        {feeLabel}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

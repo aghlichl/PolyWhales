@@ -45,6 +45,11 @@ const formatBadgePnl = (pnl?: number | null) => {
 export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModalProps) {
     const { event, outcome, odds, value, side, trader_context, wallet_context, analysis, image } = anomaly;
     const { leaderboardRanks } = useMarketStore();
+    const marketContext = anomaly.analysis?.market_context;
+    const eventContext = anomaly.analysis?.event || {
+        id: anomaly.eventId,
+        title: anomaly.eventTitle,
+    };
 
     // Resolve team logo
     const { resolvedTeam, logoPath, usePolymarketFallback } = useMemo(() => {
@@ -236,6 +241,28 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                                     <span className="text-zinc-600">•</span>
                                     <NumericDisplay value={`${odds}¢`} />
                                 </div>
+                                {(eventContext?.title && eventContext.title !== event) || marketContext?.category || marketContext?.sport || marketContext?.league || marketContext?.time_to_close_bucket || marketContext?.liquidity_bucket || marketContext?.feeBps !== undefined ? (
+                                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-zinc-400">
+                                        {eventContext?.title && eventContext.title !== event && (
+                                            <span className="px-2 py-1 rounded-full bg-zinc-900/70 border border-zinc-800">{eventContext.title}</span>
+                                        )}
+                                        {marketContext?.category && (
+                                            <span className="px-2 py-1 rounded-full bg-zinc-900/70 border border-zinc-800">{marketContext.category}</span>
+                                        )}
+                                        {(marketContext?.sport || marketContext?.league) && (
+                                            <span className="px-2 py-1 rounded-full bg-zinc-900/70 border border-zinc-800">{marketContext.league || marketContext.sport}</span>
+                                        )}
+                                        {marketContext?.time_to_close_bucket && (
+                                            <span className="px-2 py-1 rounded-full bg-zinc-900/70 border border-zinc-800">{marketContext.time_to_close_bucket}</span>
+                                        )}
+                                        {marketContext?.liquidity_bucket && (
+                                            <span className="px-2 py-1 rounded-full bg-zinc-900/70 border border-zinc-800">Lq {marketContext.liquidity_bucket}</span>
+                                        )}
+                                        {marketContext?.feeBps !== undefined && marketContext.feeBps !== null && (
+                                            <span className="px-2 py-1 rounded-full bg-zinc-900/70 border border-zinc-800">{marketContext.feeBps} bps fee</span>
+                                        )}
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
                     </div>

@@ -41,12 +41,15 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType, t
   }
 
   // Check sports filter FIRST - hide events containing "vs."
-  if (
-    !preferences.showSports &&
-    ['vs.', 'spread:', 'win on 202', 'counter-strike'].some(keyword =>
-      anomaly.event.toLowerCase().includes(keyword)
-    )
-  ) {
+  const isSports = Boolean(
+    anomaly.sport ||
+    anomaly.analysis?.market_context?.sport ||
+    anomaly.analysis?.market_context?.league
+  );
+  const sportsKeywordMatch = ['vs.', 'spread:', 'win on 202', 'counter-strike'].some(keyword =>
+    anomaly.event.toLowerCase().includes(keyword)
+  );
+  if (!preferences.showSports && (isSports || sportsKeywordMatch)) {
     return false;
   }
 

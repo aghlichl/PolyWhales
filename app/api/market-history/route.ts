@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fetchActivityFromDataAPI, fetchMarketsFromGamma, parseMarketData } from '@/lib/polymarket';
+import { calculatePositionPL } from '@/lib/utils';
 
 // Simple in-memory caches
 let marketCache: { data: Map<string, any>; timestamp: number } | null = null;
@@ -205,8 +206,6 @@ function calculateStats(trades: any[], markets: Map<string, any>) {
         let wins = 0, totalPnL = 0, totalVolume = 0, validTrades = 0;
 
         for (const trade of periodTrades) {
-            if (trade.side !== 'BUY') continue;
-
             let market = marketLookups.get(trade.conditionId);
             if (market === undefined) {
                 market = markets.get(trade.conditionId) || null;
@@ -218,20 +217,26 @@ function calculateStats(trades: any[], markets: Map<string, any>) {
             totalVolume += trade.tradeValue;
 
             let currentPrice = trade.price; // Default fallback
-            let isWin = false;
 
-            // Fast path for outcome price lookup
+            // Look up current market price
             if (market.outcomePrices && market.outcomes) {
                 const outcomeIndex = market.outcomes.indexOf(trade.outcome);
                 if (outcomeIndex !== -1) {
                     currentPrice = parseFloat(market.outcomePrices[outcomeIndex]);
-                    isWin = market.closed ? currentPrice > 0.5 : currentPrice > trade.price;
                 }
             }
 
-            const pnl = (trade.tradeValue / trade.price) * currentPrice - trade.tradeValue;
+            // Calculate PnL using the shared utility function
+            // Note: trade.price is 0.xx, currentPrice is 0.xx, tradeValue is dollar amount
+            const pnl = calculatePositionPL(
+                trade.tradeValue,
+                trade.price * 100, // utility expects cents (e.g. 54 for 0.54)
+                currentPrice * 100, // utility expects cents
+                trade.side as 'BUY' | 'SELL'
+            );
+
             totalPnL += pnl;
-            if (isWin) wins++;
+            if (pnl > 0) wins++;
         }
 
         return {

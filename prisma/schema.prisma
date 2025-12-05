@@ -43,6 +43,32 @@ model Trade {
   outcome       String?
   question      String?
   image         String?
+  marketCategory    String?
+  marketType        String?
+  formatType        String?
+  feeBps            Float?
+  denominationToken String?
+  liquidity         Float?
+  volume24h         Float?
+  openTime          DateTime?
+  closeTime         DateTime?
+  resolutionTime    DateTime?
+  resolutionSource  String?
+  eventId           String?
+  eventTitle        String?
+  eventSlug         String?
+  eventStart        DateTime?
+  eventEnd          DateTime?
+  tags              String[]
+  sport             String?
+  league            String?
+  marketGroup       String?
+  marketDepthBucket String?
+  timeToCloseBucket String?
+  holderTop5Share   Float?
+  holderTop10Share  Float?
+  holderCount       Int?
+  smartHolderCount  Int?
 
   // Enrichment fields for wallet identity matching
   transactionHash  String?  // For Data-API matching
@@ -55,6 +81,10 @@ model Trade {
   @@index([isWhale, timestamp])
   @@index([transactionHash])
   @@index([enrichmentStatus, timestamp])
+  @@index([eventId])
+  @@index([marketCategory])
+  @@index([closeTime])
+  @@index([sport, league])
   @@map("trades")
 }
 

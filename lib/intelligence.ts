@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import { createPublicClient, http, decodeEventLog, parseAbi } from 'viem';
 import { polygon } from 'viem/chains';
+import { fetchClosedPositions, fetchActivityFromDataAPI } from './polymarket';
 import { WalletEnrichmentResult } from './types';
 
 // Initialize Redis with error handling
@@ -52,30 +53,47 @@ interface PolymarketPosition {
 /**
  * Fetches trader profile from Polymarket Data API
  */
+/**
+ * Fetches trader profile from Polymarket Data API
+ */
 async function fetchTraderProfileFromAPI(address: string): Promise<Partial<TraderProfile>> {
   try {
     console.log(`[Intelligence] Fetching trader profile for ${address}`);
-    const url = `https://data-api.polymarket.com/positions?user=${address}`;
-    const response = await fetch(url);
 
-    if (!response.ok) {
-      console.warn(`[Intelligence] Failed to fetch positions for ${address}: ${response.statusText}`);
+    // Fetch both open and closed positions in parallel
+    const [positionsRes, closedPositions] = await Promise.all([
+      fetch(`https://data-api.polymarket.com/positions?user=${address}`),
+      fetchClosedPositions(address)
+    ]);
+
+    if (!positionsRes.ok) {
+      console.warn(`[Intelligence] Failed to fetch positions for ${address}: ${positionsRes.statusText}`);
       return { totalPnl: 0, winRate: 0, isWhale: false };
     }
 
-    const positions: PolymarketPosition[] = await response.json();
+    const positions: PolymarketPosition[] = await positionsRes.json();
+    const openPositions = Array.isArray(positions) ? positions : [];
 
-    if (!positions || positions.length === 0) {
+    if (openPositions.length === 0 && closedPositions.length === 0) {
       return { totalPnl: 0, winRate: 0, isWhale: false };
     }
 
-    // Aggregate stats
-    const totalPnl = positions.reduce((acc, pos) => acc + (pos.cashPnl || 0), 0);
-    const winningPositions = positions.filter(p => (p.percentPnl || 0) > 0);
-    const winRate = positions.length > 0 ? winningPositions.length / positions.length : 0;
+    // Aggregate stats from OPEN positions
+    const openPnl = openPositions.reduce((acc, pos) => acc + (pos.cashPnl || 0), 0);
+    const winningOpenPositions = openPositions.filter(p => (p.percentPnl || 0) > 0);
 
-    // Check if they have any large positions
-    const isWhale = positions.some(p => (p.currentValue || 0) > 10000);
+    // Aggregate stats from CLOSED positions
+    const closedPnl = closedPositions.reduce((acc, pos) => acc + (pos.realizedPnl || 0), 0);
+    const winningClosedPositions = closedPositions.filter(p => (p.realizedPnl || 0) > 0);
+
+    // Merged Stats
+    const totalPnl = openPnl + closedPnl;
+    const totalPositions = openPositions.length + closedPositions.length;
+    const totalWins = winningOpenPositions.length + winningClosedPositions.length;
+    const winRate = totalPositions > 0 ? totalWins / totalPositions : 0;
+
+    // Check if they have any large positions (current)
+    const isWhale = openPositions.some(p => (p.currentValue || 0) > 10000);
 
     // Determine label
     let label: string | null = null;
@@ -99,6 +117,37 @@ async function fetchTraderProfileFromAPI(address: string): Promise<Partial<Trade
   } catch (error) {
     console.error(`[Intelligence] Error fetching profile for ${address}:`, error);
     return { totalPnl: 0, winRate: 0, isWhale: false };
+  }
+}
+
+/**
+ * Fetches real trading stats (activity level, max trade size)
+ */
+export async function fetchWalletTradeStats(address: string): Promise<{ tradeCount: number; maxTradeValue: number; activityLevel: 'LOW' | 'MEDIUM' | 'HIGH' }> {
+  try {
+    // Fetch last 100 trades to estimate activity
+    const activities = await fetchActivityFromDataAPI({
+      user: address,
+      type: 'TRADE',
+      limit: 100
+    });
+
+    const tradeCount = activities.length;
+    const maxTradeValue = Math.max(...activities.map(a => parseFloat(a.usdcSize) || 0), 0);
+
+    // activityLevel logic: 
+    // Data API default limit is often small, but if we get 100 it means they are active.
+    // If we assume this returns recent history, 100 recent trades is HIGH.
+    // > 20 is MEDIUM
+    // < 20 is LOW
+    let activityLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+    if (tradeCount >= 50) activityLevel = 'HIGH';
+    else if (tradeCount >= 10) activityLevel = 'MEDIUM';
+
+    return { tradeCount, maxTradeValue, activityLevel };
+  } catch (error) {
+    console.error(`[Intelligence] Error fetching trade stats for ${address}:`, error);
+    return { tradeCount: 0, maxTradeValue: 0, activityLevel: 'LOW' };
   }
 }
 

@@ -61,6 +61,26 @@ export async function GET(request: Request) {
   const marketMeta = trade.conditionId ? marketsByCondition.get(trade.conditionId) : undefined;
   const image = marketMeta?.image || trade.image || undefined;
 
+  const marketContext = {
+    category: trade.marketCategory || null,
+    sport: trade.sport || null,
+    league: trade.league || null,
+    feeBps: trade.feeBps ?? null,
+    liquidity: trade.liquidity ?? null,
+    volume24h: trade.volume24h ?? null,
+    closeTime: trade.closeTime?.toISOString() || null,
+    openTime: trade.openTime?.toISOString() || null,
+    denominationToken: trade.denominationToken || null,
+    liquidity_bucket: trade.marketDepthBucket || null,
+    time_to_close_bucket: trade.timeToCloseBucket || null,
+  };
+
+  const eventContext = {
+    id: trade.eventId || undefined,
+    title: trade.eventTitle || undefined,
+    slug: trade.eventSlug || null,
+  };
+
   return {
         id: trade.id, // Use actual trade ID instead of random
         type,
@@ -71,6 +91,20 @@ export async function GET(request: Request) {
         timestamp: trade.timestamp.getTime(), // Convert to number
         side: trade.side as 'BUY' | 'SELL', // Include the side from the trade
         image,
+        category: trade.marketCategory || null,
+        sport: trade.sport || null,
+        league: trade.league || null,
+        feeBps: trade.feeBps ?? null,
+        liquidity: trade.liquidity ?? null,
+        volume24h: trade.volume24h ?? null,
+        closeTime: trade.closeTime?.toISOString() || null,
+        openTime: trade.openTime?.toISOString() || null,
+        denominationToken: trade.denominationToken || null,
+        liquidity_bucket: trade.marketDepthBucket || null,
+        time_to_close_bucket: trade.timeToCloseBucket || null,
+        eventId: trade.eventId || null,
+        eventTitle: trade.eventTitle || null,
+        tags: trade.tags || [],
         wallet_context: {
           address: trade.walletProfile?.id || trade.walletAddress,
           label: trade.walletProfile?.label || 'Unknown',
@@ -91,7 +125,17 @@ export async function GET(request: Request) {
             trade.isSweeper && 'SWEEPER',
             // Reconstruct INSIDER tag logic since it's not stored directly on trade
             (trade.walletProfile?.activityLevel === 'LOW' && (trade.walletProfile?.winRate || 0) > 0.7 && (trade.walletProfile?.totalPnl || 0) > 10000) && 'INSIDER',
+            ...(trade.tags || []),
           ].filter(Boolean) as string[],
+          event: eventContext,
+          market_context: marketContext,
+          crowding: {
+            top5_share: trade.holderTop5Share ?? null,
+            top10_share: trade.holderTop10Share ?? null,
+            holder_count: trade.holderCount ?? null,
+            smart_holder_count: trade.smartHolderCount ?? null,
+            label: trade.holderTop5Share ? 'crowding' : null,
+          },
         },
       };
     });

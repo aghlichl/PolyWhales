@@ -322,6 +322,10 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
         return;
       }
 
+      const marketContext = enrichedTrade.analysis?.market_context;
+      const eventContext = enrichedTrade.analysis?.event;
+      const crowding = enrichedTrade.analysis?.crowding;
+
       const anomaly: Anomaly = {
         id: enrichedTrade.trade.assetId + '_' + ts.getTime(),
         type: enrichedTrade.analysis.tags.includes('GOD_WHALE') ? 'GOD_WHALE' :
@@ -336,6 +340,21 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
         timestamp: ts.getTime(),
         side: enrichedTrade.trade.side as 'BUY' | 'SELL',
         image: enrichedTrade.market.image,
+        category: marketContext?.category || null,
+        sport: marketContext?.sport || null,
+        league: marketContext?.league || null,
+        feeBps: marketContext?.feeBps ?? null,
+        liquidity: marketContext?.liquidity ?? null,
+        volume24h: marketContext?.volume24h ?? null,
+        closeTime: marketContext?.closeTime || null,
+        openTime: marketContext?.openTime || null,
+        denominationToken: marketContext?.denominationToken || null,
+        liquidity_bucket: marketContext?.liquidity_bucket || null,
+        time_to_close_bucket: marketContext?.time_to_close_bucket || null,
+        eventId: eventContext?.id || null,
+        eventTitle: eventContext?.title || null,
+        tags: enrichedTrade.analysis.tags,
+        crowding,
         wallet_context: {
           address: walletContext.address,
           label: walletContext.label || walletContext.address.slice(0, 6) + '...' + walletContext.address.slice(-4),
@@ -347,6 +366,9 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
         market_impact: enrichedTrade.analysis.market_impact,
         analysis: {
           tags: enrichedTrade.analysis.tags,
+          event: eventContext,
+          market_context: marketContext,
+          crowding,
         }
       };
 

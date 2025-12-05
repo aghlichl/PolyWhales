@@ -57,6 +57,53 @@ export interface Anomaly {
     };
     analysis?: {
         tags: string[];
+        event?: {
+            id?: string;
+            title?: string;
+            slug?: string | null;
+        };
+        market_context?: {
+            category?: string | null;
+            sport?: string | null;
+            league?: string | null;
+            feeBps?: number | null;
+            liquidity?: number | null;
+            volume24h?: number | null;
+            closeTime?: string | null;
+            openTime?: string | null;
+            denominationToken?: string | null;
+            liquidity_bucket?: string | null;
+            time_to_close_bucket?: string | null;
+        };
+        crowding?: {
+            top5_share?: number | null;
+            top10_share?: number | null;
+            holder_count?: number | null;
+            smart_holder_count?: number | null;
+            label?: string | null;
+        };
+    };
+    // Denormalized for filtering/search
+    category?: string | null;
+    sport?: string | null;
+    league?: string | null;
+    feeBps?: number | null;
+    liquidity?: number | null;
+    volume24h?: number | null;
+    closeTime?: string | null;
+    openTime?: string | null;
+    denominationToken?: string | null;
+    liquidity_bucket?: string | null;
+    time_to_close_bucket?: string | null;
+    eventId?: string | null;
+    eventTitle?: string | null;
+    tags?: string[];
+    crowding?: {
+        top5_share?: number | null;
+        top10_share?: number | null;
+        holder_count?: number | null;
+        smart_holder_count?: number | null;
+        label?: string | null;
     };
 }
 
@@ -71,6 +118,27 @@ export interface MarketMeta {
     image?: string | null;
     outcomePrices?: string[];
     closed?: boolean;
+    // Extended metadata (optional, filled when available)
+    category?: string;
+    formatType?: string;
+    feeBps?: number | null;
+    denominationToken?: string | null;
+    liquidity?: number | null;
+    volume24h?: number | null;
+    openTime?: string | null;
+    closeTime?: string | null;
+    resolutionTime?: string | null;
+    resolutionSource?: string | null;
+    sponsor?: string | null;
+    tagIds?: string[];
+    tagNames?: string[];
+    sport?: string | null;
+    league?: string | null;
+    eventSlug?: string | null;
+    eventStartTime?: string | null;
+    eventEndTime?: string | null;
+    eventImage?: string | null;
+    relatedMarketIds?: string[];
 }
 
 export interface AssetOutcome {
@@ -89,12 +157,32 @@ export interface PolymarketMarket {
     twitterCardImage?: string;
     outcomePrices?: string | string[];
     closed?: boolean;
+    category?: string;
+    formatType?: string;
+    fee?: number | string | null;
+    denominationToken?: string | null;
+    liquidity?: number | string | null;
+    volume24hr?: number | string | null;
+    openTime?: string | null;
+    endDate?: string | null;
+    resolutionTime?: string | null;
+    resolutionSource?: string | null;
+    sponsor?: string | null;
+    tags?: Array<{ id: string; name?: string; slug?: string; category?: string }>;
     events: {
         id: string;
         title: string;
         image?: string;
         icon?: string;
+        subtitle?: string;
+        slug?: string;
+        startTime?: string;
+        endTime?: string;
+        sport?: string;
+        league?: string;
+        tags?: Array<{ id: string; name?: string; slug?: string; category?: string }>;
     }[];
+    relatedMarkets?: string[];
 }
 
 export interface EnrichedTrade {
@@ -116,6 +204,31 @@ export interface EnrichedTrade {
     };
     analysis: {
         tags: string[];
+        event?: {
+            id?: string;
+            title?: string;
+            slug?: string | null;
+        };
+        market_context?: {
+            category?: string | null;
+            sport?: string | null;
+            league?: string | null;
+            feeBps?: number | null;
+            liquidity?: number | null;
+            volume24h?: number | null;
+            closeTime?: string | null;
+            openTime?: string | null;
+            denominationToken?: string | null;
+            liquidity_bucket?: string | null;
+            time_to_close_bucket?: string | null;
+        };
+        crowding?: {
+            top5_share?: number | null;
+            top10_share?: number | null;
+            holder_count?: number | null;
+            smart_holder_count?: number | null;
+            label?: string | null;
+        };
         wallet_context: {
             address: string;
             label: string;
