@@ -18,6 +18,34 @@ function stripSoccerSuffixes(text: string): string {
     return text.replace(/\s+(fc|cf|c\.f\.|sc)$/i, '').trim();
 }
 
+// Helper to escape regex special characters
+function escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Helper to check if text contains the target word as a whole word
+function matchesToken(text: string, token: string): boolean {
+    // Normalize both to handle case
+    const normalizedText = normalize(text);
+    const normalizedToken = normalize(token);
+
+    // Create regex with word boundaries
+    // We use the normalized strings so we don't need 'i' flag if we already lowercased, 
+    // but the regex itself needs to handle the characters. 
+    // Actually, let's build the regex from the token and test against the text.
+    // Use word boundaries \b. Note: \b only works correctly if the token starts/ends with word chars.
+    // If the token is e.g. "A's", \b works.
+    // If the token is "St. Louis", \b works.
+
+    try {
+        const pattern = new RegExp(`\\b${escapeRegExp(normalizedToken)}\\b`, 'i');
+        return pattern.test(normalizedText);
+    } catch (e) {
+        // Fallback to simple includes if regex fails (unlikely)
+        return normalizedText.includes(normalizedToken);
+    }
+}
+
 export function resolveTeamFromMarket(params: {
     leagueHint?: League;
     marketTitle?: string;
@@ -52,13 +80,22 @@ export function resolveTeamFromMarket(params: {
             if (suffixMatch) return toResolvedTeam(suffixMatch);
         }
 
-        // Strategy C: Partial match (outcomeLabel contains alias)
-        // We sort aliases by length descending to match longest aliases first (e.g. "Los Angeles Lakers" before "Lakers")
+        // Strategy C: Token match (contains alias as whole word)
+        // e.g. outcomeLabel: "Texas Rangers" (matches alias "Rangers")
+        // outcomeLabel: "North Texas" (does NOT match alias "Texas" if we strictly check word boundaries and "Texas" is removed from aliases).
+        // BUT if "Texas" was an alias, "North Texas" contains "Texas". 
+        // We want to avoid matching if it's part of another word, but "North Texas" has "Texas" as a separate word.
+        // The issue was "Texas" matching "Texas Rangers". 
+        // If we remove "Texas" alias, then "North Texas" won't match "Rangers" (alias "Rangers").
+        // "North Texas" vs "Rangers" -> No match.
+        // So simply removing the alias fixes the main issue.
+        // But adding word boundaries is good practice: prevents "NotRangers" matching "Rangers" (unlikely) or "Rangersteam" matching "Rangers".
+
         const partialMatch = candidateTeams.find((team) => {
             // Check name
-            if (normalizedOutcome.includes(normalize(team.name))) return true;
+            if (matchesToken(normalizedOutcome, team.name)) return true;
             // Check aliases
-            return team.aliases.some((alias) => normalizedOutcome.includes(normalize(alias)));
+            return team.aliases.some((alias) => matchesToken(normalizedOutcome, alias));
         });
         if (partialMatch) return toResolvedTeam(partialMatch);
     }
@@ -68,17 +105,9 @@ export function resolveTeamFromMarket(params: {
     if (textToSearch.trim()) {
         const normalizedText = normalize(textToSearch);
 
-        // Simple tokenization by common separators
-        // We don't strictly need to split if we just search for aliases in the string, 
-        // but splitting helps avoid matching parts of words. 
-        // For now, let's search for the aliases within the text.
-
-        // Sort candidates by name length to prioritize specific matches? 
-        // Or just iterate.
-
         const match = candidateTeams.find((team) => {
-            if (normalizedText.includes(normalize(team.name))) return true;
-            return team.aliases.some((alias) => normalizedText.includes(normalize(alias)));
+            if (matchesToken(normalizedText, team.name)) return true;
+            return team.aliases.some((alias) => matchesToken(normalizedText, alias));
         });
 
         if (match) return toResolvedTeam(match);
