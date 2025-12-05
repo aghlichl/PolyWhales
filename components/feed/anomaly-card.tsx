@@ -519,14 +519,14 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                         key={period}
                                         className={cn(
                                             "flex-1 flex flex-col items-center py-1.5 px-2 rounded-md text-xs lg:text-sm",
-                                            "border",
+                                            "bg-black border",
                                             hasRank ? (
-                                                isGod ? "bg-yellow-500/10 border-yellow-500/30" :
-                                                    isSuper ? "bg-red-500/10 border-red-500/30" :
-                                                        isMega ? "bg-purple-500/10 border-purple-500/30" :
-                                                            isWhale ? "bg-blue-500/10 border-blue-500/30" :
-                                                                "bg-zinc-800/50 border-zinc-700/50"
-                                            ) : "bg-zinc-900/30 border-zinc-800/30"
+                                                isGod ? "border-yellow-500/40" :
+                                                    isSuper ? "border-red-500/40" :
+                                                        isMega ? "border-purple-500/40" :
+                                                            isWhale ? "border-blue-500/40" :
+                                                                "border-zinc-700/50"
+                                            ) : "border-zinc-800/40"
                                         )}
                                     >
                                         {/* Period Label */}
@@ -620,18 +620,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                 )}
 
                 {/* Card Docked Plate - Timestamp Footer */}
-                <div className={cn(
-                    // jetbrains.className removed
-                    "mx-auto mt-1 w-[92%] px-4 py-1.5 text-[10px] rounded-md",
-                    "backdrop-blur-sm border-t",
-                    // Base styling - more subtle
-                    "bg-black/20 text-zinc-500 border-[rgba(255,255,255,0.03)] shadow-inner shadow-black/20",
-                    // Tier-specific styling - premium tiers more subtle
-                    isGod && "bg-black/10 border-t-yellow-400/20 text-yellow-400/80",
-                    isSuper && "bg-black/10 border-t-red-400/20 text-red-400/80",
-                    isMega && "bg-black/15 border-t-purple-400/25 text-purple-300/85 shadow-purple-900/15",
-                    isWhale && "bg-black/15 border-t-blue-400/25 text-blue-300/85 shadow-blue-900/15"
-                )}>
+                <div className="mx-auto mt-1 w-[92%] px-4 py-1.5 text-[10px] text-zinc-500">
                     {(() => {
                         const date = new Date(timestamp);
                         const now = new Date();
@@ -640,16 +629,37 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         const timeString = date.toLocaleTimeString([], {
                             hour: 'numeric',
                             minute: '2-digit',
-                            second: '2-digit',
                             hour12: true
                         });
 
+                        // Calculate relative time
+                        const diffMs = now.getTime() - date.getTime();
+                        const diffSec = Math.floor(diffMs / 1000);
+                        const diffMin = Math.floor(diffSec / 60);
+                        const diffHr = Math.floor(diffMin / 60);
+                        const diffDays = Math.floor(diffHr / 24);
+
+                        let relativeTime: string;
+                        if (diffSec < 30) {
+                            relativeTime = 'just now';
+                        } else if (diffSec < 60) {
+                            relativeTime = `${diffSec}s ago`;
+                        } else if (diffMin < 60) {
+                            relativeTime = `${diffMin} min ago`;
+                        } else if (diffHr < 24) {
+                            relativeTime = `${diffHr}h ago`;
+                        } else if (diffDays === 1) {
+                            relativeTime = 'yesterday';
+                        } else {
+                            relativeTime = `${diffDays}d ago`;
+                        }
+
                         if (isToday) {
-                            return `Today • ${timeString}`;
+                            return `Today • ${timeString} — ${relativeTime}`;
                         } else {
                             const month = date.toLocaleDateString([], { month: 'short' });
                             const day = date.getDate();
-                            return `${month} ${day} • ${timeString}`;
+                            return `${month} ${day} • ${timeString} — ${relativeTime}`;
                         }
                     })()}
                 </div>
