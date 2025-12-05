@@ -518,7 +518,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                     <div
                                         key={period}
                                         className={cn(
-                                            "flex-1 flex flex-col items-center py-1.5 px-2 rounded-md text-xs lg:text-sm",
+                                            "flex-1 flex flex-col items-center py-1 px-1.5 rounded-md",
                                             "bg-black border",
                                             hasRank ? (
                                                 isGod ? "border-yellow-500/40" :
@@ -529,23 +529,22 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                             ) : "border-zinc-800/40"
                                         )}
                                     >
-                                        {/* Period Label */}
-                                        <span className={cn(
-                                            "uppercase font-medium text-[10px] lg:text-xs",
-                                            hasRank ? (
-                                                isGod ? "text-yellow-400/70" :
-                                                    isSuper ? "text-red-400/70" :
-                                                        isMega ? "text-purple-400/70" :
-                                                            isWhale ? "text-blue-400/70" :
-                                                                "text-zinc-500"
-                                            ) : "text-zinc-600"
-                                        )}>
-                                            {period}
-                                        </span>
-                                        {/* Rank with Change Indicator */}
-                                        <div className="flex items-center gap-0.5">
+                                        {/* Period + Rank Inline */}
+                                        <div className="flex items-center gap-1">
                                             <span className={cn(
-                                                "text-xs lg:text-sm font-black leading-tight",
+                                                "uppercase font-semibold text-[9px] lg:text-[10px]",
+                                                hasRank ? (
+                                                    isGod ? "text-yellow-400/80" :
+                                                        isSuper ? "text-red-400/80" :
+                                                            isMega ? "text-purple-400/80" :
+                                                                isWhale ? "text-blue-400/80" :
+                                                                    "text-zinc-500"
+                                                ) : "text-zinc-600"
+                                            )}>
+                                                {period === 'All Time' ? 'ALL' : period.toUpperCase().slice(0, 3)}
+                                            </span>
+                                            <span className={cn(
+                                                "text-[10px] lg:text-xs font-black",
                                                 hasRank ? (
                                                     isGod ? "text-yellow-300" :
                                                         isSuper ? "text-red-300" :
@@ -559,27 +558,24 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                             {/* Rank Change Indicator */}
                                             {hasRank && rankData.rankChange !== undefined && (
                                                 rankData.rankChange === null ? (
-                                                    // New entry - "NEW" badge
-                                                    <span className="text-[8px] font-black text-cyan-400 ml-1 uppercase tracking-tight" title="New entry">
+                                                    <span className="text-[7px] font-black text-cyan-400 uppercase" title="New entry">
                                                         NEW
                                                     </span>
                                                 ) : rankData.rankChange > 0 ? (
-                                                    // Moved up - green arrow
-                                                    <span className="text-[9px] font-bold text-emerald-400 ml-0.5" title={`Up ${rankData.rankChange}`}>
+                                                    <span className="text-[8px] font-bold text-emerald-400" title={`Up ${rankData.rankChange}`}>
                                                         ↑{rankData.rankChange}
                                                     </span>
                                                 ) : rankData.rankChange < 0 ? (
-                                                    // Moved down - red arrow
-                                                    <span className="text-[9px] font-bold text-red-400 ml-0.5" title={`Down ${Math.abs(rankData.rankChange)}`}>
+                                                    <span className="text-[8px] font-bold text-red-400" title={`Down ${Math.abs(rankData.rankChange)}`}>
                                                         ↓{Math.abs(rankData.rankChange)}
                                                     </span>
-                                                ) : null // No indicator if unchanged (rankChange === 0)
+                                                ) : null
                                             )}
                                         </div>
                                         {/* PnL (only if has rank) */}
                                         {formattedPnl && rankData && (
                                             <span className={cn(
-                                                "text-[10px] lg:text-xs font-semibold leading-tight",
+                                                "text-[9px] lg:text-[10px] font-semibold",
                                                 rankData.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
                                             )}>
                                                 {formattedPnl}
@@ -589,38 +585,98 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 );
                             })}
                         </div>
-                        {/* Account Name Row - Centered */}
-                        <div className="flex items-center justify-center gap-2 mt-2">
-                            {/* Star Icon */}
+                        {/* Account Name Row - Signature Style */}
+                        <div className="relative flex items-center justify-center gap-2 lg:gap-3 mt-2 lg:mt-3 pt-1.5 lg:pt-2">
+                            {/* Decorative Left Flourish */}
                             <div className={cn(
-                                "shrink-0 w-4 h-4 flex items-center justify-center",
-                                isGod ? "text-yellow-400" :
-                                    isSuper ? "text-red-400" :
-                                        isMega ? "text-purple-400" :
-                                            isWhale ? "text-blue-400" :
-                                                "text-zinc-400"
-                            )}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="drop-shadow-sm">
-                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                                </svg>
+                                "flex-1 h-px opacity-50",
+                                "bg-gradient-to-r from-transparent",
+                                isGod ? "via-yellow-500/40 to-yellow-400/60" :
+                                    isSuper ? "via-red-500/40 to-red-400/60" :
+                                        isMega ? "via-purple-500/40 to-purple-400/60" :
+                                            isWhale ? "via-blue-500/40 to-blue-400/60" :
+                                                "via-zinc-600/40 to-zinc-500/60"
+                            )} />
+
+                            {/* Account Name with Glow */}
+                            <div className="relative flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5">
+                                {/* Subtle Background Glow */}
+                                <div className={cn(
+                                    "absolute inset-0 rounded-full blur-sm opacity-15",
+                                    isGod ? "bg-yellow-500" :
+                                        isSuper ? "bg-red-500" :
+                                            isMega ? "bg-purple-500" :
+                                                isWhale ? "bg-blue-500" :
+                                                    "bg-zinc-500"
+                                )} />
+
+                                {/* Crown/Elite Icon */}
+                                <div className="relative shrink-0 w-3.5 h-3.5 lg:w-4 lg:h-4 flex items-center justify-center">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src="/logos/logoOnly.png"
+                                        alt="Polymarket logo"
+                                        className={cn(
+                                            "w-full h-full object-contain",
+                                            isGod ? "drop-shadow-[0_0_4px_rgba(250,204,21,0.4)]" :
+                                                isSuper ? "drop-shadow-[0_0_4px_rgba(239,68,68,0.4)]" :
+                                                    isMega ? "drop-shadow-[0_0_4px_rgba(168,85,247,0.4)]" :
+                                                        isWhale ? "drop-shadow-[0_0_4px_rgba(59,130,246,0.4)]" :
+                                                            "drop-shadow-[0_0_4px_rgba(161,161,170,0.4)]"
+                                        )}
+                                    />
+                                </div>
+
+                                {/* Account Name */}
+                                <span className={cn(
+                                    "relative text-[11px] lg:text-xs font-bold truncate tracking-wide uppercase max-w-[120px] lg:max-w-[160px]",
+                                    isGod ? "text-yellow-100" :
+                                        isSuper ? "text-red-100" :
+                                            isMega ? "text-purple-100" :
+                                                isWhale ? "text-blue-100" :
+                                                    "text-zinc-100"
+                                )}>
+                                    {displayAccountName}
+                                </span>
+
+                                {/* Verified Badge */}
+                                <div className={cn(
+                                    "relative shrink-0 w-3 h-3 lg:w-3.5 lg:h-3.5 flex items-center justify-center",
+                                    isGod ? "text-yellow-400" :
+                                        isSuper ? "text-red-400" :
+                                            isMega ? "text-purple-400" :
+                                                isWhale ? "text-blue-400" :
+                                                    "text-zinc-400"
+                                )}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                                        <path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82 1.89 3.2L12 21.04l3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z" />
+                                    </svg>
+                                </div>
                             </div>
-                            {/* Account Name */}
-                            <span className={cn(
-                                "text-sm font-bold truncate tracking-tight",
-                                isGod ? "text-yellow-200" :
-                                    isSuper ? "text-red-200" :
-                                        isMega ? "text-purple-200" :
-                                            isWhale ? "text-blue-200" :
-                                                "text-zinc-100"
-                            )}>
-                                {displayAccountName}
-                            </span>
+
+                            {/* Decorative Right Flourish */}
+                            <div className={cn(
+                                "flex-1 h-px opacity-50",
+                                "bg-gradient-to-l from-transparent",
+                                isGod ? "via-yellow-500/40 to-yellow-400/60" :
+                                    isSuper ? "via-red-500/40 to-red-400/60" :
+                                        isMega ? "via-purple-500/40 to-purple-400/60" :
+                                            isWhale ? "via-blue-500/40 to-blue-400/60" :
+                                                "via-zinc-600/40 to-zinc-500/60"
+                            )} />
                         </div>
                     </div>
                 )}
 
                 {/* Card Docked Plate - Timestamp Footer */}
-                <div className="mx-auto mt-1 w-[92%] px-4 py-1.5 text-[10px] text-zinc-500">
+                <div className={cn(
+                    "mx-auto mt-1 w-[92%] px-4 py-1.5 text-[10px]",
+                    isGod ? "text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" :
+                        isSuper ? "text-red-400/70" :
+                            isMega ? "text-purple-400/70" :
+                                isWhale ? "text-blue-400/70" :
+                                    "text-zinc-400"
+                )}>
                     {(() => {
                         const date = new Date(timestamp);
                         const now = new Date();

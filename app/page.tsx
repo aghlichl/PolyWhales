@@ -166,10 +166,10 @@ export default function Home() {
       leftPanel={<UserPreferences />}
       rightPanel={<TopWhales />}
       centerTitle={getCenterTitle()}
+      header={<Header />}
+      ticker={<Ticker />}
     >
       <main className="bg-background relative">
-        <Header />
-        <Ticker />
 
         {/* Centered Quick Search Filters - Only on Live Feed page */}
         {currentPage === 1 && (
