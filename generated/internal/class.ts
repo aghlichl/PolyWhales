@@ -17,8 +17,8 @@ import type * as Prisma from "./prismaNamespace"
 
 const config: runtime.GetPrismaClientConfig = {
   "previewFeatures": [],
-  "clientVersion": "7.0.0",
-  "engineVersion": "0c19ccc313cf9911a90d99d2ac2eb0280c76c513",
+  "clientVersion": "7.1.0",
+  "engineVersion": "ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba",
   "activeProvider": "postgresql",
   "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel Alert {\n  id     String @id @default(cuid())\n  userId String\n  user   User   @relation(fields: [userId], references: [id])\n\n  type   AlertType\n  config Json // e.g., { \"threshold\": 10000, \"wallet\": \"0x...\" }\n\n  createdAt DateTime @default(now())\n\n  @@map(\"alerts\")\n}\n\nmodel Trade {\n  id         String   @id @default(cuid())\n  assetId    String\n  side       String // \"BUY\" or \"SELL\"\n  size       Float\n  price      Float\n  tradeValue Float // size * price\n  timestamp  DateTime\n\n  walletAddress String         @default(\"\")\n  walletProfile WalletProfile? @relation(fields: [walletAddress], references: [id])\n\n  // Intelligence flags\n  isWhale      Boolean @default(false)\n  isSmartMoney Boolean @default(false)\n  isFresh      Boolean @default(false)\n  isSweeper    Boolean @default(false)\n\n  // Market context\n  conditionId       String?\n  outcome           String?\n  question          String?\n  image             String?\n  marketCategory    String?\n  marketType        String?\n  formatType        String?\n  feeBps            Float?\n  denominationToken String?\n  liquidity         Float?\n  volume24h         Float?\n  openTime          DateTime?\n  closeTime         DateTime?\n  resolutionTime    DateTime?\n  resolutionSource  String?\n  eventId           String?\n  eventTitle        String?\n  eventSlug         String?\n  eventStart        DateTime?\n  eventEnd          DateTime?\n  tags              String[]\n  sport             String?\n  league            String?\n  marketGroup       String?\n  marketDepthBucket String?\n  timeToCloseBucket String?\n  holderTop5Share   Float?\n  holderTop10Share  Float?\n  holderCount       Int?\n  smartHolderCount  Int?\n\n  // Enrichment fields for wallet identity matching\n  transactionHash  String? // For Data-API matching\n  blockNumber      BigInt? // For tx log fallback matching\n  logIndex         Int? // Unique identifier within block\n  enrichmentStatus String? @default(\"pending\") // \"pending\" | \"enriched\" | \"failed\"\n\n  @@index([walletAddress])\n  @@index([timestamp])\n  @@index([isWhale, timestamp])\n  @@index([transactionHash])\n  @@index([enrichmentStatus, timestamp])\n  @@index([eventId])\n  @@index([marketCategory])\n  @@index([closeTime])\n  @@index([sport, league])\n  @@map(\"trades\")\n}\n\nmodel UserAlertSettings {\n  id     String @id @default(cuid())\n  userId String @unique\n  user   User   @relation(fields: [userId], references: [id])\n\n  // Channels\n  discordWebhook String?\n  smsNumber      String?\n  telegramId     String?\n\n  // Subscriptions\n  wallets    String[] // Array of wallet addresses to watch\n  markets    String[] // Array of market IDs to watch\n  alertTypes AlertType[] // Types of alerts to receive\n\n  updatedAt DateTime @updatedAt\n\n  @@map(\"user_alert_settings\")\n}\n\nmodel User {\n  id            String   @id // Privy DID (e.g., \"did:privy:...\")\n  email         String?  @unique\n  walletAddress String?  @unique // Primary connected wallet\n  createdAt     DateTime @default(now())\n  updatedAt     DateTime @updatedAt\n\n  // Premium/Subscription status\n  tier             SubscriptionTier @default(FREE)\n  stripeCustomerId String?\n\n  // User preferences\n  watchlist     Watchlist[]\n  alerts        Alert[] // Old alert model, keeping for now\n  alertSettings UserAlertSettings?\n\n  @@map(\"users\")\n}\n\nmodel WalletPortfolioSnapshot {\n  id            String        @id @default(cuid())\n  walletAddress String\n  wallet        WalletProfile @relation(fields: [walletAddress], references: [id])\n  timestamp     DateTime      @default(now())\n\n  // Summary metrics\n  totalValue Float @default(0)\n  totalPnl   Float @default(0)\n\n  // Raw data\n  positions Json // Array of positions from Gamma\n\n  @@index([walletAddress])\n  @@index([timestamp])\n  @@map(\"wallet_portfolio_snapshots\")\n}\n\nmodel WalletProfile {\n  id            String                    @id // wallet address\n  label         String? // e.g., \"Smart Whale\", \"Degen\"\n  totalPnl      Float                     @default(0) // Total PnL in USD\n  winRate       Float                     @default(0) // Win rate as decimal (0.0 to 1.0)\n  isFresh       Boolean                   @default(false) // < 10 transactions\n  txCount       Int                       @default(0)\n  maxTradeValue Float                     @default(0)\n  activityLevel String? // \"LOW\", \"MEDIUM\", \"HIGH\"\n  lastUpdated   DateTime                  @default(now())\n  trades        Trade[]\n  snapshots     WalletPortfolioSnapshot[]\n\n  @@map(\"wallet_profiles\")\n}\n\nmodel Watchlist {\n  id     String @id @default(cuid())\n  userId String\n  user   User   @relation(fields: [userId], references: [id])\n\n  // What they are watching\n  walletAddress String? // Watching a specific whale\n  marketId      String? // Watching a specific market\n\n  createdAt DateTime @default(now())\n\n  @@unique([userId, walletAddress])\n  @@unique([userId, marketId])\n  @@map(\"watchlists\")\n}\n\nenum AlertType {\n  WHALE_MOVEMENT\n  MARKET_SPIKE\n  SMART_MONEY_ENTRY\n}\n\nenum SubscriptionTier {\n  FREE\n  PRO\n  WHALE\n}\n\nmodel WalletLeaderboardSnapshot {\n  id            String   @id @default(uuid())\n  walletAddress String\n  period        String // \"Daily\" | \"Weekly\" | \"Monthly\" | \"All Time\"\n  rank          Int\n  totalPnl      Float\n  totalVolume   Float\n  winRate       Float\n  snapshotAt    DateTime\n  accountName   String?\n\n  @@index([walletAddress])\n  @@index([snapshotAt])\n  @@map(\"wallet_leaderboard_snapshots\")\n}\n\nmodel WhalePositionSnapshot {\n  id                 String    @id @default(cuid())\n  snapshotAt         DateTime  @map(\"snapshot_ts\")\n  timeframe          String\n  walletRank         Int       @map(\"wallet_rank\")\n  positionRank       Int       @map(\"position_rank\")\n  proxyWallet        String    @map(\"proxy_wallet\")\n  conditionId        String    @map(\"condition_id\")\n  assetId            String    @map(\"asset_id\")\n  eventId            String?   @map(\"event_id\")\n  eventSlug          String?   @map(\"event_slug\")\n  marketTitle        String?   @map(\"market_title\")\n  marketSlug         String?   @map(\"market_slug\")\n  iconUrl            String?   @map(\"icon_url\")\n  outcome            String?\n  outcomeIndex       Int?      @map(\"outcome_index\")\n  oppositeOutcome    String?   @map(\"opposite_outcome\")\n  oppositeAssetId    String?   @map(\"opposite_asset_id\")\n  endDate            DateTime? @map(\"end_date\")\n  negativeRisk       Boolean?  @map(\"negative_risk\")\n  redeemable         Boolean?\n  size               Float\n  avgPrice           Float     @map(\"avg_price\")\n  curPrice           Float     @map(\"cur_price\")\n  initialValue       Float     @map(\"initial_value\")\n  currentValue       Float     @map(\"current_value\")\n  totalBought        Float     @map(\"total_bought\")\n  cashPnl            Float     @map(\"cash_pnl\")\n  percentPnl         Float     @map(\"percent_pnl\")\n  realizedPnl        Float     @map(\"realized_pnl\")\n  percentRealizedPnl Float?    @map(\"percent_realized_pnl\")\n\n  @@unique([snapshotAt, timeframe, proxyWallet, assetId])\n  @@index([proxyWallet])\n  @@index([snapshotAt])\n  @@map(\"whale_position_snapshots\")\n}\n",
   "runtimeDataModel": {
@@ -62,7 +62,7 @@ export interface PrismaClientConstructor {
    * const alerts = await prisma.alert.findMany()
    * ```
    * 
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
+   * Read more in our [docs](https://pris.ly/d/client).
    */
 
   new <
@@ -84,7 +84,7 @@ export interface PrismaClientConstructor {
  * const alerts = await prisma.alert.findMany()
  * ```
  * 
- * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
+ * Read more in our [docs](https://pris.ly/d/client).
  */
 
 export interface PrismaClient<
@@ -113,7 +113,7 @@ export interface PrismaClient<
    * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   * Read more in our [docs](https://pris.ly/d/raw-queries).
    */
   $executeRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -125,7 +125,7 @@ export interface PrismaClient<
    * const result = await prisma.$executeRawUnsafe('UPDATE User SET cool = $1 WHERE email = $2 ;', true, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   * Read more in our [docs](https://pris.ly/d/raw-queries).
    */
   $executeRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -136,7 +136,7 @@ export interface PrismaClient<
    * const result = await prisma.$queryRaw`SELECT * FROM User WHERE id = ${1} OR email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   * Read more in our [docs](https://pris.ly/d/raw-queries).
    */
   $queryRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<T>;
 
@@ -148,7 +148,7 @@ export interface PrismaClient<
    * const result = await prisma.$queryRawUnsafe('SELECT * FROM User WHERE id = $1 OR email = $2;', 1, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   * Read more in our [docs](https://pris.ly/d/raw-queries).
    */
   $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<T>;
 

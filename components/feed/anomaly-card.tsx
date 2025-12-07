@@ -8,6 +8,7 @@ import { TradeDetailsModal } from "./trade-details-modal";
 import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
 import { useAutoFitText } from "@/lib/useAutoFitText";
 import { useMarketStore } from "@/lib/store";
+import { motion } from "framer-motion";
 
 // Import distinctive fonts following Spotify/DoorDash/Robinhood patterns
 import { Inter } from 'next/font/google';
@@ -192,9 +193,33 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
     // Resolution label is no longer needed as a separate variable since we integrated logic
     const resolutionLabel = null;
 
+    // Portal animation variants
+    const portalVariants = {
+        initial: {
+            y: -20,
+            opacity: 0,
+            scale: 0.95,
+        },
+        animate: {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            transition: {
+                type: "spring" as const,
+                stiffness: 400, // Snappier
+                damping: 25,    // No bounce, just smooth landing
+                mass: 1         // Standard weight
+            }
+        }
+    };
+
     return (
         <>
-            <div
+            <motion.div
+                layout
+                initial={anomaly.isNew ? "initial" : false}
+                animate={anomaly.isNew ? "animate" : false}
+                variants={portalVariants}
                 className="group relative h-full select-none hover:z-30 cursor-pointer"
                 onClick={() => setIsModalOpen(true)}
             >
@@ -820,7 +845,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         }
                     })()}
                 </div>
-            </div>
+            </motion.div>
 
 
             <TradeDetailsModal

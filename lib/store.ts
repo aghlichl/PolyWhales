@@ -9,7 +9,7 @@ export function getTop20Wallets(leaderboardRanks: Record<string, LeaderboardRank
   // For each wallet, find their best (lowest) rank across all periods
   for (const [address, ranks] of Object.entries(leaderboardRanks)) {
     if (!ranks || ranks.length === 0) continue;
-    
+
     const bestRank = Math.min(...ranks.map(r => r.rank));
     wallets.push({ address: address.toLowerCase(), bestRank });
   }
@@ -23,7 +23,7 @@ export function getTop20Wallets(leaderboardRanks: Record<string, LeaderboardRank
 
 // Helper function to check if anomaly passes user preferences
 function passesPreferences(
-  anomaly: Anomaly, 
+  anomaly: Anomaly,
   preferences?: UserPreferences,
   top20Wallets?: Set<string>
 ): boolean {
@@ -228,7 +228,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
       // Don't update volume/ticker for updates to avoid double counting
     } else {
       // Add new anomaly
-      newAnomalies = [anomaly, ...state.anomalies].slice(0, 2000);
+      const newAnomaly = { ...anomaly, isNew: true };
+      newAnomalies = [newAnomaly, ...state.anomalies].slice(0, 2000);
       newVolume += anomaly.value;
       newTickerItems = [`${anomaly.event} ${anomaly.type === 'GOD_WHALE' || anomaly.type === 'SUPER_WHALE' || anomaly.type === 'MEGA_WHALE' ? 'WHALE' : 'TRADE'} $${(anomaly.value / 1000).toFixed(1)}k`, ...state.tickerItems].slice(0, 20);
     }

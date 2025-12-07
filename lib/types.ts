@@ -38,6 +38,7 @@ export interface Anomaly {
     timestamp: number;
     side: 'BUY' | 'SELL';
     image?: string | null; // Event image URL
+    isNew?: boolean; // Flag for UI animation on new real-time items
     // Optional fields for enriched display
     wallet_context?: {
         address?: string;
