@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { fetchActivityFromDataAPI, fetchMarketsFromGamma, parseMarketData } from '@/lib/polymarket';
+import { fetchActivityFromDataAPI, getMarketMetadata } from '@/lib/polymarket';
 import { calculatePositionPL } from '@/lib/utils';
-
-// Simple in-memory caches
-let marketCache: { data: Map<string, any>; timestamp: number } | null = null;
-const MARKET_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 let walletCache: { [key: string]: { data: any[]; timestamp: number } } = {};
 const WALLET_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
@@ -23,19 +19,7 @@ export async function GET(request: Request) {
 
     try {
         // Fetch market metadata for conditionId -> market name mapping (with cache)
-        let marketsByCondition = new Map<string, any>();
-        try {
-            if (!marketCache || Date.now() - marketCache.timestamp > MARKET_CACHE_TTL) {
-                const markets = await fetchMarketsFromGamma();
-                const result = parseMarketData(markets);
-                marketCache = { data: result.marketsByCondition, timestamp: Date.now() };
-            }
-            marketsByCondition = marketCache.data;
-        } catch (metaError) {
-            console.warn('[MarketHistory] Failed to fetch market metadata:', metaError);
-            // Use stale cache if available
-            if (marketCache) marketsByCondition = marketCache.data;
-        }
+        const { marketsByCondition } = await getMarketMetadata();
 
         // 1. Fetch Price History (trades within time window of the trade)
         const whereClause: any = {

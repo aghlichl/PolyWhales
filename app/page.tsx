@@ -206,7 +206,7 @@ export default function Home() {
             {currentPage === 1 && (
               <>
                 <SlotReel>
-                  {filteredAnomalies.slice(0, 50).map((anomaly) => (
+                  {filteredAnomalies.map((anomaly) => (
                     <AnomalyCard key={anomaly.id} anomaly={anomaly} />
                   ))}
                 </SlotReel>

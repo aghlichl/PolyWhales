@@ -10,10 +10,11 @@ import {
   fetchWalletTradeStats,
 } from "../lib/intelligence";
 import {
-  fetchMarketsFromGamma,
-  parseMarketData,
+  getMarketMetadata,
   getCachedHolderMetrics,
   enrichTradeWithDataAPI, // Only used in deprecated processTrade function
+  deriveWhaleTags,
+  buildAnalysisTags,
 } from "../lib/polymarket";
 import {
   MarketMeta,
@@ -29,6 +30,8 @@ import { fetchPortfolio } from "../lib/gamma";
 import { CONFIG } from "../lib/config";
 import { load } from "cheerio";
 import fetch from "node-fetch";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ---- LEADERBOARD SCRAPER TYPES ----
 type LeaderboardRow = {
@@ -146,6 +149,7 @@ function parseCurrency(label: string): number | null {
 /**
  * Fetch top positions for a wallet
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function fetchWhalePositions(walletAddress: string): Promise<PositionResponse[]> {
   try {
     const url = `https://data-api.polymarket.com/positions?sizeThreshold=1&limit=10&sortBy=CURRENT&sortDirection=DESC&user=${walletAddress}`;
@@ -387,17 +391,15 @@ io.on("connection", (socket) => {
 });
 
 // Market metadata cache with bounds to prevent memory accumulation
-let marketsByCondition = new BoundedMap<string, MarketMeta>(5000);
-let assetIdToOutcome = new BoundedMap<string, AssetOutcome>(10000);
+const marketsByCondition = new BoundedMap<string, MarketMeta>(5000);
+const assetIdToOutcome = new BoundedMap<string, AssetOutcome>(10000);
 
 /**
  * Fetch market metadata and update local cache
  */
 async function updateMarketMetadata(): Promise<string[]> {
   try {
-    const markets = await fetchMarketsFromGamma();
-
-    const result = parseMarketData(markets);
+    const result = await getMarketMetadata();
 
     // Update bounded maps (clear and repopulate to maintain bounds)
     marketsByCondition.clear();
@@ -498,13 +500,8 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
     const liquidityBucket = computeLiquidityBucket(marketMeta.liquidity);
     const timeToCloseBucket = computeTimeToCloseBucket(closeTimeIso);
     const additionalTags = (marketMeta.tagNames || []).filter(Boolean);
-    const baseWhaleTags = [
-      value >= CONFIG.THRESHOLDS.GOD_WHALE && "GOD_WHALE",
-      value >= CONFIG.THRESHOLDS.SUPER_WHALE && "SUPER_WHALE",
-      value >= CONFIG.THRESHOLDS.MEGA_WHALE && "MEGA_WHALE",
-      value >= CONFIG.THRESHOLDS.WHALE && "WHALE",
-    ].filter(Boolean) as string[];
-    const mergedTags = Array.from(new Set([...baseWhaleTags, ...additionalTags]));
+    const whaleTags = deriveWhaleTags(value);
+    const mergedTags = Array.from(new Set([...whaleTags, ...additionalTags]));
 
     const marketContext = {
       category: marketMeta.category || null,
@@ -754,17 +751,14 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
     const fullEnrichedTrade: EnrichedTrade = {
       ...initialEnrichedTrade,
       analysis: {
-        tags: Array.from(new Set([
-          isGodWhale && "GOD_WHALE",
-          isSuperWhale && "SUPER_WHALE",
-          isMegaWhale && "MEGA_WHALE",
-          isWhale && "WHALE",
-          isSmartMoney && "SMART_MONEY",
-          isFresh && "FRESH_WALLET",
-          isSweeper && "SWEEPER",
-          isInsider && "INSIDER",
-          ...additionalTags,
-        ].filter(Boolean) as string[])),
+        tags: buildAnalysisTags({
+          value,
+          isSmartMoney,
+          isFresh,
+          isSweeper,
+          isInsider,
+          additionalTags,
+        }),
         event: eventContext,
         market_context: marketContext,
         crowding: crowdingContext,
@@ -878,12 +872,7 @@ export async function processTrade(trade: PolymarketTrade) {
         timestamp: new Date(Date.now()),
       },
       analysis: {
-        tags: [
-          isGodWhale && "GOD_WHALE",
-          isSuperWhale && "SUPER_WHALE",
-          isMegaWhale && "MEGA_WHALE",
-          isWhale && "WHALE",
-        ].filter(Boolean) as string[],
+        tags: deriveWhaleTags(value),
         wallet_context: {
           address: "",
           label: "Loading...",
@@ -1078,16 +1067,13 @@ export async function processTrade(trade: PolymarketTrade) {
       const fullEnrichedTrade: EnrichedTrade = {
         ...initialEnrichedTrade,
         analysis: {
-          tags: [
-            isGodWhale && "GOD_WHALE",
-            isSuperWhale && "SUPER_WHALE",
-            isMegaWhale && "MEGA_WHALE",
-            isWhale && "WHALE",
-            isSmartMoney && "SMART_MONEY",
-            isFresh && "FRESH_WALLET",
-            isSweeper && "SWEEPER",
-            isInsider && "INSIDER",
-          ].filter(Boolean) as string[],
+          tags: buildAnalysisTags({
+            value,
+            isSmartMoney,
+            isFresh,
+            isSweeper,
+            isInsider,
+          }),
           wallet_context: {
             address: walletAddress.toLowerCase(),
             label: profile.label || "Unknown",

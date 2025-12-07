@@ -1,5 +1,7 @@
-import { MarketMeta, AssetOutcome, PolymarketMarket, DataAPITrade, DataAPIActivity, WalletEnrichmentResult } from './types';
+import { MarketMeta, AssetOutcome, PolymarketMarket, DataAPITrade, DataAPIActivity, WalletEnrichmentResult, Anomaly, AnomalyType } from './types';
 import { CONFIG } from './config';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export function normalizeMarketResponse(data: any): PolymarketMarket[] {
     if (Array.isArray(data)) {
@@ -18,7 +20,7 @@ let marketsCache: {
     timestamp: number;
 } | null = null;
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = CONFIG.CONSTANTS.METADATA_REFRESH_INTERVAL; // 5 minutes
 
 export async function fetchMarketsFromGamma(init?: RequestInit): Promise<PolymarketMarket[]> {
     // Check cache first
@@ -146,12 +148,49 @@ export function parseMarketData(markets: PolymarketMarket[]): {
                     allAssetIds.push(assetId);
                 });
             }
-        } catch (error) {
+        } catch {
             // console.warn(`Error parsing market ${market.conditionId}:`, error);
         }
     });
 
     return { marketsByCondition, assetIdToOutcome, allAssetIds };
+}
+
+type ParsedMarketCache = {
+    marketsByCondition: Map<string, MarketMeta>;
+    assetIdToOutcome: Map<string, AssetOutcome>;
+    allAssetIds: string[];
+    fetchedAt: number;
+};
+
+let parsedMarketCache: ParsedMarketCache | null = null;
+
+const isCacheFresh = (cache: { fetchedAt: number } | null): boolean => {
+    if (!cache) return false;
+    return (Date.now() - cache.fetchedAt) < CACHE_TTL;
+};
+
+export function getCachedMarketMetadata(): ParsedMarketCache | null {
+    if (isCacheFresh(parsedMarketCache)) {
+        return parsedMarketCache;
+    }
+    return null;
+}
+
+export async function getMarketMetadata(init?: RequestInit): Promise<ParsedMarketCache> {
+    if (isCacheFresh(parsedMarketCache)) {
+        return parsedMarketCache!;
+    }
+
+    const markets = await fetchMarketsFromGamma(init);
+    const parsed = parseMarketData(markets);
+
+    parsedMarketCache = {
+        ...parsed,
+        fetchedAt: Date.now()
+    };
+
+    return parsedMarketCache;
 }
 
 /**
@@ -256,7 +295,7 @@ export async function resolveProxyWallet(userAddress: string): Promise<string | 
 export async function fetchActivityFromDataAPI(params: DataAPIActivityQuery): Promise<DataAPIActivity[]> {
     try {
         // First try with the provided user address
-        let userAddress = params.user;
+        const userAddress = params.user;
         let activities = await fetchActivityWithAddress(userAddress, params);
 
         // If no activities found, try to resolve proxy wallet
@@ -469,4 +508,232 @@ export function getCachedHolderMetrics(assetId: string): HolderMetrics | null {
 
 export function setCachedHolderMetrics(assetId: string, metrics: HolderMetrics) {
     holderCache.set(assetId, metrics);
+}
+
+export function deriveAnomalyType(value: number): AnomalyType {
+    if (value >= CONFIG.THRESHOLDS.GOD_WHALE) return 'GOD_WHALE';
+    if (value >= CONFIG.THRESHOLDS.SUPER_WHALE) return 'SUPER_WHALE';
+    if (value >= CONFIG.THRESHOLDS.MEGA_WHALE) return 'MEGA_WHALE';
+    if (value >= CONFIG.THRESHOLDS.WHALE) return 'WHALE';
+    return 'STANDARD';
+}
+
+export function deriveWhaleTags(value: number): string[] {
+    const tags: string[] = [];
+    if (value >= CONFIG.THRESHOLDS.GOD_WHALE) tags.push('GOD_WHALE');
+    if (value >= CONFIG.THRESHOLDS.SUPER_WHALE) tags.push('SUPER_WHALE');
+    if (value >= CONFIG.THRESHOLDS.MEGA_WHALE) tags.push('MEGA_WHALE');
+    if (value >= CONFIG.THRESHOLDS.WHALE) tags.push('WHALE');
+    return tags;
+}
+
+type AnalysisTagOptions = {
+    value: number;
+    isSmartMoney?: boolean;
+    isFresh?: boolean;
+    isSweeper?: boolean;
+    isInsider?: boolean;
+    additionalTags?: string[];
+};
+
+export function buildAnalysisTags(options: AnalysisTagOptions): string[] {
+    const {
+        value,
+        isSmartMoney = false,
+        isFresh = false,
+        isSweeper = false,
+        isInsider = false,
+        additionalTags = [],
+    } = options;
+
+    const tags = [
+        ...deriveWhaleTags(value),
+        isSmartMoney && 'SMART_MONEY',
+        isFresh && 'FRESH_WALLET',
+        isSweeper && 'SWEEPER',
+        isInsider && 'INSIDER',
+        ...additionalTags,
+    ].filter(Boolean) as string[];
+
+    return Array.from(new Set(tags));
+}
+
+export type TradeWithProfile = {
+    id: string;
+    tradeValue: number;
+    price: number;
+    side: string | null;
+    timestamp: Date | string | number;
+    conditionId?: string | null;
+    image?: string | null;
+    walletAddress?: string | null;
+    walletProfile?: {
+        id?: string | null;
+        label?: string | null;
+        totalPnl?: number | null;
+        winRate?: number | null;
+        isFresh?: boolean | null;
+        txCount?: number | null;
+        maxTradeValue?: number | null;
+        activityLevel?: string | null;
+    } | null;
+    tags?: string[] | null;
+    marketCategory?: string | null;
+    sport?: string | null;
+    league?: string | null;
+    feeBps?: number | null;
+    liquidity?: number | null;
+    volume24h?: number | null;
+    closeTime?: Date | string | null;
+    openTime?: Date | string | null;
+    resolutionTime?: Date | string | null;
+    resolutionSource?: string | null;
+    denominationToken?: string | null;
+    marketDepthBucket?: string | null;
+    timeToCloseBucket?: string | null;
+    eventId?: string | null;
+    eventTitle?: string | null;
+    eventSlug?: string | null;
+    holderTop5Share?: number | null;
+    holderTop10Share?: number | null;
+    holderCount?: number | null;
+    smartHolderCount?: number | null;
+    question?: string | null;
+    outcome?: string | null;
+    isSmartMoney?: boolean | null;
+    isFresh?: boolean | null;
+    isSweeper?: boolean | null;
+    isWhale?: boolean | null;
+};
+
+const toIsoString = (value?: string | Date | null): string | null => {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+export interface TradeToAnomalyOptions {
+    marketsByCondition?: Map<string, MarketMeta>;
+}
+
+export function tradeToAnomaly(
+    trade: TradeWithProfile,
+    options: TradeToAnomalyOptions = {}
+): Anomaly {
+    const marketsByCondition = options.marketsByCondition || getCachedMarketMetadata()?.marketsByCondition;
+    const marketMeta = trade.conditionId && marketsByCondition
+        ? marketsByCondition.get(trade.conditionId)
+        : undefined;
+
+    const price = Number(trade.price ?? 0);
+    const value = Number(trade.tradeValue ?? 0);
+    const timestampMs = trade.timestamp instanceof Date
+        ? trade.timestamp.getTime()
+        : new Date(trade.timestamp || Date.now()).getTime();
+
+    const marketContext = {
+        category: marketMeta?.category ?? trade.marketCategory ?? null,
+        sport: marketMeta?.sport ?? trade.sport ?? null,
+        league: marketMeta?.league ?? trade.league ?? null,
+        feeBps: marketMeta?.feeBps ?? trade.feeBps ?? null,
+        liquidity: marketMeta?.liquidity ?? trade.liquidity ?? null,
+        volume24h: marketMeta?.volume24h ?? trade.volume24h ?? null,
+        closeTime: marketMeta?.closeTime || toIsoString(trade.closeTime),
+        openTime: marketMeta?.openTime || toIsoString(trade.openTime),
+        resolutionTime: marketMeta?.resolutionTime || toIsoString(trade.resolutionTime),
+        resolutionSource: marketMeta?.resolutionSource || trade.resolutionSource || null,
+        denominationToken: marketMeta?.denominationToken || trade.denominationToken || null,
+        liquidity_bucket: trade.marketDepthBucket ?? null,
+        time_to_close_bucket: trade.timeToCloseBucket ?? null,
+    };
+
+    const eventContext = {
+        id: trade.eventId || marketMeta?.eventId || undefined,
+        title: trade.eventTitle || marketMeta?.eventTitle || undefined,
+        slug: trade.eventSlug || marketMeta?.eventSlug || null,
+    };
+
+    const hasCrowdingData = [
+        trade.holderTop5Share,
+        trade.holderTop10Share,
+        trade.holderCount,
+        trade.smartHolderCount,
+    ].some((v) => v !== undefined && v !== null);
+
+    const crowdingContext = hasCrowdingData ? {
+        top5_share: trade.holderTop5Share ?? null,
+        top10_share: trade.holderTop10Share ?? null,
+        holder_count: trade.holderCount ?? null,
+        smart_holder_count: trade.smartHolderCount ?? null,
+        label: trade.holderTop5Share ? 'crowding' : null,
+    } : undefined;
+
+    const walletAddress = (trade.walletProfile?.id || trade.walletAddress || '').trim();
+    const walletLabel = trade.walletProfile?.label?.trim();
+
+    const walletContext = walletAddress ? {
+        address: walletAddress,
+        label: walletLabel || walletAddress,
+        pnl_all_time: `$${(trade.walletProfile?.totalPnl || 0).toLocaleString()}`,
+        win_rate: `${((trade.walletProfile?.winRate || 0) * 100).toFixed(0)}%`,
+        is_fresh_wallet: trade.walletProfile?.isFresh ?? false,
+    } : undefined;
+
+    const traderContext = trade.walletProfile ? {
+        tx_count: trade.walletProfile.txCount ?? 0,
+        max_trade_value: trade.walletProfile.maxTradeValue ?? 0,
+        activity_level: trade.walletProfile.activityLevel ?? null,
+    } : undefined;
+
+    const isInsider = (trade.walletProfile?.activityLevel === 'LOW'
+        && (trade.walletProfile?.winRate || 0) > 0.7
+        && (trade.walletProfile?.totalPnl || 0) > 10000);
+
+    const analysisTags = buildAnalysisTags({
+        value,
+        isSmartMoney: !!trade.isSmartMoney,
+        isFresh: !!trade.isFresh,
+        isSweeper: !!trade.isSweeper,
+        isInsider,
+        additionalTags: trade.tags || [],
+    });
+
+    const image = marketMeta?.image || trade.image || undefined;
+
+    return {
+        id: trade.id,
+        type: deriveAnomalyType(value),
+        event: trade.question || 'Unknown Market',
+        outcome: trade.outcome || 'Unknown',
+        odds: Math.round(price * 100),
+        value,
+        timestamp: timestampMs,
+        side: (trade.side as 'BUY' | 'SELL') || 'BUY',
+        image,
+        category: marketContext.category,
+        sport: marketContext.sport,
+        league: marketContext.league,
+        feeBps: marketContext.feeBps,
+        liquidity: marketContext.liquidity,
+        volume24h: marketContext.volume24h,
+        closeTime: marketContext.closeTime,
+        openTime: marketContext.openTime,
+        resolutionTime: marketContext.resolutionTime,
+        resolutionSource: marketContext.resolutionSource,
+        denominationToken: marketContext.denominationToken,
+        liquidity_bucket: marketContext.liquidity_bucket,
+        time_to_close_bucket: marketContext.time_to_close_bucket,
+        eventId: eventContext.id || null,
+        eventTitle: eventContext.title || null,
+        tags: trade.tags || [],
+        wallet_context: walletContext,
+        trader_context: traderContext,
+        crowding: crowdingContext,
+        analysis: {
+            tags: analysisTags,
+            event: eventContext,
+            market_context: marketContext,
+            crowding: crowdingContext,
+        },
+    };
 }

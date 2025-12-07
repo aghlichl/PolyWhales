@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { fetchMarketsFromGamma, parseMarketData } from '@/lib/polymarket';
+import { getMarketMetadata, tradeToAnomaly } from '@/lib/polymarket';
 
 type Period = 'today' | 'weekly' | 'monthly' | 'yearly' | 'max';
 
@@ -31,8 +31,7 @@ function getDateFilter(period: Period): Date | null {
 export async function GET(request: Request) {
   try {
     // Fetch current market metadata to get images
-    const markets = await fetchMarketsFromGamma();
-    const { marketsByCondition } = parseMarketData(markets);
+    const { marketsByCondition } = await getMarketMetadata();
 
     const { searchParams } = new URL(request.url);
     const period = (searchParams.get('period') as Period) || 'weekly';
@@ -94,102 +93,7 @@ export async function GET(request: Request) {
     }
 
     // Transform to Anomaly interface format (matching market-stream.ts and history)
-    const anomalies = trades.map(trade => {
-      const value = trade.tradeValue;
-      const price = trade.price;
-
-      // Determine anomaly type based on trade value (matching market-stream.ts logic)
-      let type: 'GOD_WHALE' | 'SUPER_WHALE' | 'MEGA_WHALE' | 'WHALE' | 'STANDARD' = 'STANDARD';
-      if (value > 100000) type = 'GOD_WHALE';
-      else if (value > 50000) type = 'SUPER_WHALE';
-      else if (value > 15000) type = 'MEGA_WHALE';
-      else if (value > 8000) type = 'WHALE';
-
-      // Get image from current market metadata
-      const marketMeta = trade.conditionId ? marketsByCondition.get(trade.conditionId) : undefined;
-      const image = marketMeta?.image || trade.image || undefined;
-
-      const marketContext = {
-        category: trade.marketCategory || null,
-        sport: trade.sport || null,
-        league: trade.league || null,
-        feeBps: trade.feeBps ?? null,
-        liquidity: trade.liquidity ?? null,
-        volume24h: trade.volume24h ?? null,
-        closeTime: trade.closeTime?.toISOString() || null,
-        openTime: trade.openTime?.toISOString() || null,
-        resolutionTime: trade.resolutionTime?.toISOString() || null,
-        resolutionSource: trade.resolutionSource || null,
-        denominationToken: trade.denominationToken || null,
-        liquidity_bucket: trade.marketDepthBucket || null,
-        time_to_close_bucket: trade.timeToCloseBucket || null,
-      };
-
-      const eventContext = {
-        id: trade.eventId || undefined,
-        title: trade.eventTitle || undefined,
-        slug: trade.eventSlug || null,
-      };
-
-      return {
-        id: trade.id,
-        type,
-        event: trade.question || 'Unknown Market',
-        outcome: trade.outcome || 'Unknown',
-        odds: Math.round(price * 100),
-        value,
-        timestamp: trade.timestamp.getTime(),
-        side: trade.side as 'BUY' | 'SELL',
-        image,
-        category: trade.marketCategory || null,
-        sport: trade.sport || null,
-        league: trade.league || null,
-        feeBps: trade.feeBps ?? null,
-        liquidity: trade.liquidity ?? null,
-        volume24h: trade.volume24h ?? null,
-        closeTime: trade.closeTime?.toISOString() || null,
-        openTime: trade.openTime?.toISOString() || null,
-        resolutionTime: trade.resolutionTime?.toISOString() || null,
-        resolutionSource: trade.resolutionSource || null,
-        denominationToken: trade.denominationToken || null,
-        liquidity_bucket: trade.marketDepthBucket || null,
-        time_to_close_bucket: trade.timeToCloseBucket || null,
-        eventId: trade.eventId || null,
-        eventTitle: trade.eventTitle || null,
-        tags: trade.tags || [],
-        wallet_context: {
-          address: (trade.walletProfile?.id && trade.walletProfile.id.trim()) || (trade.walletAddress && trade.walletAddress.trim()) || null,
-          label: (trade.walletProfile?.label && trade.walletProfile.label.trim()) || 'Unknown',
-          pnl_all_time: trade.walletProfile?.totalPnl ? `$${trade.walletProfile.totalPnl.toLocaleString()}` : '$0',
-          win_rate: trade.walletProfile?.winRate ? `${(trade.walletProfile.winRate * 100).toFixed(0)}%` : '0%',
-          is_fresh_wallet: trade.walletProfile?.isFresh || false,
-        },
-        trader_context: {
-          tx_count: trade.walletProfile?.txCount || 0,
-          max_trade_value: trade.walletProfile?.maxTradeValue || 0,
-          activity_level: trade.walletProfile?.activityLevel || null,
-        },
-        analysis: {
-          tags: [
-            trade.isWhale && 'WHALE',
-            trade.isSmartMoney && 'SMART_MONEY',
-            trade.isFresh && 'FRESH_WALLET',
-            trade.isSweeper && 'SWEEPER',
-            (trade.walletProfile?.activityLevel === 'LOW' && (trade.walletProfile?.winRate || 0) > 0.7 && (trade.walletProfile?.totalPnl || 0) > 10000) && 'INSIDER',
-            ...(trade.tags || []),
-          ].filter(Boolean) as string[],
-          event: eventContext,
-          market_context: marketContext,
-          crowding: {
-            top5_share: trade.holderTop5Share ?? null,
-            top10_share: trade.holderTop10Share ?? null,
-            holder_count: trade.holderCount ?? null,
-            smart_holder_count: trade.smartHolderCount ?? null,
-            label: trade.holderTop5Share ? 'crowding' : null,
-          },
-        },
-      };
-    });
+    const anomalies = trades.map(trade => tradeToAnomaly(trade, { marketsByCondition }));
 
     return NextResponse.json({
       period,
