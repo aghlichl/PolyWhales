@@ -7,7 +7,6 @@ import { Ticker } from "@/components/feed/ticker";
 import { SlotReel } from "@/components/feed/slot-reel";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { BottomCarousel } from "@/components/bottom-carousel";
-import { UserPreferences } from "@/components/user-preferences";
 import { TopWhales } from "@/components/top-whales";
 import { SearchButton } from "@/components/search-button";
 import { ScrollToTopButton } from "@/components/scroll-to-top-button";
@@ -18,6 +17,7 @@ import { Header } from "@/components/header";
 import { QuickSearchFilters } from "@/components/quick-search-filters";
 import { PeriodSelector } from "@/components/period-selector";
 import { DesktopLayout } from "@/components/desktop-layout";
+import { AIInsightsPanel } from "@/components/ai-insights-panel";
 
 // Helper function to check if anomaly passes user preferences
 function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType, top20Wallets?: Set<string>): boolean {
@@ -166,11 +166,12 @@ export default function Home() {
 
   return (
     <DesktopLayout
-      leftPanel={<UserPreferences />}
+      leftPanel={<AIInsightsPanel />}
       rightPanel={<TopWhales />}
       centerTitle={getCenterTitle()}
       header={<Header />}
       ticker={<Ticker />}
+      leftTitle="AI INSIGHTS"
     >
       <main className="bg-background relative">
 
@@ -228,12 +229,6 @@ export default function Home() {
                   </div>
                 )}
               </>
-            )}
-
-            {currentPage === 0 && (
-              <div className="lg:hidden">
-                <UserPreferences />
-              </div>
             )}
 
             {currentPage === 2 && (

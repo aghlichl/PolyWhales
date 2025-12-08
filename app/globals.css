@@ -24,6 +24,10 @@
   --radius-lg: 14px;
   --radius-xl: 18px;
   --radius-full: 9999px;
+
+  /* Ticker defaults */
+  --ticker-speed: 250s;
+  --ticker-gap: 22px;
 }
 
 @theme inline {
@@ -67,7 +71,7 @@
   --animate-energy-wisp: energy-wisp 3s ease-in-out infinite;
   --animate-spin-reverse: spin-reverse 4s linear infinite;
   --animate-majestic-float: majestic-float 2.5s ease-in-out infinite;
-  --ticker-speed: 25s;
+  --ticker-speed: 250s;
   --ticker-gap: 22px;
 
   @keyframes majestic-float {
@@ -104,13 +108,14 @@
     }
   }
 
+  /* Move the marquee by one track width (half of the two-track wrapper) */
   @keyframes ticker-marquee {
     0% {
-      transform: translateX(0);
+      transform: translateX(0%);
     }
 
     100% {
-      transform: translateX(-50%);
+      transform: translateX(var(--ticker-distance, -50%));
     }
   }
 
@@ -354,9 +359,11 @@ body {
 }
 
 .ticker-marquee {
+  --ticker-distance: -50%;
   display: inline-flex;
-  min-width: 200%;
-  animation: ticker-marquee var(--ticker-speed, 25s) linear infinite;
+  width: max-content;
+  flex-shrink: 0;
+  animation: ticker-marquee var(--ticker-speed, 250s) linear infinite;
   will-change: transform;
 }
 

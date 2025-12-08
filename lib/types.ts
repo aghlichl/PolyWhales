@@ -358,3 +358,59 @@ export interface GammaPortfolio {
     totalPnlPercent: number;
     positions: GammaPosition[];
 }
+
+// AI Insights
+export interface AiInsightRank {
+    address: string;
+    rank: number;
+    accountName: string | null;
+    totalPnl: number;
+}
+
+export interface AiInsightPick {
+    id: string;
+    conditionId: string | null;
+    eventTitle: string | null;
+    eventSlug: string | null;
+    outcome: string | null;
+    totalVolume: number;
+    tradeCount: number;
+    buyVolume: number;
+    sellVolume: number;
+    buySellSkew: number;
+    top20Volume: number;
+    top20Trades: number;
+    top20WalletCount: number;
+    top20Support: number;
+    topRanks: AiInsightRank[];
+    bestRank: number | null;
+    stance: 'bullish' | 'bearish';
+    confidence: number;
+    latestTradeAt: string | null;
+}
+
+export interface AiInsightsSummary {
+    totalVolume: number;
+    tradesCount: number;
+    uniqueMarkets: number;
+    top20VolumeShare: number;
+    top20TradeShare: number;
+}
+
+export interface AiInsightsResponse {
+    period: string | null;
+    snapshotAt: string | null;
+    since: string;
+    summary: AiInsightsSummary;
+    picks: AiInsightPick[];
+    topPicks: Array<{
+        id: string;
+        eventTitle: string | null;
+        outcome: string | null;
+        confidence: number;
+        stance: 'bullish' | 'bearish';
+        buySellSkew: number;
+        top20Support: number;
+        bestRank: number | null;
+    }>;
+}

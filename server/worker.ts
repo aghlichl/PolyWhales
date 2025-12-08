@@ -106,6 +106,10 @@ const LEADERBOARD_URLS = [
 ];
 
 const LEADERBOARD_SCRAPE_INTERVAL_MS = 60 * 60 * 1000; // Every 1 hour
+const LEADERBOARD_PAGE_SIZE = 20;
+const MAX_LEADERBOARD_PAGES = 5;
+
+type CheerioAPI = ReturnType<typeof load>;
 
 function parseCurrency(label: string): number | null {
   const trimmed = label.trim();
@@ -116,6 +120,88 @@ function parseCurrency(label: string): number | null {
     .replace(/^\+/, "");
   const value = Number(normalized);
   return Number.isFinite(value) ? value : null;
+}
+
+function extractPageLinks(
+  $: CheerioAPI,
+  baseUrl: string
+): { pageNum: number; url: string }[] {
+  const pages = new Map<number, string>();
+  const normalizedBase = new URL(baseUrl).toString();
+
+  const addPage = (pageNum: number, href?: string | null) => {
+    if (pageNum < 1 || pageNum > MAX_LEADERBOARD_PAGES) return;
+    if (pages.has(pageNum)) return;
+
+    const resolved =
+      href && href.trim()
+        ? new URL(href, baseUrl).toString()
+        : new URL(`?page=${pageNum}`, baseUrl).toString();
+
+    pages.set(pageNum, resolved);
+  };
+
+  // Always include page 1 (base URL)
+  addPage(1, normalizedBase);
+
+  // Pagination markup uses <li> with text numbers; href may live on li or nested anchor.
+  $("nav[role='navigation'] li, nav[aria-label='pagination'] li, nav ul li a").each(
+    (_, el
+  ) => {
+    const $el = $(el);
+    const label = $el.text().trim();
+    if (!/^\d+$/.test(label)) return;
+
+    const pageNum = Number.parseInt(label, 10);
+    const href =
+      $el.attr("href") ||
+      $el.attr("data-href") ||
+      $el.find("a").attr("href") ||
+      null;
+
+    // Accept query-only hrefs (e.g., ?page=2) and absolute/relative leaderboard links
+    if (href && !href.startsWith("/leaderboard/overall/") && !href.startsWith("?")) {
+      return;
+    }
+
+    addPage(pageNum, href);
+  });
+
+  return Array.from(pages.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([pageNum, url]) => ({ pageNum, url }));
+}
+
+function scrapeLeaderboardRowsFromPage(
+  $: CheerioAPI,
+  timeframe: LeaderboardRow["timeframe"],
+  pageNum: number
+): LeaderboardRow[] {
+  const rows: LeaderboardRow[] = [];
+
+  $(".flex.flex-col.gap-2.py-5.border-b").each((i, row) => {
+    if (i >= LEADERBOARD_PAGE_SIZE) return; // Top 20 per page
+
+    const $row = $(row);
+
+    const usernameAnchor = $row.find('a[href^="/profile/"]').last();
+    const displayName = usernameAnchor.text().trim();
+    const wallet = usernameAnchor.attr("href")!.replace("/profile/", "");
+
+    const profitLabel = $row.find("p.text-text-primary").text().trim();
+    const volumeLabel = $row.find("p.text-text-secondary").text().trim();
+
+    rows.push({
+      timeframe,
+      rank: (pageNum - 1) * LEADERBOARD_PAGE_SIZE + (i + 1),
+      displayName,
+      wallet,
+      profitLabel,
+      volumeLabel,
+    });
+  });
+
+  return rows;
 }
 
 /**
@@ -147,44 +233,48 @@ async function scrapeLeaderboard() {
 
   try {
     for (const { url, timeframe } of LEADERBOARD_URLS) {
-      // console.log(`[Worker] Scraping ${timeframe} leaderboard...`);
-      const html = await fetch(url, {
+      console.log(`[Worker] Scraping base leaderboard page for ${timeframe}...`);
+
+      // Fetch base page (page 1)
+      const baseHtml = await fetch(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         },
       }).then((r) => r.text());
 
-      const $ = load(html);
-      const rows: LeaderboardRow[] = [];
+      let $ = load(baseHtml);
 
-      // each row is wrapped in this exact container:
-      $(".flex.flex-col.gap-2.py-5.border-b").each((i, row) => {
-        if (i >= 20) return; // Top 20
+      // Get URLs for pages 1–5 from pagination
+      const pageLinks = extractPageLinks($, url);
+      console.log(
+        `[Worker] Found ${pageLinks.length} leaderboard pages for ${timeframe}:`,
+        pageLinks.map((p) => p.pageNum)
+      );
 
-        const $row = $(row);
+      for (const { pageNum, url: pageUrl } of pageLinks) {
+        let html: string;
 
-        // USERNAME + WALLET
-        const usernameAnchor = $row.find('a[href^="/profile/"]').last();
-        const displayName = usernameAnchor.text().trim();
-        const wallet = usernameAnchor.attr("href")!.replace("/profile/", "");
+        if (pageNum === 1) {
+          html = baseHtml; // already fetched
+        } else {
+          console.log(
+            `[Worker] Scraping ${timeframe} leaderboard page ${pageNum} (${pageUrl})...`
+          );
+          html = await fetch(pageUrl, {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            },
+          }).then((r) => r.text());
+        }
 
-        // PROFIT
-        const profitLabel = $row.find("p.text-text-primary").text().trim();
-
-        // VOLUME
-        const volumeLabel = $row.find("p.text-text-secondary").text().trim();
-
-        rows.push({
-          timeframe,
-          rank: i + 1,
-          displayName,
-          wallet,
-          profitLabel,
-          volumeLabel,
-        });
-      });
-
-      allRows.push(...rows);
+        $ = load(html);
+        const pageRows = scrapeLeaderboardRowsFromPage($, timeframe, pageNum);
+        console.log(
+          `[Worker] Scraped ${pageRows.length} rows from ${timeframe} page ${pageNum}`
+        );
+        allRows.push(...pageRows);
+      }
     }
 
     console.log(`[Worker] Scraped ${allRows.length} leaderboard rows`);
