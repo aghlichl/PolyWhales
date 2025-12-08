@@ -3,9 +3,10 @@ import { createPublicClient, http, decodeEventLog, parseAbi } from 'viem';
 import { polygon } from 'viem/chains';
 import { fetchClosedPositions, fetchActivityFromDataAPI } from './polymarket';
 import { WalletEnrichmentResult } from './types';
+import { serverEnv } from './env.server';
 
 // Initialize Redis with error handling
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+const redis = new Redis(serverEnv.redisUrl, {
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
     return delay;
@@ -26,7 +27,7 @@ redis.connect().catch(() => {
 // Polygon RPC client for checking wallet freshness
 export const publicClient = createPublicClient({
   chain: polygon,
-  transport: http(process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com'),
+  transport: http(serverEnv.polygonRpcUrl),
 });
 
 

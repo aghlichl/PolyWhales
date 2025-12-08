@@ -1,5 +1,6 @@
-import { MarketMeta, AssetOutcome, PolymarketMarket, DataAPITrade, DataAPIActivity, WalletEnrichmentResult, Anomaly, AnomalyType } from './types';
+import { MarketMeta, AssetOutcome, PolymarketMarket, DataAPITrade, DataAPIActivity, WalletEnrichmentResult, Anomaly } from './types';
 import { CONFIG } from './config';
+import { buildAnalysisTags, classifyTradeValue } from './domain/trades';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -510,54 +511,6 @@ export function setCachedHolderMetrics(assetId: string, metrics: HolderMetrics) 
     holderCache.set(assetId, metrics);
 }
 
-export function deriveAnomalyType(value: number): AnomalyType {
-    if (value >= CONFIG.THRESHOLDS.GOD_WHALE) return 'GOD_WHALE';
-    if (value >= CONFIG.THRESHOLDS.SUPER_WHALE) return 'SUPER_WHALE';
-    if (value >= CONFIG.THRESHOLDS.MEGA_WHALE) return 'MEGA_WHALE';
-    if (value >= CONFIG.THRESHOLDS.WHALE) return 'WHALE';
-    return 'STANDARD';
-}
-
-export function deriveWhaleTags(value: number): string[] {
-    const tags: string[] = [];
-    if (value >= CONFIG.THRESHOLDS.GOD_WHALE) tags.push('GOD_WHALE');
-    if (value >= CONFIG.THRESHOLDS.SUPER_WHALE) tags.push('SUPER_WHALE');
-    if (value >= CONFIG.THRESHOLDS.MEGA_WHALE) tags.push('MEGA_WHALE');
-    if (value >= CONFIG.THRESHOLDS.WHALE) tags.push('WHALE');
-    return tags;
-}
-
-type AnalysisTagOptions = {
-    value: number;
-    isSmartMoney?: boolean;
-    isFresh?: boolean;
-    isSweeper?: boolean;
-    isInsider?: boolean;
-    additionalTags?: string[];
-};
-
-export function buildAnalysisTags(options: AnalysisTagOptions): string[] {
-    const {
-        value,
-        isSmartMoney = false,
-        isFresh = false,
-        isSweeper = false,
-        isInsider = false,
-        additionalTags = [],
-    } = options;
-
-    const tags = [
-        ...deriveWhaleTags(value),
-        isSmartMoney && 'SMART_MONEY',
-        isFresh && 'FRESH_WALLET',
-        isSweeper && 'SWEEPER',
-        isInsider && 'INSIDER',
-        ...additionalTags,
-    ].filter(Boolean) as string[];
-
-    return Array.from(new Set(tags));
-}
-
 export type TradeWithProfile = {
     id: string;
     tradeValue: number;
@@ -689,6 +642,7 @@ export function tradeToAnomaly(
         && (trade.walletProfile?.winRate || 0) > 0.7
         && (trade.walletProfile?.totalPnl || 0) > 10000);
 
+    const classification = classifyTradeValue(value);
     const analysisTags = buildAnalysisTags({
         value,
         isSmartMoney: !!trade.isSmartMoney,
@@ -702,7 +656,7 @@ export function tradeToAnomaly(
 
     return {
         id: trade.id,
-        type: deriveAnomalyType(value),
+        type: classification.type,
         event: trade.question || 'Unknown Market',
         outcome: trade.outcome || 'Unknown',
         odds: Math.round(price * 100),

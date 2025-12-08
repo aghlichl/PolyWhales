@@ -13,9 +13,13 @@ import {
   getMarketMetadata,
   getCachedHolderMetrics,
   enrichTradeWithDataAPI, // Only used in deprecated processTrade function
-  deriveWhaleTags,
-  buildAnalysisTags,
 } from "../lib/polymarket";
+import {
+  buildAnalysisTags,
+  classifyTradeValue,
+  computeLiquidityBucket,
+  computeTimeToCloseBucket,
+} from "../lib/domain/trades";
 import {
   MarketMeta,
   AssetOutcome,
@@ -25,11 +29,12 @@ import {
   RTDSTradePayload,
   RTDSMessage,
 } from "../lib/types";
-import { formatDiscordAlert } from "../lib/alerts/formatters";
 import { fetchPortfolio } from "../lib/gamma";
 import { CONFIG } from "../lib/config";
 import { load } from "cheerio";
 import fetch from "node-fetch";
+import { clearExpiredAlertCache, getAlertCacheSize, sendDiscordAlert } from "./worker/alerts";
+import { AdaptiveRateLimiter } from "./worker/rateLimiter";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -71,39 +76,6 @@ type PositionResponse = {
   endDate: string;
   negativeRisk: boolean;
 };
-
-/**
- * Adaptive rate limiter that adjusts delays based on API response times and error rates
- */
-class AdaptiveRateLimiter {
-  private lastRequestTime = 0;
-  private errorCount = 0;
-  private baseDelay = 200;
-
-  async wait(): Promise<void> {
-    const now = Date.now();
-    const timeSinceLastRequest = now - this.lastRequestTime;
-    const adaptiveDelay = Math.max(
-      this.baseDelay,
-      this.errorCount * 100,  // Increase delay on errors
-      this.baseDelay - timeSinceLastRequest  // Don't wait if enough time passed
-    );
-
-    if (adaptiveDelay > 0) {
-      await delay(adaptiveDelay);
-    }
-
-    this.lastRequestTime = Date.now();
-  }
-
-  recordError(): void {
-    this.errorCount = Math.min(this.errorCount + 1, 5); // Cap at 5
-  }
-
-  recordSuccess(): void {
-    this.errorCount = Math.max(this.errorCount - 1, 0); // Decay on success
-  }
-}
 
 /**
  * Bounded Map with automatic cleanup to prevent memory accumulation
@@ -244,94 +216,8 @@ async function scrapeLeaderboard() {
   }
 }
 
-// Cache user alert preferences to avoid repeated database queries
-async function getUserAlertPreferences(alertType: "WHALE_MOVEMENT" | "SMART_MONEY_ENTRY") {
-  const cacheKey = `alert_${alertType}`;
-  const cached = userAlertCache.get(cacheKey);
-
-  if (cached && cached.expires > Date.now()) {
-    return cached.prefs;
-  }
-
-  const users = await prisma.user.findMany({
-    where: {
-      alertSettings: {
-        is: { alertTypes: { has: alertType } }
-      }
-    },
-    include: { alertSettings: true }
-  }) as any[];
-
-  userAlertCache.set(cacheKey, {
-    prefs: users,
-    expires: Date.now() + 5 * 60 * 1000  // 5 minute TTL
-  });
-
-  return users;
-}
-
-// Direct alert sending functions (replaces queue system)
-// Direct alert sending function (replaces queue system)
-async function sendDiscordAlert(trade: EnrichedTrade, alertType: "WHALE_MOVEMENT" | "SMART_MONEY_ENTRY") {
-  // Get all users who should receive this type of alert (cached)
-  const users = await getUserAlertPreferences(alertType);
-
-  // Format the payload once
-  const embed = formatDiscordAlert(trade);
-  const payload = {
-    content: null,
-    embeds: [embed]
-  };
-
-  // Send to each user's Discord webhook
-  await Promise.all(users.map(async (user) => {
-    const webhookUrl = user.alertSettings?.discordWebhook;
-    if (!webhookUrl) return;
-
-    try {
-      await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } catch (error) {
-      // Fail silently - alerts are not critical
-      console.log(`[WORKER] Failed to send ${alertType} alert to user ${user.email}: ${(error as Error).message}`);
-    }
-  }));
-}
-
-// Helper function for rate limiting delays
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 // Adaptive rate limiter instance
 const rateLimiter = new AdaptiveRateLimiter();
-
-// --- Market enrichment helpers ---
-function computeLiquidityBucket(liquidity?: number | null): string | null {
-  if (liquidity === null || liquidity === undefined || Number.isNaN(liquidity)) return null;
-  if (liquidity >= 50000) return "50k+";
-  if (liquidity >= 25000) return "25k-50k";
-  if (liquidity >= 10000) return "10k-25k";
-  if (liquidity >= 5000) return "5k-10k";
-  return "<5k";
-}
-
-function computeTimeToCloseBucket(closeTimeIso?: string | null): string | null {
-  if (!closeTimeIso) return null;
-  const closeDate = new Date(closeTimeIso);
-  if (Number.isNaN(closeDate.getTime())) return null;
-  const diffMs = closeDate.getTime() - Date.now();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  if (diffDays < 0) return "closed";
-  if (diffDays <= 1) return "<24h";
-  if (diffDays <= 7) return "1-7d";
-  if (diffDays <= 30) return "7-30d";
-  return ">30d";
-}
-
-// User alert preferences cache with TTL
-const userAlertCache = new Map<string, { prefs: Awaited<ReturnType<typeof prisma.user.findMany>>; expires: number }>();
 
 // Error tracking and metrics
 const errorMetrics = {
@@ -500,8 +386,8 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
     const liquidityBucket = computeLiquidityBucket(marketMeta.liquidity);
     const timeToCloseBucket = computeTimeToCloseBucket(closeTimeIso);
     const additionalTags = (marketMeta.tagNames || []).filter(Boolean);
-    const whaleTags = deriveWhaleTags(value);
-    const mergedTags = Array.from(new Set([...whaleTags, ...additionalTags]));
+    const classification = classifyTradeValue(value);
+    const mergedTags = Array.from(new Set([...classification.whaleTags, ...additionalTags]));
 
     const marketContext = {
       category: marketMeta.category || null,
@@ -536,11 +422,7 @@ export async function processRTDSTrade(payload: RTDSTradePayload) {
     // Determine side (BUY or SELL)
     const side = payload.side || "BUY";
 
-    // Initial classification (based on value only)
-    const isWhale = value >= CONFIG.THRESHOLDS.WHALE;
-    const isMegaWhale = value >= CONFIG.THRESHOLDS.MEGA_WHALE;
-    const isSuperWhale = value >= CONFIG.THRESHOLDS.SUPER_WHALE;
-    const isGodWhale = value >= CONFIG.THRESHOLDS.GOD_WHALE;
+    const { isWhale, isMegaWhale, isSuperWhale, isGodWhale } = classification;
 
     // Wallet is already available from RTDS
     const walletAddress = payload.proxyWallet?.toLowerCase() || "";
@@ -847,11 +729,8 @@ export async function processTrade(trade: PolymarketTrade) {
     // Determine side (BUY or SELL)
     const side = trade.side || (trade.type === "buy" ? "BUY" : "SELL") || "BUY";
 
-    // Initial classification (based on value only)
-    const isWhale = value >= CONFIG.THRESHOLDS.WHALE;
-    const isMegaWhale = value >= CONFIG.THRESHOLDS.MEGA_WHALE;
-    const isSuperWhale = value >= CONFIG.THRESHOLDS.SUPER_WHALE;
-    const isGodWhale = value >= CONFIG.THRESHOLDS.GOD_WHALE;
+    const classification = classifyTradeValue(value);
+    const { isWhale, isMegaWhale, isSuperWhale, isGodWhale } = classification;
 
     // Construct initial trade object (FAST PATH)
     const initialEnrichedTrade: EnrichedTrade = {
@@ -872,7 +751,7 @@ export async function processTrade(trade: PolymarketTrade) {
         timestamp: new Date(Date.now()),
       },
       analysis: {
-        tags: deriveWhaleTags(value),
+        tags: classification.whaleTags,
         wallet_context: {
           address: "",
           label: "Loading...",
@@ -1356,16 +1235,8 @@ function connectToPolymarket() {
 
       // Cache cleanup interval
       setInterval(() => {
-        const now = Date.now();
-
-        // Clean user alert cache
-        for (const [key, value] of userAlertCache.entries()) {
-          if (value.expires < now) {
-            userAlertCache.delete(key);
-          }
-        }
-
-        console.log(`[Worker] Cache cleanup: ${userAlertCache.size} alert prefs cached`);
+        clearExpiredAlertCache();
+        console.log(`[Worker] Cache cleanup: ${getAlertCacheSize()} alert prefs cached`);
       }, 10 * 60 * 1000); // Every 10 minutes
     });
 

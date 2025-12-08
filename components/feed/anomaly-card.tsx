@@ -38,7 +38,8 @@ export function convertAnomalyToCardProps(anomaly: Anomaly) {
 
 export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardProps) {
     const { event: title, value, outcome, odds, type, timestamp, side, image } = anomaly;
-    const { leaderboardRanks } = useMarketStore();
+    // Narrow store subscription so card only rerenders when leaderboard data changes
+    const leaderboardRanks = useMarketStore((state) => state.leaderboardRanks);
 
     const walletRanks = anomaly.wallet_context?.address
         ? leaderboardRanks[anomaly.wallet_context.address.toLowerCase()] || []

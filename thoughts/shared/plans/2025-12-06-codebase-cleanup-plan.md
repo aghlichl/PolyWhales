@@ -54,10 +54,7 @@
       - Context: Mixed Date/number/string handling in store and APIs; casts for positions; potential serialization bugs.
       - Files: `lib/types.ts`, API routes, `lib/store.ts`, `lib/gamma.ts`.
       - Expected impact: Fewer runtime inconsistencies, safer client serialization.
-- [ ] Add integration tests covering worker→DB→API→UI mapping for a sample trade; add contract tests for `lib/domain/trades` helper.
-      - Context: Current tests limited to `lib/polymarket`; no coverage for critical flows.
-      - Files: `tests/` (new integration suite), `server/worker` (mocked), API routes, `lib/domain/trades`.
-      - Expected impact: Confidence in refactors and releases.
+
 
 ## Nice-to-Haves / Future Ideas
 - [ ] CLI/script to replay synthetic RTDS trade payloads through worker and measure latency/end-to-end emission.

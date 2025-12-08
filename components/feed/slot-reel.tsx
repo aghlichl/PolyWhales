@@ -5,7 +5,8 @@ import { AnimatePresence } from "framer-motion";
 export function SlotReel({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex flex-col gap-3 relative">
-            <AnimatePresence mode="popLayout" initial={false}>
+            {/* Use sync mode to avoid aggressive popLayout animations on rapid inserts */}
+            <AnimatePresence mode="sync" initial={false}>
                 {children}
             </AnimatePresence>
         </div>

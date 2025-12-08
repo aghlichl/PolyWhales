@@ -1,6 +1,17 @@
 import { create } from 'zustand';
-import { Anomaly, AnomalyType, UserPreferences } from './types';
 import { io } from 'socket.io-client';
+import { enrichedTradeToAnomaly } from './domain/trades';
+import {
+  fetchHistory as fetchHistoryApi,
+  fetchTopTrades as fetchTopTradesApi,
+  fetchLeaderboardRanks as fetchLeaderboardRanksApi,
+  TopTradesPeriod,
+  HistoryResponse,
+  TopTradesResponse,
+  LeaderboardRank
+} from './client/api';
+import { Anomaly, UserPreferences, EnrichedTrade } from './types';
+import { clientEnv } from './env';
 
 // Helper function to get top 20 wallet addresses from leaderboard ranks
 export function getTop20Wallets(leaderboardRanks: Record<string, LeaderboardRank[]>): Set<string> {
@@ -134,28 +145,6 @@ export const usePreferencesStore = create<PreferencesStore>((set, get) => ({
   }
 }));
 
-type TopTradesPeriod = 'today' | 'weekly' | 'monthly' | 'yearly' | 'max';
-
-interface TopTradesResponse {
-  period: TopTradesPeriod;
-  count: number;
-  trades: Anomaly[];
-  nextCursor?: string;
-}
-
-interface HistoryResponse {
-  trades: Anomaly[];
-  nextCursor?: string;
-}
-
-export interface LeaderboardRank {
-  period: string;
-  rank: number;
-  totalPnl: number;
-  accountName?: string | null;
-  rankChange?: number | null; // positive = moved up, negative = moved down, null = new
-}
-
 interface MarketStore {
   anomalies: Anomaly[];
   volume: number;
@@ -242,38 +231,32 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
   }),
   loadHistory: async (cursor) => {
     if (!cursor) {
-      set({ isLoading: true, anomalies: [], historyCursor: undefined, hasMoreHistory: true });
+      // Keep current anomalies so the list doesn't disappear while fetching
+      set({ isLoading: true, historyCursor: undefined, hasMoreHistory: true });
     } else {
       set({ isLoading: true });
     }
 
     try {
-      const url = new URL('/api/history', window.location.origin);
-      if (cursor) {
-        url.searchParams.set('cursor', cursor);
-      }
-      url.searchParams.set('limit', '100');
+      const data: HistoryResponse = await fetchHistoryApi({ cursor, limit: 100 });
 
-      const response = await fetch(url.toString());
-      if (response.ok) {
-        const data: HistoryResponse = await response.json();
-
-        set((state) => ({
-          // If cursor exists, we are appending to the end (older data). 
-          // If no cursor (initial load), we replace.
-          // Wait, previous implementation prepended history? 
-          // "anomalies: [...historicalAnomalies, ...state.anomalies]"
-          // Usually history API returns descending by time (newest first).
-          // So if we fetch initial history, it should be the *base* content.
-          // If we fetch *more* history (older), we append to the end.
-          anomalies: cursor ? [...state.anomalies, ...data.trades] : data.trades,
-          isLoading: false,
-          historyCursor: data.nextCursor,
-          hasMoreHistory: !!data.nextCursor
-        }));
-      } else {
-        set({ isLoading: false });
-      }
+      set((state) => ({
+        // Merge without clearing so live-streamed anomalies stay visible
+        anomalies: (() => {
+          const seen = new Set<string>();
+          const combined = [...state.anomalies, ...data.trades];
+          const merged: Anomaly[] = [];
+          for (const item of combined) {
+            if (seen.has(item.id)) continue;
+            merged.push(item);
+            seen.add(item.id);
+          }
+          return merged;
+        })(),
+        isLoading: false,
+        historyCursor: data.nextCursor,
+        hasMoreHistory: !!data.nextCursor
+      }));
     } catch (error) {
       console.error('Failed to load historical data:', error);
       set({ isLoading: false });
@@ -290,7 +273,7 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     get().loadHistory();
 
     // Connect to worker's Socket.io server instead of direct WebSocket
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+    const socket = io(clientEnv.socketUrl, {
       transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
@@ -304,76 +287,12 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     socket.on('disconnect', () => {
       console.log('[Store] Disconnected from worker Socket.io');
     });
-    socket.on('trade', (enrichedTrade) => {
-      // Convert worker's enriched trade format to anomaly format
-      console.log('[STORE] Enriched trade:', JSON.stringify(enrichedTrade, null, 2));
-
-      // Ensure wallet_context is always present and valid
-      const walletContext = enrichedTrade.analysis?.wallet_context;
-      if (!walletContext || !walletContext.address) {
-        console.warn('[STORE] Trade missing wallet_context.address, skipping');
+    socket.on('trade', (enrichedTrade: EnrichedTrade) => {
+      const anomaly = enrichedTradeToAnomaly(enrichedTrade);
+      if (!anomaly) {
+        console.warn('[STORE] Trade missing required fields, skipping');
         return;
       }
-
-      // Normalize timestamp (socket deserializes Date to string/number)
-      const tsRaw = enrichedTrade.trade.timestamp;
-      const ts = tsRaw instanceof Date ? tsRaw : new Date(tsRaw);
-      if (Number.isNaN(ts.getTime())) {
-        console.warn('[STORE] Trade timestamp invalid, skipping');
-        return;
-      }
-
-      const marketContext = enrichedTrade.analysis?.market_context;
-      const eventContext = enrichedTrade.analysis?.event;
-      const crowding = enrichedTrade.analysis?.crowding;
-
-      const anomaly: Anomaly = {
-        id: enrichedTrade.trade.assetId + '_' + ts.getTime(),
-        type: enrichedTrade.analysis.tags.includes('GOD_WHALE') ? 'GOD_WHALE' :
-          enrichedTrade.analysis.tags.includes('SUPER_WHALE') ? 'SUPER_WHALE' :
-            enrichedTrade.analysis.tags.includes('MEGA_WHALE') ? 'MEGA_WHALE' :
-              enrichedTrade.analysis.tags.includes('WHALE') ? 'WHALE' :
-                'STANDARD' as AnomalyType,
-        event: enrichedTrade.market.question,
-        outcome: enrichedTrade.market.outcome,
-        odds: enrichedTrade.market.odds,
-        value: enrichedTrade.trade.tradeValue,
-        timestamp: ts.getTime(),
-        side: enrichedTrade.trade.side as 'BUY' | 'SELL',
-        image: enrichedTrade.market.image,
-        category: marketContext?.category || null,
-        sport: marketContext?.sport || null,
-        league: marketContext?.league || null,
-        feeBps: marketContext?.feeBps ?? null,
-        liquidity: marketContext?.liquidity ?? null,
-        volume24h: marketContext?.volume24h ?? null,
-        closeTime: marketContext?.closeTime || null,
-        openTime: marketContext?.openTime || null,
-        resolutionTime: marketContext?.resolutionTime || null,
-        resolutionSource: marketContext?.resolutionSource || null,
-        denominationToken: marketContext?.denominationToken || null,
-        liquidity_bucket: marketContext?.liquidity_bucket || null,
-        time_to_close_bucket: marketContext?.time_to_close_bucket || null,
-        eventId: eventContext?.id || null,
-        eventTitle: eventContext?.title || null,
-        tags: enrichedTrade.analysis.tags,
-        crowding,
-        wallet_context: {
-          address: walletContext.address,
-          label: walletContext.label || walletContext.address.slice(0, 6) + '...' + walletContext.address.slice(-4),
-          pnl_all_time: walletContext.pnl_all_time || '...',
-          win_rate: walletContext.win_rate || '...',
-          is_fresh_wallet: walletContext.is_fresh_wallet || false,
-        },
-        trader_context: enrichedTrade.analysis.trader_context,
-        market_impact: enrichedTrade.analysis.market_impact,
-        analysis: {
-          tags: enrichedTrade.analysis.tags,
-          event: eventContext,
-          market_context: marketContext,
-          crowding,
-        }
-      };
 
       if (anomaly.wallet_context) {
         console.log('[STORE] Created anomaly with wallet:', anomaly.wallet_context.address, 'label:', anomaly.wallet_context.label);
@@ -408,27 +327,14 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     }
 
     try {
-      const url = new URL('/api/top-trades', window.location.origin);
-      url.searchParams.set('period', period);
-      url.searchParams.set('limit', '100');
-      if (cursor) {
-        url.searchParams.set('cursor', cursor);
-      }
+      const data: TopTradesResponse = await fetchTopTradesApi({ period, cursor, limit: 100 });
 
-      const response = await fetch(url.toString());
-      if (response.ok) {
-        const data: TopTradesResponse = await response.json();
-
-        set((state) => ({
-          topTrades: cursor ? [...state.topTrades, ...data.trades] : data.trades,
-          topTradesLoading: false,
-          nextCursor: data.nextCursor,
-          hasMore: !!data.nextCursor
-        }));
-      } else {
-        console.error('Failed to fetch top trades');
-        set({ topTradesLoading: false });
-      }
+      set((state) => ({
+        topTrades: cursor ? [...state.topTrades, ...data.trades] : data.trades,
+        topTradesLoading: false,
+        nextCursor: data.nextCursor,
+        hasMore: !!data.nextCursor
+      }));
     } catch (error) {
       console.error('Error fetching top trades:', error);
       set({ topTradesLoading: false });
@@ -456,17 +362,8 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
     set({ leaderboardRanksLoading: true });
 
     try {
-      const url = new URL('/api/leaderboard', window.location.origin);
-      url.searchParams.set('format', 'snapshots');
-
-      const response = await fetch(url.toString());
-      if (response.ok) {
-        const data: Record<string, LeaderboardRank[]> = await response.json();
-        set({ leaderboardRanks: data, leaderboardRanksLoading: false });
-      } else {
-        console.error('Failed to fetch leaderboard ranks');
-        set({ leaderboardRanksLoading: false });
-      }
+      const data: Record<string, LeaderboardRank[]> = await fetchLeaderboardRanksApi();
+      set({ leaderboardRanks: data, leaderboardRanksLoading: false });
     } catch (error) {
       console.error('Error fetching leaderboard ranks:', error);
       set({ leaderboardRanksLoading: false });
