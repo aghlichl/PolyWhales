@@ -1,0 +1,162 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export type TraderData = {
+    walletAddress: string;
+    accountName: string | null;
+    rank: number;
+    totalPnl: number;
+    rankChange: number | null;
+    pnlHistory: { date: string; pnl: number }[];
+};
+
+export type TopTradersResponse = {
+    traders: TraderData[];
+    period: string;
+    snapshotAt: string | null;
+};
+
+export async function GET(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const period = searchParams.get('period') || 'Daily';
+
+        // Calculate date range based on period
+        const now = new Date();
+        let sinceDate: Date | null = null;
+        switch (period) {
+            case 'Daily':
+                sinceDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day
+                break;
+            case 'Weekly':
+                sinceDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days
+                break;
+            case 'Monthly':
+                sinceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days
+                break;
+            case 'All Time':
+            default:
+                sinceDate = null; // No date filter for all time
+                break;
+        }
+
+        // Build snapshot query with date filter
+        const snapshotWhere = sinceDate
+            ? { period, snapshotAt: { gte: sinceDate } }
+            : { period };
+
+        // Get recent snapshots for this period
+        const recentSnapshots = await prisma.walletLeaderboardSnapshot.findMany({
+            where: snapshotWhere,
+            orderBy: { snapshotAt: 'desc' },
+            select: { snapshotAt: true },
+            distinct: ['snapshotAt'],
+            take: 50,
+        });
+
+        if (recentSnapshots.length === 0) {
+            return NextResponse.json({
+                traders: [],
+                period,
+                snapshotAt: null,
+            });
+        }
+
+        const latestSnapshotAt = recentSnapshots[0].snapshotAt;
+        const previousSnapshotAt = recentSnapshots.length > 1 ? recentSnapshots[1].snapshotAt : null;
+
+        // Fetch top 20 traders from the latest snapshot
+        const latestTraders = await prisma.walletLeaderboardSnapshot.findMany({
+            where: {
+                period,
+                snapshotAt: latestSnapshotAt,
+                rank: { lte: 20 },
+            },
+            orderBy: { rank: 'asc' },
+            select: {
+                walletAddress: true,
+                accountName: true,
+                rank: true,
+                totalPnl: true,
+            },
+        });
+
+        // Build previous ranks map for rank change calculation
+        const previousRanks: Record<string, number> = {};
+        if (previousSnapshotAt) {
+            const previousSnapshots = await prisma.walletLeaderboardSnapshot.findMany({
+                where: {
+                    period,
+                    snapshotAt: previousSnapshotAt,
+                    rank: { lte: 20 },
+                },
+                select: {
+                    walletAddress: true,
+                    rank: true,
+                },
+            });
+            for (const prev of previousSnapshots) {
+                previousRanks[prev.walletAddress.toLowerCase()] = prev.rank;
+            }
+        }
+
+        // Get all historical P&L data for these wallets
+        const walletAddresses = latestTraders.map(t => t.walletAddress);
+        const snapshotDates = recentSnapshots.map(s => s.snapshotAt);
+
+        const historicalData = await prisma.walletLeaderboardSnapshot.findMany({
+            where: {
+                period,
+                walletAddress: { in: walletAddresses },
+                snapshotAt: { in: snapshotDates },
+            },
+            select: {
+                walletAddress: true,
+                snapshotAt: true,
+                totalPnl: true,
+            },
+            orderBy: { snapshotAt: 'asc' },
+        });
+
+        // Group historical data by wallet
+        const historyByWallet: Record<string, { date: string; pnl: number }[]> = {};
+        for (const h of historicalData) {
+            const key = h.walletAddress.toLowerCase();
+            if (!historyByWallet[key]) {
+                historyByWallet[key] = [];
+            }
+            historyByWallet[key].push({
+                date: h.snapshotAt.toISOString(),
+                pnl: h.totalPnl,
+            });
+        }
+
+        // Build response
+        const traders: TraderData[] = latestTraders.map(trader => {
+            const walletKey = trader.walletAddress.toLowerCase();
+            const previousRank = previousRanks[walletKey];
+            const rankChange = previousRank !== undefined ? previousRank - trader.rank : null;
+
+            return {
+                walletAddress: trader.walletAddress,
+                accountName: trader.accountName,
+                rank: trader.rank,
+                totalPnl: trader.totalPnl,
+                rankChange,
+                pnlHistory: historyByWallet[walletKey] || [],
+            };
+        });
+
+        return NextResponse.json({
+            traders,
+            period,
+            snapshotAt: latestSnapshotAt.toISOString(),
+        });
+    } catch (error) {
+        console.error('[API] Error fetching top traders:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch top traders' },
+            { status: 500 }
+        );
+    }
+}

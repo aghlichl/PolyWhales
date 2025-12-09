@@ -3,16 +3,18 @@
 import { useEffect } from "react";
 import { useMarketStore } from "@/lib/store";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
-
 import { cn } from "@/lib/utils";
 import { NumericDisplay } from "@/components/ui/numeric-display";
+import { TopTradesPeriod } from "@/lib/client/api";
 
-const PERIOD_LABELS: Record<string, string> = {
-  today: 'TODAY',
-  weekly: 'WEEKLY',
-  monthly: 'MONTHLY',
-  yearly: 'YEARLY',
-  max: 'ALL'
+const PERIODS: TopTradesPeriod[] = ["today", "weekly", "monthly", "max"];
+
+const PERIOD_LABELS: Record<TopTradesPeriod, string> = {
+  today: "1D",
+  weekly: "1W",
+  monthly: "1M",
+  yearly: "1Y",
+  max: "ALL"
 };
 
 export function TopWhales() {
@@ -21,6 +23,7 @@ export function TopWhales() {
     topTradesLoading,
     selectedPeriod,
     fetchTopTrades,
+    setSelectedPeriod,
     hasMore,
     loadMoreTopTrades
   } = useMarketStore();
@@ -32,6 +35,25 @@ export function TopWhales() {
 
   return (
     <div className="w-full">
+      {/* Period selector */}
+      <div className="px-4 pb-3">
+        <div className="flex gap-1">
+          {PERIODS.map((period) => (
+            <button
+              key={period}
+              onClick={() => setSelectedPeriod(period)}
+              className={cn(
+                "flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all rounded border",
+                selectedPeriod === period
+                  ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
+                  : "bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border-transparent"
+              )}
+            >
+              {PERIOD_LABELS[period]}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {topTradesLoading ? (
         <div className="text-center text-zinc-600 mt-20">

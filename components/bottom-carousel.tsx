@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, Activity, BarChart3 } from "lucide-react";
+import { Zap, Activity, BarChart3, TrendingUp } from "lucide-react";
 
 interface BottomCarouselProps {
   currentPage: number;
@@ -13,16 +13,18 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
   };
 
   const pages = [
-    { icon: Settings, label: "Preferences" },
+    { icon: Zap, label: "AI Insights" },
     { icon: Activity, label: "Live Feed" },
+    { icon: TrendingUp, label: "Top Traders" },
     { icon: BarChart3, label: "Top Whales" }
   ];
 
   return (
-    <div className="grid grid-cols-3 w-full border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm">
+    <div className="grid grid-cols-4 w-full border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm">
       {pages.map((page, index) => {
         const Icon = page.icon;
         const isActive = index === currentPage;
+        const isLast = index === pages.length - 1;
 
         return (
           <button
@@ -34,7 +36,7 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
                 ? "bg-primary/30 border-primary/40"
                 : "bg-transparent hover:bg-zinc-800/50"
               }
-              ${index === 2 ? "border-r-0" : ""}
+              ${isLast ? "border-r-0" : ""}
             `}
             aria-label={`Go to ${page.label}`}
           >
@@ -45,9 +47,8 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
 
             {/* Icon with conditional pulsing */}
             <Icon
-              className={`w-5 h-5 relative z-10 transition-all duration-300 ${
-                isActive ? "text-primary" : "text-zinc-400 group-hover:text-zinc-200"
-              } ${index === 1 && isActive ? "animate-pulse" : ""}`}
+              className={`w-5 h-5 relative z-10 transition-all duration-300 ${isActive ? "text-primary" : "text-zinc-400 group-hover:text-zinc-200"
+                } ${index === 1 && isActive ? "animate-pulse" : ""}`}
             />
           </button>
         );
@@ -55,3 +56,4 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
     </div>
   );
 }
+

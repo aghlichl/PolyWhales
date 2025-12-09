@@ -14,10 +14,9 @@ import { motion } from "framer-motion";
 
 
 import { Header } from "@/components/header";
-import { QuickSearchFilters } from "@/components/quick-search-filters";
-import { PeriodSelector } from "@/components/period-selector";
 import { DesktopLayout } from "@/components/desktop-layout";
 import { AIInsightsPanel } from "@/components/ai-insights-panel";
+import { TopTradersPanel } from "@/components/top-traders-panel";
 
 // Helper function to check if anomaly passes user preferences
 function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType, top20Wallets?: Set<string>): boolean {
@@ -75,7 +74,6 @@ export default function Home() {
   const { preferences, loadPreferences } = usePreferencesStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>();
 
   // Compute top 20 wallets from leaderboard ranks
   const top20Wallets = useMemo(() => {
@@ -103,12 +101,6 @@ export default function Home() {
     setCurrentPage(page);
     // Scroll to top when switching tabs
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleFilterSelect = (query: string) => {
-    setActiveFilter(query);
-    setSearchQuery(query);
-    setCurrentPage(1); // Switch to main feed if not already there
   };
 
   // Intelligent search function
@@ -154,10 +146,12 @@ export default function Home() {
   const getCenterTitle = () => {
     switch (currentPage) {
       case 0:
-        return <>USER <span className="text-purple-400 animate-pulse">PREFERENCES</span></>;
+        return <>AI <span className="text-emerald-400 animate-pulse">INSIGHTS</span></>;
       case 1:
         return <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
       case 2:
+        return <>TOP <span className="text-orange-400 animate-pulse">TRADERS</span></>;
+      case 3:
         return <>TOP <span className="text-blue-400 animate-pulse">WHALES</span></>;
       default:
         return <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
@@ -167,34 +161,16 @@ export default function Home() {
   return (
     <DesktopLayout
       leftPanel={<AIInsightsPanel />}
-      rightPanel={<TopWhales />}
+      rightPanel={<TopTradersPanel />}
+      fourthPanel={<TopWhales />}
       centerTitle={getCenterTitle()}
       header={<Header />}
       ticker={<Ticker />}
       leftTitle="AI INSIGHTS"
+      rightTitle={<>TOP <span className="text-orange-400 animate-pulse">TRADERS</span></>}
+      fourthTitle={<>TOP <span className="text-blue-400 animate-pulse">WHALES</span></>}
     >
       <main className="bg-background relative">
-
-        {/* Centered Quick Search Filters - Only on Live Feed page */}
-        {currentPage === 1 && (
-          <div className="fixed top-11 left-1/2 transform -translate-x-1/2 z-50 hidden md:block">
-            <div className="relative max-w-[40vw] w-full">
-              {/* Right fade only */}
-              <div className="absolute right-0 top-0 bottom-0 w-8 bg-linear-to-l from-background/95 via-background/70 to-transparent backdrop-blur-md z-10 pointer-events-none" />
-
-              <QuickSearchFilters
-                onFilterSelect={handleFilterSelect}
-                activeFilter={activeFilter}
-                anomalies={anomalies}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Fixed Period Selector - Desktop Only */}
-        <div className="fixed top-11 left-[83.333%] transform -translate-x-1/2 z-50 hidden lg:block">
-          <PeriodSelector />
-        </div>
 
         <div className="p-4 pt-4 pb-20">
           <motion.div
@@ -204,6 +180,12 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
           >
+            {currentPage === 0 && (
+              <div className="lg:hidden">
+                <AIInsightsPanel />
+              </div>
+            )}
+
             {currentPage === 1 && (
               <>
                 <SlotReel>
@@ -233,9 +215,12 @@ export default function Home() {
 
             {currentPage === 2 && (
               <div className="lg:hidden">
-                <div className="flex justify-center py-4">
-                  <PeriodSelector />
-                </div>
+                <TopTradersPanel />
+              </div>
+            )}
+
+            {currentPage === 3 && (
+              <div className="lg:hidden">
                 <TopWhales />
               </div>
             )}

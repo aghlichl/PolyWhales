@@ -11,7 +11,7 @@ OddsGods ingests Polymarket RTDS trades in a worker, enriches them with market m
 - API routes: `app/api/history`, `top-trades`, `top-whales`, `market-history`, `leaderboard`, `portfolio`, `proxy/polymarket/markets`, `save-trade`.
 
 ### Client Surface (app/page.tsx & components)
-- Filters by value/odds, optional top-20 leaderboard wallets, sports toggle, plus search; uses QuickSearchFilters and BottomCarousel for mobile paging. Stream starts once on mount; an intersection observer loads additional history when the sentinel enters view.
+- Filters by value/odds, optional top-20 leaderboard wallets, sports toggle, plus search; uses the floating SearchButton and BottomCarousel for mobile paging. Stream starts once on mount; an intersection observer loads additional history when the sentinel enters view.
 
 ```22:70:app/page.tsx
 function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType, top20Wallets?: Set<string>): boolean {

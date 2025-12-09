@@ -112,3 +112,4 @@ export function UserPreferencesModal({ isOpen, onClose }: UserPreferencesModalPr
         document.body
     );
 }
+

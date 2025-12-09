@@ -14,6 +14,9 @@ type InsightPick = {
   eventTitle: string | null;
   eventSlug: string | null;
   outcome: string | null;
+  marketQuestion: string | null; // Full market question for context (spread, total, etc.)
+  latestPrice: number; // Latest trade price (0-1 scale)
+  isResolved: boolean; // Whether the market has been resolved
   totalVolume: number;
   tradeCount: number;
   buyVolume: number;
@@ -76,10 +79,10 @@ export async function GET() {
 
     const top20 = snapshotAt
       ? await prisma.walletLeaderboardSnapshot.findMany({
-          where: { snapshotAt, period: snapshotPeriod!, rank: { lte: 20 } },
-          orderBy: { rank: "asc" },
-          select: { walletAddress: true, rank: true, totalPnl: true, accountName: true },
-        })
+        where: { snapshotAt, period: snapshotPeriod!, rank: { lte: 20 } },
+        orderBy: { rank: "asc" },
+        select: { walletAddress: true, rank: true, totalPnl: true, accountName: true },
+      })
       : [];
 
     const top20Map = new Map<string, LeaderboardWallet>(
@@ -98,12 +101,15 @@ export async function GET() {
         id: true,
         conditionId: true,
         outcome: true,
+        question: true,
         eventTitle: true,
         eventSlug: true,
         tradeValue: true,
+        price: true,
         side: true,
         walletAddress: true,
         timestamp: true,
+        resolutionTime: true,
       },
     });
 
@@ -125,6 +131,9 @@ export async function GET() {
           eventTitle: trade.eventTitle ?? trade.conditionId ?? "Unknown Market",
           eventSlug: trade.eventSlug ?? null,
           outcome: trade.outcome ?? null,
+          marketQuestion: trade.question ?? null,
+          latestPrice: trade.price, // Initialize with first (most recent) trade's price
+          isResolved: trade.resolutionTime !== null && trade.resolutionTime <= new Date(),
           totalVolume: 0,
           tradeCount: 0,
           buyVolume: 0,
@@ -145,8 +154,16 @@ export async function GET() {
       const pick = groups.get(key)!;
       pick.totalVolume += trade.tradeValue;
       pick.tradeCount += 1;
+
+      // Track the latest trade's price (trades are ordered by timestamp desc, so first is latest)
+      const tradeTime = trade.timestamp.getTime();
+      const currentLatestTime = pick.latestTradeAt ? new Date(pick.latestTradeAt).getTime() : 0;
+      if (tradeTime > currentLatestTime) {
+        pick.latestPrice = trade.price;
+      }
+
       pick.latestTradeAt = pick.latestTradeAt
-        ? new Date(Math.max(new Date(pick.latestTradeAt).getTime(), trade.timestamp.getTime())).toISOString()
+        ? new Date(Math.max(new Date(pick.latestTradeAt).getTime(), tradeTime)).toISOString()
         : trade.timestamp.toISOString();
 
       if (trade.side === "BUY") {
@@ -205,6 +222,7 @@ export async function GET() {
         id: p.id,
         eventTitle: p.eventTitle,
         outcome: p.outcome,
+        marketQuestion: p.marketQuestion,
         confidence: p.confidence,
         stance: p.stance,
         buySellSkew: p.buySellSkew,

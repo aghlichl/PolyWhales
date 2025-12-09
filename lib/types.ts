@@ -373,6 +373,9 @@ export interface AiInsightPick {
     eventTitle: string | null;
     eventSlug: string | null;
     outcome: string | null;
+    marketQuestion: string | null;
+    latestPrice: number; // Latest trade price (0-1 scale)
+    isResolved: boolean; // Whether the market has been resolved
     totalVolume: number;
     tradeCount: number;
     buyVolume: number;
@@ -407,6 +410,7 @@ export interface AiInsightsResponse {
         id: string;
         eventTitle: string | null;
         outcome: string | null;
+        marketQuestion: string | null;
         confidence: number;
         stance: 'bullish' | 'bearish';
         buySellSkew: number;
