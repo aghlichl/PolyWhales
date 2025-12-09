@@ -227,24 +227,14 @@ export default function Home() {
           </motion.div>
         </div>
 
-        {/* Bottom Navigation / Status Bar - Hidden on Desktop */}
-        <div className="fixed bottom-0 left-0 right-0 h-12 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur flex items-center justify-between px-3 z-50 lg:hidden">
-          {/* Left side - Minimal LIVE indicator */}
-          <div className="flex items-center gap-1">
-            <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-            <span className="text-[8px] text-zinc-600 tracking-wider">LIVE</span>
-          </div>
-
-          {/* Center - Carousel Navigation */}
+        {/* Bottom Navigation - Hidden on Desktop */}
+        <div className="fixed bottom-0 left-0 right-0 h-12 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur flex items-center justify-center px-3 z-50 lg:hidden">
           <div className="flex-1 flex items-center justify-center">
             <BottomCarousel
               currentPage={currentPage}
               onPageChange={handlePageChange}
             />
           </div>
-
-          {/* Right side - Minimal version */}
-          <div className="text-[8px] text-zinc-700">v1.0</div>
         </div>
 
         {/* Floating Search Button */}

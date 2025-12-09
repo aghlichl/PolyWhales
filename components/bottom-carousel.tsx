@@ -1,7 +1,7 @@
 "use client";
 
 import { Zap, Activity, BarChart3, TrendingUp } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface BottomCarouselProps {
@@ -15,19 +15,42 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
     { icon: Activity, label: "Live Feed", id: "feed" },
     { icon: TrendingUp, label: "Top Traders", id: "traders" },
     { icon: BarChart3, label: "Top Whales", id: "whales" }
-  ];
+  ] as const;
+
+  type PageId = (typeof pages)[number]["id"];
+
+  const pageColors: Record<PageId, { active: string; inactive: string; pulse?: boolean }> = {
+    ai: {
+      active: "text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.55)]",
+      inactive: "text-zinc-500 group-hover:text-zinc-300"
+    },
+    feed: {
+      active: "text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.55)]",
+      inactive: "text-zinc-500 group-hover:text-zinc-300",
+      pulse: true
+    },
+    traders: {
+      active: "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]",
+      inactive: "text-zinc-500 group-hover:text-zinc-300"
+    },
+    whales: {
+      active: "text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]",
+      inactive: "text-zinc-500 group-hover:text-zinc-300"
+    }
+  };
 
   return (
     <div className="w-full">
       {/* Glass Container */}
       <div className="relative w-full border-t border-white/5 bg-black/80 backdrop-blur-xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
         {/* Top Shine Line */}
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
 
         <div className="grid grid-cols-4 w-full relative z-10">
           {pages.map((page, index) => {
             const Icon = page.icon;
             const isActive = index === currentPage;
+            const color = pageColors[page.id];
 
             return (
               <button
@@ -52,7 +75,7 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
                 {isActive && (
                   <motion.div
                     layoutId="bottom-nav-glow"
-                    className="absolute top-0 w-12 h-[1px] bg-primary/50 blur-[2px]"
+                    className="absolute top-0 w-12 h-px bg-primary/50 blur-[2px]"
                     transition={{ duration: 0.2 }}
                   />
                 )}
@@ -66,12 +89,8 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
                     <Icon
                       className={cn(
                         "w-6 h-6 transition-colors duration-300",
-                        isActive
-                          ? "text-zinc-100 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
-                          : "text-zinc-500 group-hover:text-zinc-300",
-                        // Special pulse for Live Feed
-                        page.id === "feed" && !isActive && "text-emerald-500/70",
-                        page.id === "feed" && isActive && "animate-pulse text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]"
+                        isActive ? color.active : color.inactive,
+                        color.pulse && isActive && "animate-pulse"
                       )}
                       strokeWidth={isActive ? 2.5 : 2}
                     />
