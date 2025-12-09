@@ -95,7 +95,7 @@ export function UserPreferencesModal({ isOpen, onClose }: UserPreferencesModalPr
                         ref={closeButtonRef}
                         onClick={onClose}
                         aria-label="Close preferences"
-                        className="h-8 w-8 flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:text-white hover:border-emerald-400/50 hover:bg-zinc-900/90 hover:shadow-[0_0_18px_-6px_rgba(52,211,153,0.45)] transition-all duration-200"
+                        className="h-8 w-8 flex items-center justify-center rounded-full bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 transition-all duration-200"
                     >
                         <X className="h-4 w-4" />
                     </button>
@@ -112,4 +112,5 @@ export function UserPreferencesModal({ isOpen, onClose }: UserPreferencesModalPr
         document.body
     );
 }
+
 

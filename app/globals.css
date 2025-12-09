@@ -63,13 +63,13 @@
   --animate-energy-flow: energy-flow 8s ease-in-out infinite alternate;
   --animate-dust-twinkle: dust-twinkle 3s ease-in-out infinite;
   --animate-core-pulse: core-pulse 4s ease-in-out infinite;
-  --animate-flash: flash 0.5s ease-out infinite alternate;
-  --animate-shockwave: shockwave 2s ease-out infinite;
-  --animate-super-spin: super-spin 3s linear infinite;
+  --animate-flash: flash 1.6s ease-out infinite alternate;
+  --animate-shockwave: shockwave 6s ease-out infinite;
+  --animate-super-spin: super-spin 10s linear infinite;
   --animate-heat-distortion: heat-distortion 2s ease-in-out infinite;
   --animate-rgb-glitch-cycle: rgb-glitch-cycle 2.5s ease-in-out infinite;
-  --animate-energy-wisp: energy-wisp 3s ease-in-out infinite;
-  --animate-spin-reverse: spin-reverse 4s linear infinite;
+  --animate-energy-wisp: energy-wisp 7s ease-in-out infinite;
+  --animate-spin-reverse: spin-reverse 12s linear infinite;
   --animate-majestic-float: majestic-float 2.5s ease-in-out infinite;
   --ticker-speed: 250s;
   --ticker-gap: 22px;

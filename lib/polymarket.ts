@@ -23,6 +23,67 @@ let marketsCache: {
 
 const CACHE_TTL = CONFIG.CONSTANTS.METADATA_REFRESH_INTERVAL; // 5 minutes
 
+const TZ_REGEX = /(?:[zZ]|[+-]\d{2}:?\d{2})$/;
+
+/**
+ * Normalize Polymarket date-like values to ISO UTC strings.
+ * Handles:
+ * - Date instances
+ * - numeric epoch seconds/millis
+ * - strings without timezone (assume UTC, append Z)
+ * - strings with timezone (pass through)
+ */
+const normalizePolymarketDate = (value: any): string | null => {
+    if (value === undefined || value === null) return null;
+
+    if (value instanceof Date) {
+        const ts = value.getTime();
+        return Number.isNaN(ts) ? null : value.toISOString();
+    }
+
+    if (typeof value === 'number') {
+        const ms = value > 1e12 ? value : value * 1000;
+        const date = new Date(ms);
+        return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        // Numeric string epoch
+        if (/^\d+$/.test(trimmed)) {
+            const num = Number(trimmed);
+            const ms = trimmed.length >= 13 ? num : num * 1000;
+            const date = new Date(ms);
+            return Number.isNaN(date.getTime()) ? null : date.toISOString();
+        }
+
+        const hasTimezone = TZ_REGEX.test(trimmed);
+        const normalizedSpacing = trimmed.includes('T')
+            ? trimmed
+            : trimmed.replace(/\s+/, 'T');
+        const candidate = hasTimezone ? normalizedSpacing : `${normalizedSpacing}Z`;
+        const parsed = new Date(candidate);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toISOString();
+        }
+
+        // Fallback attempt
+        const fallback = new Date(trimmed);
+        return Number.isNaN(fallback.getTime()) ? null : fallback.toISOString();
+    }
+
+    return null;
+};
+
+const addHoursToIso = (iso: string, hours: number): string | null => {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(date.getHours() + hours);
+    return date.toISOString();
+};
+
 export async function fetchMarketsFromGamma(init?: RequestInit): Promise<PolymarketMarket[]> {
     // Check cache first
     if (marketsCache && (Date.now() - marketsCache.timestamp < CACHE_TTL)) {
@@ -104,6 +165,30 @@ export function parseMarketData(markets: PolymarketMarket[]): {
             const tagIds = Array.isArray(market.tags) ? market.tags.map((t: any) => t.id).filter(Boolean) : [];
             const tagNames = Array.isArray(market.tags) ? market.tags.map((t: any) => t.name || t.slug).filter(Boolean) : [];
 
+            const openTime = normalizePolymarketDate((market as any).openTime);
+            const eventStartTime = normalizePolymarketDate(event?.startTime);
+            const eventEndTime = normalizePolymarketDate(event?.endTime);
+            const explicitResolution = normalizePolymarketDate(market.resolutionTime);
+            const endDate = normalizePolymarketDate((market as any).endDate);
+
+            // Prefer explicit resolution, then event end, then fallback endDate.
+            // If the chosen close is before the start (common when APIs return start),
+            // bump to event end or a small buffer after start.
+            const primaryClose = explicitResolution || eventEndTime || endDate || null;
+            const startBoundary = eventStartTime || openTime || null;
+            let closeTime = primaryClose;
+
+            if (closeTime && startBoundary) {
+                const closeMs = new Date(closeTime).getTime();
+                const startMs = new Date(startBoundary).getTime();
+                if (!Number.isNaN(closeMs) && !Number.isNaN(startMs) && closeMs <= startMs) {
+                    const bumped = eventEndTime || addHoursToIso(startBoundary, 3);
+                    closeTime = bumped || closeTime;
+                }
+            }
+
+            const resolutionTime = explicitResolution || eventEndTime || endDate || null;
+
             const meta: MarketMeta = {
                 conditionId: market.conditionId,
                 eventId: event?.id || '',
@@ -121,9 +206,9 @@ export function parseMarketData(markets: PolymarketMarket[]): {
                 denominationToken: market.denominationToken || null,
                 liquidity: numOrNull(market.liquidity),
                 volume24h: numOrNull((market as any).volume24hr ?? (market as any).volume24h),
-                openTime: (market as any).openTime || null,
-                closeTime: (market as any).endDate || null,
-                resolutionTime: market.resolutionTime || null,
+                openTime,
+                closeTime,
+                resolutionTime,
                 resolutionSource: market.resolutionSource || null,
                 sponsor: market.sponsor || null,
                 tagIds: tagIds.length ? tagIds : undefined,
@@ -131,8 +216,8 @@ export function parseMarketData(markets: PolymarketMarket[]): {
                 sport: event?.sport || null,
                 league: event?.league || null,
                 eventSlug: event?.slug || null,
-                eventStartTime: event?.startTime || null,
-                eventEndTime: event?.endTime || null,
+                eventStartTime,
+                eventEndTime,
                 eventImage: event?.image || event?.icon || null,
                 relatedMarketIds: Array.isArray(market.relatedMarkets) ? market.relatedMarkets : undefined,
             };

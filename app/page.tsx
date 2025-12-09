@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useMarketStore, usePreferencesStore, getTop20Wallets } from "@/lib/store";
 import { Anomaly, UserPreferences as UserPreferencesType } from "@/lib/types";
-import { Ticker } from "@/components/feed/ticker";
+// import { Ticker } from "@/components/feed/ticker";
 import { SlotReel } from "@/components/feed/slot-reel";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { BottomCarousel } from "@/components/bottom-carousel";
@@ -13,7 +13,7 @@ import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { motion } from "framer-motion";
 
 
-import { Header } from "@/components/header";
+import { HybridHeader } from "@/components/hybrid-header";
 import { DesktopLayout } from "@/components/desktop-layout";
 import { AIInsightsPanel } from "@/components/ai-insights-panel";
 import { TopTradersPanel } from "@/components/top-traders-panel";
@@ -146,7 +146,7 @@ export default function Home() {
   const getCenterTitle = () => {
     switch (currentPage) {
       case 0:
-        return <>AI <span className="text-emerald-400 animate-pulse">INSIGHTS</span></>;
+        return <><span className="text-fuchsia-400 animate-pulse">AI</span> INSIGHTS</>;
       case 1:
         return <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
       case 2:
@@ -164,9 +164,9 @@ export default function Home() {
       rightPanel={<TopTradersPanel />}
       fourthPanel={<TopWhales />}
       centerTitle={getCenterTitle()}
-      header={<Header />}
-      ticker={<Ticker />}
-      leftTitle="AI INSIGHTS"
+      header={<HybridHeader />}
+      ticker={null}
+      leftTitle={<><span className="text-fuchsia-400 animate-pulse">AI</span> INSIGHTS</>}
       rightTitle={<>TOP <span className="text-orange-400 animate-pulse">TRADERS</span></>}
       fourthTitle={<>TOP <span className="text-blue-400 animate-pulse">WHALES</span></>}
     >

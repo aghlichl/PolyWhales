@@ -109,6 +109,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
     const isSuper = type === 'SUPER_WHALE';
     const isMega = type === 'MEGA_WHALE';
     const isWhale = type === 'WHALE';
+    const isStandard = !isGod && !isSuper && !isMega && !isWhale;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -200,11 +201,11 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                     // Mega Whale - Pulsing Purple
                     isMega && "bg-purple-950/20 border-purple-500/20 shadow-[5px_5px_0px_0px_rgba(168,85,247,0.2)] group-hover:shadow-[6px_6px_0px_0px_rgba(168,85,247,0.3)] group-hover:-translate-y-1",
 
-                    // Super Whale - Aggressive Red
-                    isSuper && "bg-[radial-gradient(circle_at_24%_18%,rgba(248,113,113,0.5)_0%,rgba(127,29,29,0.82)_42%,rgba(24,8,8,0.95)_78%)] border-rose-400/60 shadow-[5px_5px_0px_0px_rgba(248,113,113,0.24)] group-hover:shadow-[6px_6px_0px_0px_rgba(248,113,113,0.32)] group-hover:border-rose-300/80 group-hover:-translate-y-1",
+                    // Super Whale - Deep Crimson (darker neon)
+                    isSuper && "bg-[radial-gradient(circle_at_24%_18%,rgba(130,34,34,0.55)_0%,rgba(71,10,10,0.9)_42%,rgba(12,4,4,0.95)_78%)] border-[rgba(130,34,34,0.6)] shadow-[5px_5px_0px_0px_rgba(130,34,34,0.22)] group-hover:shadow-[6px_6px_0px_0px_rgba(178,60,60,0.28)] group-hover:border-[rgba(178,60,60,0.75)] group-hover:-translate-y-1",
 
-                    // God Whale - Mythic Gold
-                    isGod && "bg-yellow-950/10 border-yellow-500/30 shadow-[5px_5px_0px_0px_rgba(251,191,36,0.2)] group-hover:shadow-[6px_6px_0px_0px_rgba(251,191,36,0.3)] group-hover:-translate-y-1"
+                    // God Whale - Mythic Gold (slightly more opaque for readability)
+                    isGod && "bg-yellow-950/20 border-yellow-500/40 shadow-[5px_5px_0px_0px_rgba(251,191,36,0.24)] group-hover:shadow-[6px_6px_0px_0px_rgba(251,191,36,0.32)] group-hover:border-yellow-400/70 group-hover:-translate-y-1"
                 )}>
                     <TierOverlays isGod={isGod} isSuper={isSuper} isMega={isMega} isWhale={isWhale} />
 
@@ -257,7 +258,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                         "absolute -left-2 top-1 bottom-1 w-1 rounded-full",
                                         "opacity-40",
                                         isGod ? "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]" :
-                                            isSuper ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
+                                            isSuper ? "bg-[#8e2a2a] shadow-[0_0_10px_rgba(178,60,60,0.55)]" :
                                                 isMega ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" :
                                                     isWhale ? "bg-sky-300 shadow-[0_0_16px_rgba(125,211,252,0.7)] opacity-70" :
                                                         "bg-zinc-600"
@@ -277,7 +278,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                                 "text-balance",
                                                 // Tier-specific text colors
                                                 isGod ? "text-yellow-100" :
-                                                    isSuper ? "text-red-100" :
+                                                    isSuper ? "text-[#f3d7d7]" :
                                                         isMega ? "text-purple-100" :
                                                             isWhale ? "text-sky-50" :
                                                                 "text-zinc-100"
@@ -333,18 +334,17 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         {/* Top Right: Amount - REDESIGNED (Minimalist Neobrutalism) */}
                         <div className="flex items-start justify-end">
                             <div className={cn(
-                                "relative group",
-                                "bg-white/5 backdrop-blur-md", // Glass background
-                                "border border-white/10", // Glass border
-                                "rounded-lg", // Consistent shape
-                                "px-4 py-2"
+                                "relative group rounded-lg px-4 py-2",
+                                isStandard
+                                    ? "bg-black border border-black"
+                                    : "bg-white/5 backdrop-blur-md border border-white/10" // Glass background/border for non-standard tiers
                             )}>
                                 {/* Tier Indicator - Minimal Corner Accent */}
                                 <div className={cn(
                                     "absolute top-0 right-0 w-2 h-2",
                                     "border-t border-r rounded-tr-lg", // Corner bracket style
                                     isGod ? "border-yellow-500" :
-                                        isSuper ? "border-red-500" :
+                                        isSuper ? "border-[#b23c3c]" :
                                             isMega ? "border-purple-500" :
                                                 isWhale ? "border-blue-500" :
                                                     "border-zinc-600"
@@ -356,7 +356,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                     "border-b border-l rounded-bl-lg", // Corner bracket style
                                     "opacity-50",
                                     isGod ? "border-yellow-500" :
-                                        isSuper ? "border-red-500" :
+                                        isSuper ? "border-[#b23c3c]" :
                                             isMega ? "border-purple-500" :
                                                 isWhale ? "border-blue-500" :
                                                     "border-zinc-600"
@@ -367,7 +367,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                         // jetbrains.className removed
                                         "text-sm font-bold",
                                         isGod ? "text-yellow-500/90" :
-                                            isSuper ? "text-rose-300" :
+                                            isSuper ? "text-[#e3b6b6]" :
                                                 isMega ? "text-purple-500/90" :
                                                     isWhale ? "text-sky-300" :
                                                         "text-zinc-500"
@@ -390,7 +390,9 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                     {/* Main Container */}
                                     <div className={cn(
                                         "relative flex flex-col min-w-[100px] overflow-hidden rounded-lg",
-                                        "bg-white/5 backdrop-blur-md border border-white/10"
+                                        isStandard
+                                            ? "bg-black border border-black"
+                                            : "bg-white/5 backdrop-blur-md border border-white/10"
                                     )}>
                                         {/* Decorative Top Bar */}
                                         <div className={cn(
@@ -462,7 +464,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                 <div className={cn(
                     "mx-auto mt-1 w-[92%] px-4 py-1.5 text-[10px]",
                     isGod ? "text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" :
-                        isSuper ? "text-rose-300/80" :
+                        isSuper ? "text-[rgba(227,182,182,0.8)]" :
                             isMega ? "text-purple-400/70" :
                                 isWhale ? "text-sky-300/80" :
                                     "text-zinc-400"

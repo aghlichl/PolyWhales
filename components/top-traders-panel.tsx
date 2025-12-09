@@ -331,7 +331,7 @@ export function TopTradersPanel() {
     const [traders, setTraders] = useState<TraderData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [period, setPeriod] = useState<Period>("Daily");
+    const [period, setPeriod] = useState<Period>("Monthly");
     const [selectedTrader, setSelectedTrader] = useState<TraderData | null>(null);
     const leaderboardRanks = useMarketStore(selectLeaderboardRanks);
     const fetchLeaderboardRanks = useMarketStore(selectFetchLeaderboardRanks);

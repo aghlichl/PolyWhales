@@ -62,3 +62,27 @@ export function formatCurrency(num: number): string {
 
   return num < 0 ? `-${formatted}` : `+${formatted}`;
 }
+
+export const EXPIRY_GRACE_MS = 5 * 60 * 1000;
+
+const toTimestamp = (value?: string | Date | null): number | null => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    const ts = value.getTime();
+    return Number.isNaN(ts) ? null : ts;
+  }
+  const parsed = new Date(value);
+  const ts = parsed.getTime();
+  return Number.isNaN(ts) ? null : ts;
+};
+
+export function isMarketExpired(
+  closeTime?: string | Date | null,
+  resolutionTime?: string | Date | null,
+  graceMs: number = EXPIRY_GRACE_MS,
+  nowMs: number = Date.now()
+): boolean {
+  const candidateTs = toTimestamp(resolutionTime) ?? toTimestamp(closeTime);
+  if (candidateTs === null) return false;
+  return candidateTs < (nowMs - graceMs);
+}

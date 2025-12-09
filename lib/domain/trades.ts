@@ -83,11 +83,13 @@ export function computeLiquidityBucket(liquidity?: number | null): string | null
   return '<5k';
 }
 
+const TIME_TO_CLOSE_GRACE_MS = 5 * 60 * 1000; // grace to avoid early expiration
+
 export function computeTimeToCloseBucket(closeTimeIso?: string | null): string | null {
   if (!closeTimeIso) return null;
   const closeDate = new Date(closeTimeIso);
   if (Number.isNaN(closeDate.getTime())) return null;
-  const diffMs = closeDate.getTime() - Date.now();
+  const diffMs = closeDate.getTime() - Date.now() + TIME_TO_CLOSE_GRACE_MS;
   const diffDays = diffMs / (1000 * 60 * 60 * 24);
   if (diffDays < 0) return 'closed';
   if (diffDays <= 1) return '<24h';

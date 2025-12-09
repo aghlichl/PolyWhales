@@ -386,6 +386,8 @@ export interface AiInsightPick {
     marketQuestion: string | null;
     latestPrice: number; // Latest trade price (0-1 scale)
     isResolved: boolean; // Whether the market has been resolved
+    closeTime?: string | null;
+    resolutionTime?: string | null;
     totalVolume: number;
     tradeCount: number;
     buyVolume: number;

@@ -64,3 +64,4 @@ export function useAiInsights(refreshMs = 60_000): UseAiInsightsResult {
   return { data, isLoading, error, refresh };
 }
 
+

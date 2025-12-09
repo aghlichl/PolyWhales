@@ -10,6 +10,7 @@ import {
   type MarketBaseline,
   type EnhancedSignalMetrics,
 } from "@/lib/signal-calculator";
+import { EXPIRY_GRACE_MS, isMarketExpired } from "@/lib/utils";
 import type { SignalFactors } from "@/lib/types";
 
 type LeaderboardWallet = {
@@ -28,6 +29,8 @@ type InsightPick = {
   marketQuestion: string | null;
   latestPrice: number;
   isResolved: boolean;
+  closeTime: string | null;
+  resolutionTime: string | null;
   totalVolume: number;
   tradeCount: number;
   buyVolume: number;
@@ -110,6 +113,7 @@ function computeLegacyConfidence(pick: Omit<InsightPick, 'volumeZScore' | 'hhiCo
 export async function GET() {
   try {
     const now = new Date();
+    const nowMs = now.getTime();
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Find the freshest snapshot period we can use (prefer Daily)
@@ -170,6 +174,7 @@ export async function GET() {
         side: true,
         walletAddress: true,
         timestamp: true,
+        closeTime: true,
         resolutionTime: true,
       },
     });
@@ -182,7 +187,14 @@ export async function GET() {
       const isTop20 = top20Set.has(walletKey);
       const walletRank = walletToRank.get(walletKey);
       const key = `${trade.conditionId || trade.eventTitle || "unknown"}::${trade.outcome || "unknown"}`;
-      const resolvedForTrade = trade.resolutionTime !== null && trade.resolutionTime <= now;
+      const resolvedForTrade = isMarketExpired(
+        trade.closeTime,
+        trade.resolutionTime,
+        EXPIRY_GRACE_MS,
+        nowMs
+      );
+      const closeIso = trade.closeTime ? trade.closeTime.toISOString() : null;
+      const resolutionIso = trade.resolutionTime ? trade.resolutionTime.toISOString() : null;
 
       if (!groups.has(key)) {
         groups.set(key, {
@@ -194,6 +206,8 @@ export async function GET() {
           marketQuestion: trade.question ?? null,
           latestPrice: trade.price,
           isResolved: resolvedForTrade,
+          closeTime: closeIso,
+          resolutionTime: resolutionIso,
           totalVolume: 0,
           tradeCount: 0,
           buyVolume: 0,
@@ -246,6 +260,12 @@ export async function GET() {
       }
 
       const pick = groups.get(key)!;
+      if (!pick.closeTime && closeIso) {
+        pick.closeTime = closeIso;
+      }
+      if (!pick.resolutionTime && resolutionIso) {
+        pick.resolutionTime = resolutionIso;
+      }
       pick.isResolved = pick.isResolved || resolvedForTrade;
       pick.totalVolume += trade.tradeValue;
       pick.tradeCount += 1;
@@ -302,6 +322,17 @@ export async function GET() {
 
     // Phase 2: Calculate market baseline for Z-scores
     const picksArray = Array.from(groups.values());
+    for (const pick of picksArray) {
+      const expired = isMarketExpired(
+        pick.closeTime,
+        pick.resolutionTime,
+        EXPIRY_GRACE_MS,
+        nowMs
+      );
+      if (expired) {
+        pick.isResolved = true;
+      }
+    }
     const activePicks = picksArray.filter((p) => !p.isResolved);
 
     const allTop20Volumes = activePicks.map(p => p.top20Volume);
