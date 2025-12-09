@@ -367,6 +367,16 @@ export interface AiInsightRank {
     totalPnl: number;
 }
 
+/** Signal factor contributions for explainability */
+export interface SignalFactors {
+    volumeContribution: number;
+    rankContribution: number;
+    concentrationContribution: number;
+    recencyContribution: number;
+    directionContribution: number;
+    alignmentContribution?: number;
+}
+
 export interface AiInsightPick {
     id: string;
     conditionId: string | null;
@@ -387,9 +397,48 @@ export interface AiInsightPick {
     top20Support: number;
     topRanks: AiInsightRank[];
     bestRank: number | null;
+    topTraderCount?: number;
+    topTraderBuyCount?: number;
+    topTraderSellCount?: number;
+    topTraderBuyVolume?: number;
+    topTraderSellVolume?: number;
+    topTraderVolume?: number;
+    topTraderDominantSide?: 'buy' | 'sell' | null;
+    topTraderDominantShare?: number;
     stance: 'bullish' | 'bearish';
     confidence: number;
     latestTradeAt: string | null;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ENHANCED QUANT METRICS (optional for backwards compatibility)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** Z-score: how unusual is whale volume relative to market baseline */
+    volumeZScore?: number;
+
+    /** Herfindahl-Hirschman Index: 0-1, higher = more concentrated whale positions */
+    hhiConcentration?: number;
+
+    /** Rank-weighted score: quality-adjusted whale impact (0-100) */
+    rankWeightedScore?: number;
+
+    /** Volume with exponential time decay weighting */
+    timeDecayedVolume?: number;
+
+    /** Directional conviction: 0=sell, 0.5=neutral, 1=buy */
+    directionConviction?: number;
+
+    /** Percentile rank among all markets (0-100) */
+    confidencePercentile?: number;
+
+    /** Breakdown of contributing factors for signal explainability */
+    signalFactors?: SignalFactors;
+
+    /** Flag: true if Z-score >= 2.0 (statistically significant) */
+    isUnusualActivity?: boolean;
+
+    /** Flag: true if HHI >= 0.25 (concentrated whale consensus) */
+    isConcentrated?: boolean;
 }
 
 export interface AiInsightsSummary {

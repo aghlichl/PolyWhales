@@ -4,53 +4,93 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAiInsights } from "@/lib/useAiInsights";
 import { AiInsightPick } from "@/lib/types";
 import { cn, formatShortNumber } from "@/lib/utils";
-import { RefreshCw, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap } from "lucide-react";
 import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
+import { motion, AnimatePresence } from "framer-motion";
 
-type SortKey = "confidence" | "support" | "volume";
-
-const formatPct = (value: number) => `${Math.round(value * 100)}%`;
+type SortKey = "confidence" | "topTraders" | "volume";
 
 const formatUsdCompact = (value?: number | null) => {
   if (value === null || value === undefined || Number.isNaN(value)) return "--";
   return `$${formatShortNumber(value)}`;
 };
 
-const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-const computeUiConfidence = (pick: Partial<AiInsightPick> & { confidence: number }) => {
-  const { totalVolume, top20Volume, top20Support, bestRank } = pick;
-  if (totalVolume === null || totalVolume === undefined) return null;
-  if (top20Volume === null || top20Volume === undefined) return null;
-  if (top20Support === null || top20Support === undefined) return null;
+const computeAdjustedConfidence = (pick: Partial<AiInsightPick> & { confidence: number }) => {
+  const base = pick.confidencePercentile ?? pick.confidence ?? 0;
 
-  const safeTotalVolume = Math.max(totalVolume, 0);
-  const whaleShare = safeTotalVolume > 0 ? clamp01(top20Volume / safeTotalVolume) : 0;
-  const whaleAbs = clamp01(Math.log10(Math.max(top20Volume, 0) + 1) / 5);
-  const volumeScore = clamp01(Math.log10(safeTotalVolume + 1) / 6);
-  const rankScore = bestRank ? clamp01((21 - bestRank) / 20) : 0;
-  const supportScore = clamp01(top20Support);
+  const buyVol = pick.topTraderBuyVolume ?? pick.buyVolume ?? 0;
+  const sellVol = pick.topTraderSellVolume ?? pick.sellVolume ?? 0;
+  const inferredTopVolume = (pick.topTraderBuyVolume ?? 0) + (pick.topTraderSellVolume ?? 0);
+  const whaleVolume =
+    pick.topTraderVolume ??
+    (inferredTopVolume > 0 ? inferredTopVolume : (pick.buyVolume ?? 0) + (pick.sellVolume ?? 0));
+  const totalVolume = pick.totalVolume ?? 0;
 
-  const weighted =
-    whaleShare * 0.32 +
-    whaleAbs * 0.24 +
-    rankScore * 0.20 +
-    volumeScore * 0.14 +
-    supportScore * 0.10;
+  const whaleShare = clamp(totalVolume > 0 ? whaleVolume / totalVolume : 0, 0, 1);
+  const volumeForDelta = buyVol + sellVol;
+  const volumeDominance = volumeForDelta > 0 ? Math.abs((buyVol - sellVol) / (volumeForDelta + 1e-6)) : 0;
 
-  return Math.round(weighted * 100);
+  const buyCount = pick.topTraderBuyCount ?? 0;
+  const sellCount = pick.topTraderSellCount ?? 0;
+  const countedTotal = buyCount + sellCount;
+  const totalCount = (pick.topTraderCount ?? 0) || countedTotal;
+  const countDominance = countedTotal > 0 ? Math.abs((buyCount - sellCount) / (countedTotal + 1e-6)) : volumeDominance;
+
+  const consensus = 0.6 * countDominance + 0.4 * volumeDominance;
+
+  let crowdFactor = 0.9;
+  if (totalCount <= 1 && totalCount > 0) {
+    crowdFactor = 0.78;
+  } else if (totalCount === 2) {
+    crowdFactor = 0.9;
+  } else if (totalCount === 3) {
+    crowdFactor = 1.02;
+  } else if (totalCount === 4) {
+    crowdFactor = 1.08;
+  } else if (totalCount >= 5) {
+    crowdFactor = 1.15;
+  }
+
+  const dominanceFactor = 0.65 + 0.35 * consensus;
+  const shareFactor = 0.65 + 0.35 * whaleShare;
+
+  const factorRaw = dominanceFactor * shareFactor * crowdFactor;
+  const factor = clamp(factorRaw, 0.45, 1.05);
+
+  return clamp(Math.round(base * factor), 1, 99);
 };
 
-const getDisplayConfidence = (pick: Partial<AiInsightPick> & { confidence: number }) =>
-  computeUiConfidence(pick) ?? pick.confidence;
+const confidenceToGrade = (score: number) => {
+  if (score >= 97) return "A+";
+  if (score >= 93) return "A";
+  if (score >= 90) return "A-";
+  if (score >= 87) return "B+";
+  if (score >= 83) return "B";
+  if (score >= 80) return "B-";
+  if (score >= 76) return "C+";
+  if (score >= 72) return "C";
+  if (score >= 68) return "C-";
+  if (score >= 60) return "D";
+  return "F";
+};
 
-// Format price as cents
+const getDisplayConfidence = (pick: Partial<AiInsightPick> & { confidence: number }) => {
+  return computeAdjustedConfidence(pick);
+};
+
+const getConfidenceGrade = (pick: Partial<AiInsightPick> & { confidence: number }) => {
+  return confidenceToGrade(getDisplayConfidence(pick));
+};
+
 const formatCents = (value: number) => {
   const cents = Math.round(value * 100);
   return `${cents}¢`;
 };
 
-// Grouped event type containing all outcomes for a single event
+// --- Types & Data Helpers ---
+
 interface GroupedEvent {
   eventTitle: string;
   eventSlug: string | null;
@@ -59,11 +99,9 @@ interface GroupedEvent {
   totalVolume: number;
   bestConfidence: number;
   bestRank: number | null;
-  totalTop20Volume: number;
-  avgTop20Support: number;
+  totalTopTraderCount: number;
 }
 
-// Group picks by eventTitle to dedupe
 function groupPicksByEvent(picks: AiInsightPick[]): GroupedEvent[] {
   const eventMap = new Map<string, GroupedEvent>();
 
@@ -79,15 +117,14 @@ function groupPicksByEvent(picks: AiInsightPick[]): GroupedEvent[] {
         totalVolume: 0,
         bestConfidence: 0,
         bestRank: null,
-        totalTop20Volume: 0,
-        avgTop20Support: 0,
+        totalTopTraderCount: 0,
       });
     }
 
     const group = eventMap.get(key)!;
     group.outcomes.push(pick);
     group.totalVolume += pick.totalVolume;
-    group.totalTop20Volume += pick.top20Volume;
+    group.totalTopTraderCount += pick.topTraderCount ?? 0;
 
     const pickConfidence = getDisplayConfidence(pick);
     if (pickConfidence > group.bestConfidence) {
@@ -101,24 +138,20 @@ function groupPicksByEvent(picks: AiInsightPick[]): GroupedEvent[] {
     }
   }
 
-  // Calculate avg support and sort outcomes within each group
+  // Sort outcomes within each group
   for (const group of eventMap.values()) {
-    group.avgTop20Support = group.outcomes.length > 0
-      ? group.outcomes.reduce((sum, p) => sum + p.top20Support, 0) / group.outcomes.length
-      : 0;
     group.outcomes.sort((a, b) => getDisplayConfidence(b) - getDisplayConfidence(a));
   }
 
   return Array.from(eventMap.values());
 }
 
-// Extract market type context from the full question
 function extractMarketContext(question: string | null | undefined, outcome: string | null | undefined): string {
   if (!question) return outcome || "Unknown";
-
   const q = question.toLowerCase();
   const out = (outcome || "").toLowerCase();
 
+  // Try to be smart about sports lines
   const spreadMatch = question.match(/([+-]\d+\.?\d*)/i);
   if (spreadMatch && (q.includes('cover') || q.includes('spread'))) {
     return `${outcome} ${spreadMatch[1]}`;
@@ -126,19 +159,8 @@ function extractMarketContext(question: string | null | undefined, outcome: stri
 
   const totalMatch = question.match(/(\d+\.?\d*)/);
   if (out === 'over' || out === 'under') {
-    if (totalMatch) {
-      return `${outcome} ${totalMatch[1]}`;
-    }
+    if (totalMatch) return `${outcome} ${totalMatch[1]}`;
     return outcome || "Unknown";
-  }
-
-  if (q.includes('over') || q.includes('under') || q.includes('total')) {
-    if (totalMatch) {
-      const lineMatch = question.match(/(?:over|under|total)\s*(\d+\.?\d*)/i);
-      if (lineMatch) {
-        return `${outcome} (${lineMatch[1]})`;
-      }
-    }
   }
 
   if (q.includes('win') || q.includes('winner') || q.includes('moneyline')) {
@@ -147,24 +169,30 @@ function extractMarketContext(question: string | null | undefined, outcome: stri
 
   if ((out === 'yes' || out === 'no') && question.length > 0) {
     const cleanQ = question.replace(/^will\s+/i, '').replace(/\?$/i, '');
-    const truncated = cleanQ.length > 40 ? cleanQ.slice(0, 37) + '...' : cleanQ;
+    const truncated = cleanQ.length > 35 ? cleanQ.slice(0, 32) + '...' : cleanQ;
     return `${outcome}: ${truncated}`;
   }
 
   return outcome || "Unknown";
 }
 
+// --- Main Component ---
+
 export function AIInsightsPanel() {
-  const { data, isLoading, error, refresh } = useAiInsights(90_000);
+  const { data, isLoading, refresh } = useAiInsights(90_000);
   const [sortKey, setSortKey] = useState<SortKey>("confidence");
   const [selectedPick, setSelectedPick] = useState<AiInsightPick | null>(null);
-  const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
-  // Top 5 featured trades
+  const activePicks = useMemo(() => {
+    return data?.picks?.filter((pick) => !pick.isResolved) ?? [];
+  }, [data?.picks]);
+
+  // Featured: Top 5 by confidence then volume
   const featuredTrades = useMemo(() => {
-    if (!data?.picks) return [];
-    return [...data.picks]
+    if (!activePicks.length) return [];
+    return [...activePicks]
       .map((pick) => ({ pick, displayConfidence: getDisplayConfidence(pick) }))
       .sort((a, b) => {
         if (b.displayConfidence !== a.displayConfidence) return b.displayConfidence - a.displayConfidence;
@@ -172,248 +200,159 @@ export function AIInsightsPanel() {
       })
       .slice(0, 5)
       .map((entry) => entry.pick);
-  }, [data?.picks]);
+  }, [activePicks]);
 
+  // Auto-rotate
   useEffect(() => {
-    setFeaturedIndex(0);
-  }, [featuredTrades.length]);
+    if (!featuredTrades.length || isHovering) return;
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % featuredTrades.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [featuredTrades.length, isHovering]);
+
+  const groupedEvents = useMemo(() => {
+    if (!activePicks.length) return [];
+    const groups = groupPicksByEvent(activePicks);
+    groups.sort((a, b) => {
+      if (sortKey === "volume") return b.totalVolume - a.totalVolume;
+      if (sortKey === "topTraders") return b.totalTopTraderCount - a.totalTopTraderCount;
+      return b.bestConfidence - a.bestConfidence;
+    });
+    return groups.slice(0, 20);
+  }, [activePicks, sortKey]);
 
   const hasFeatured = featuredTrades.length > 0;
 
-  const handlePrev = () => {
-    if (!hasFeatured) return;
-    setFeaturedIndex((idx) => (idx - 1 + featuredTrades.length) % featuredTrades.length);
-  };
-
-  const handleNext = () => {
-    if (!hasFeatured) return;
-    setFeaturedIndex((idx) => (idx + 1) % featuredTrades.length);
-  };
-
-  // Group and sort events
-  const groupedEvents = useMemo(() => {
-    if (!data?.picks) return [];
-    const groups = groupPicksByEvent(data.picks);
-
-    groups.sort((a, b) => {
-      if (sortKey === "volume") return b.totalVolume - a.totalVolume;
-      if (sortKey === "support") return b.avgTop20Support - a.avgTop20Support;
-      return b.bestConfidence - a.bestConfidence;
-    });
-
-    return groups.slice(0, 20);
-  }, [data?.picks, sortKey]);
-
   return (
-    <div className="relative space-y-6">
-      {/* Floating Glassmorphism Cards */}
+    <div className="relative space-y-12 pb-12">
+      {/* Featured Carousel */}
       {hasFeatured && (
         <div
-          className="relative h-[200px] group overflow-hidden"
+          className="relative w-full"
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          {/* Navigation arrows - visible on hover */}
-          <button
-            onClick={handlePrev}
-            className={cn(
-              "absolute left-2 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300",
-              "bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white",
-              isHovering ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
-            )}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            onClick={handleNext}
-            className={cn(
-              "absolute right-2 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300",
-              "bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white",
-              isHovering ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
-            )}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
 
-          {/* Card stack */}
-          <div
-            className="relative h-full flex items-center justify-center overflow-hidden"
-            style={{ perspective: 1200 }}
-          >
-            {featuredTrades.map((pick, idx) => {
-              const offset = idx - featuredIndex;
-              const normalizedOffset = ((offset % featuredTrades.length) + featuredTrades.length) % featuredTrades.length;
-              const displayOffset = normalizedOffset > featuredTrades.length / 2
-                ? normalizedOffset - featuredTrades.length
-                : normalizedOffset;
 
-              // Only show 3 cards: current, left, right
-              if (Math.abs(displayOffset) > 1) return null;
-
-              const isCenter = displayOffset === 0;
-              const distanceFromCenter = Math.abs(displayOffset);
-              const translateX = displayOffset * 320;
-              const scale = isCenter ? 1 : 0.88;
-              const opacity = isCenter ? 1 : Math.max(0.55, 1 - distanceFromCenter * 0.4);
-              const confidence = getDisplayConfidence(pick);
-              const isBullish = pick.stance === "bullish";
-              const tradePrice = pick.latestPrice ?? 0;
-
-              return (
-                <div
-                  key={pick.id}
-                  onClick={() => isCenter && setSelectedPick(pick)}
-                  className={cn(
-                    "absolute w-[340px] cursor-pointer",
-                    isCenter ? "z-20" : "z-10"
-                  )}
-                  style={{
-                    transform: `translate3d(${translateX}px, 0, 0) scale(${scale}) rotateY(${displayOffset * -6}deg)`,
-                    opacity,
-                    filter: isCenter ? "none" : "blur(1.5px)",
-                    pointerEvents: isCenter ? "auto" : "none",
-                    transition: "transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease, filter 0.45s ease",
-                    willChange: "transform, opacity, filter",
-                  }}
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 h-[340px]">
+            {/* Main Featured Card */}
+            <div className="relative h-full perspective-[2000px] group">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={featuredTrades[activeIndex].id}
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  transition={{ duration: 0.4, ease: "circOut" }}
+                  className="absolute inset-0 z-10"
                 >
-                  {/* Glassmorphism Card */}
-                  <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-white/5 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-                    {/* Gradient glow */}
-                    <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-br from-emerald-500/30 via-cyan-500/20 to-transparent blur-3xl" />
-                    <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-gradient-to-tr from-blue-500/20 via-purple-500/10 to-transparent blur-2xl" />
+                  <FeaturedCard
+                    pick={featuredTrades[activeIndex]}
+                    onClick={() => setSelectedPick(featuredTrades[activeIndex])}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-                    {/* Content */}
-                    <div className="relative p-5 space-y-4">
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className={cn(
-                              "h-6 w-6 rounded-full flex items-center justify-center",
-                              isBullish ? "bg-emerald-500/30 text-emerald-300" : "bg-rose-500/30 text-rose-300"
-                            )}>
-                              {isBullish ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                            </div>
-                            <span className="text-[10px] uppercase tracking-wider text-white/60">
-                              {isBullish ? "Bullish" : "Bearish"} signal
-                            </span>
-                          </div>
-                          <p className="text-sm font-medium text-white/90 line-clamp-2">
-                            {pick.eventTitle || "Unknown Market"}
-                          </p>
-                          <p className="text-xs text-white/50 line-clamp-1 mt-1">
-                            {extractMarketContext(pick.marketQuestion, pick.outcome)}
-                          </p>
+            {/* Side List Navigation (hide on md and below) */}
+            <div className="hidden md:flex flex-col gap-2 h-full overflow-y-auto no-scrollbar pr-1">
+              {featuredTrades.map((pick, idx) => (
+                <button
+                  key={pick.id}
+                  onClick={() => setActiveIndex(idx)}
+                  className={cn(
+                    "flex-1 flex flex-col justify-center px-4 py-3 text-left transition-all border-l-2",
+                    activeIndex === idx
+                      ? "bg-white/5 border-primary"
+                      : "bg-transparent border-white/5 hover:bg-white/5 hover:border-white/20"
+                  )}
+                >
+                  {(() => {
+                    const confidence = getDisplayConfidence(pick);
+                    const grade = getConfidenceGrade(pick);
+                    return (
+                      <>
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className={cn(
+                            "text-[10px] uppercase font-bold tracking-wider",
+                            pick.stance === "bullish" ? "text-emerald-400" : "text-rose-400"
+                          )}>
+                            {pick.stance === "bullish" ? "▲ Buy" : "▼ Sell"}
+                          </span>
+                          <span className={cn(
+                            "font-mono text-sm font-bold flex items-baseline gap-2",
+                            activeIndex === idx ? "text-white" : "text-zinc-500"
+                          )}>
+                            <span>{grade}</span>
+                            <span className="text-[10px] text-zinc-500">{confidence}%</span>
+                          </span>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-2xl font-bold text-white">{confidence}%</div>
-                          <div className="text-[10px] text-white/40 uppercase">confidence</div>
+                        <div className="text-xs text-zinc-400 line-clamp-1">
+                          {extractMarketContext(pick.marketQuestion, pick.outcome)}
                         </div>
-                      </div>
-
-                      {/* Stats row */}
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                          <p className="text-[10px] text-white/40 uppercase">Price</p>
-                          <p className="text-sm font-semibold text-white/90">{formatCents(tradePrice)}</p>
-                        </div>
-                        <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                          <p className="text-[10px] text-white/40 uppercase">Top20</p>
-                          <p className="text-sm font-semibold text-white/90">{formatPct(pick.top20Support)}</p>
-                        </div>
-                        <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                          <p className="text-[10px] text-white/40 uppercase">Volume</p>
-                          <p className="text-sm font-semibold text-white/90">{formatUsdCompact(pick.totalVolume)}</p>
-                        </div>
-                      </div>
-
-                      {/* Footer indicator */}
-                      <div className="flex items-center justify-center gap-1.5 pt-1">
-                        {featuredTrades.map((_, i) => (
-                          <div
-                            key={i}
-                            className={cn(
-                              "h-1.5 rounded-full transition-all duration-300",
-                              i === featuredIndex ? "w-4 bg-white/60" : "w-1.5 bg-white/20"
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                      </>
+                    );
+                  })()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Loading skeleton for cards */}
-      {isLoading && !hasFeatured && (
-        <div className="h-[200px] flex items-center justify-center">
-          <div className="w-[340px] h-[180px] rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 animate-pulse" />
-        </div>
-      )}
-
-      {/* Smart Money Signals Section - Unnested */}
-      <div className="space-y-3">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] uppercase tracking-[0.15em] text-zinc-400">Smart Money Signals</span>
-            <span className="text-[10px] text-zinc-600">
-              {data?.summary.uniqueMarkets ?? 0} markets · 24h
-            </span>
-          </div>
+      {/* Signal Feed (Table List) */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-2">
-            {/* Sort toggles */}
-            <div className="flex gap-1">
-              {(["confidence", "support", "volume"] as SortKey[]).map((key) => (
+            <Activity className="w-4 h-4 text-zinc-500" />
+            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500">
+              Recent Signals Feed
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex p-0.5 bg-zinc-900 border border-white/5 rounded-none">
+              {(["confidence", "volume"] as SortKey[]).map((key) => (
                 <button
                   key={key}
                   onClick={() => setSortKey(key)}
                   className={cn(
-                    "px-2.5 py-1 rounded-md text-[10px] transition-all",
+                    "px-3 py-1 text-[10px] font-mono uppercase tracking-wider transition-all border border-transparent",
                     sortKey === key
-                      ? "bg-white/10 text-white/90"
-                      : "text-zinc-500 hover:text-white/70"
+                      ? "bg-white/10 text-white border-white/10"
+                      : "text-zinc-600 hover:text-zinc-400"
                   )}
                 >
                   {key}
                 </button>
               ))}
             </div>
-            {/* Refresh button */}
             <button
               onClick={refresh}
-              className="p-1.5 rounded-md text-zinc-500 hover:text-white/70 hover:bg-white/5 transition-all"
+              disabled={isLoading}
+              className="group p-2 text-zinc-500 hover:text-white transition-colors"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+              <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
             </button>
           </div>
         </div>
 
-        {/* Event Cards */}
-        {error && (
-          <div className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg p-3">
-            {error}
-          </div>
-        )}
-        {!isLoading && !error && groupedEvents.length === 0 && (
-          <div className="text-center text-zinc-600 py-10 border border-dashed border-zinc-800 rounded-xl">
-            No signals yet. Waiting for smart money...
+        {!isLoading && groupedEvents.length === 0 && (
+          <div className="py-20 text-center border border-dashed border-white/5 text-zinc-600 font-mono text-sm uppercase">
+            Waiting for incoming signals...
           </div>
         )}
 
-        {isLoading && <SkeletonRows />}
-
-        {!isLoading && groupedEvents.map((event) => (
-          <EventCard
-            key={event.eventTitle}
-            event={event}
-            onSelectOutcome={setSelectedPick}
-          />
-        ))}
+        <div className="grid gap-2">
+          {groupedEvents.map((event) => (
+            <SignalRow
+              key={event.eventTitle}
+              event={event}
+              onSelectOutcome={setSelectedPick}
+            />
+          ))}
+        </div>
       </div>
 
       <AiInsightsTradesModal
@@ -424,215 +363,181 @@ export function AIInsightsPanel() {
   );
 }
 
-// Single event card with all outcomes
-function EventCard({
-  event,
-  onSelectOutcome
-}: {
-  event: GroupedEvent;
-  onSelectOutcome: (pick: AiInsightPick) => void;
-}) {
-  return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden">
-      {/* Event Header */}
-      <div className="px-4 py-3 border-b border-zinc-800/40">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-zinc-100 line-clamp-2">{event.eventTitle}</p>
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-zinc-500">
-              <span>{formatUsdCompact(event.totalVolume)} vol</span>
-              <span>·</span>
-              <span>{event.outcomes.length} outcomes</span>
-              {event.bestRank && (
-                <>
-                  <span>·</span>
-                  <span className="text-emerald-400">#{event.bestRank}</span>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="text-right shrink-0">
-            <div className="text-lg font-bold text-emerald-300">{event.bestConfidence}%</div>
-            <div className="text-[10px] text-zinc-500">top signal</div>
-          </div>
-        </div>
-      </div>
+// --- Sub-Components ---
 
-      {/* Outcomes */}
-      <div className="divide-y divide-zinc-800/30">
-        {event.outcomes.map((pick) => (
-          <OutcomeRow
-            key={pick.id}
-            pick={pick}
-            onClick={() => onSelectOutcome(pick)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Individual outcome row
-function OutcomeRow({ pick, onClick }: { pick: AiInsightPick; onClick: () => void }) {
+function FeaturedCard({ pick, onClick }: { pick: AiInsightPick; onClick: () => void }) {
   const confidence = getDisplayConfidence(pick);
+  const grade = getConfidenceGrade(pick);
   const isBullish = pick.stance === "bullish";
-  const isResolved = pick.isResolved;
-  const tradePrice = pick.latestPrice ?? 0;
 
   return (
     <div
-      className={cn(
-        "px-4 py-2.5 cursor-pointer transition-colors",
-        isResolved
-          ? "opacity-40 hover:opacity-60"
-          : "hover:bg-white/2"
-      )}
       onClick={onClick}
+      className="h-full w-full cursor-pointer relative overflow-hidden bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.06),transparent_30%),linear-gradient(135deg,rgba(12,12,15,0.75),rgba(7,7,9,0.6))] backdrop-blur-2xl border border-white/5 hover:border-white/10 transition-colors group"
     >
-      {/* Mobile layout */}
-      <div className="flex flex-col gap-1 md:hidden">
-        <div className="flex items-start gap-2 justify-between">
-          <div className="flex items-start gap-2 min-w-0">
+      {/* Decorative Status Bar */}
+      <div className={cn(
+        "absolute top-0 left-0 w-1.5 h-full z-20",
+        isBullish ? "bg-emerald-500" : "bg-rose-500"
+      )} />
+
+      {/* Background Noise/Texture */}
+      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
+
+      {/* Content */}
+      <div className="relative z-10 h-full p-8 flex flex-col justify-between">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
             <div className={cn(
-              "shrink-0 w-4 h-4 rounded flex items-center justify-center",
-              isResolved
-                ? "text-zinc-600"
-                : isBullish
-                  ? "text-emerald-400"
-                  : "text-rose-400"
+              "inline-flex items-center gap-2 px-3 py-1 border text-xs font-mono uppercase tracking-wider",
+              isBullish
+                ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/5 run-border-animation"
+                : "border-rose-500/30 text-rose-400 bg-rose-500/5"
             )}>
-              {isBullish ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {isBullish ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+              {isBullish ? "Bullish Outlook" : "Bearish Outlook"}
             </div>
-            <span className={cn(
-              "text-sm leading-5 line-clamp-2",
-              isResolved ? "text-zinc-600" : "text-zinc-300"
-            )} title={pick.marketQuestion || undefined}>
+
+            <div className="flex items-center gap-3">
+              {pick.isUnusualActivity && (
+                <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider text-amber-400 animate-pulse">
+                  <Zap className="w-3 h-3 fill-amber-400" /> High Activity
+                </span>
+              )}
+              <div className="text-zinc-500 font-mono text-xs">
+                Vol: {formatUsdCompact(pick.totalVolume)}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-2xl font-medium text-white leading-tight max-w-[90%] font-sans">
+              {pick.eventTitle}
+            </h3>
+            <p className="mt-2 text-lg text-zinc-400 font-light flex items-center gap-2">
+              <ArrowRight className="w-4 h-4 text-zinc-600" />
               {extractMarketContext(pick.marketQuestion, pick.outcome)}
-            </span>
-            {isResolved && (
-              <span className="text-[9px] uppercase px-1 py-0.5 rounded bg-zinc-800 text-zinc-500">
-                Resolved
-              </span>
-            )}
+            </p>
           </div>
-          <div className={cn(
-            "shrink-0 text-xs font-mono text-right min-w-[44px]",
-            isResolved ? "text-zinc-600" : tradePrice >= 0.5 ? "text-emerald-300" : "text-amber-300"
-          )}>
-            {formatCents(tradePrice)}
-          </div>
-        </div>
-        <div className="grid grid-cols-3 items-center gap-2 text-[11px] text-zinc-500">
-          <div className="flex flex-col">
-            <span className="uppercase text-[10px] tracking-[0.08em] text-zinc-600">Support</span>
-            <span className={cn("text-xs", isResolved ? "text-zinc-600" : "text-zinc-300")}>
-              {formatPct(pick.top20Support)}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="uppercase text-[10px] tracking-[0.08em] text-zinc-600">Volume</span>
-            <span className={cn("text-xs", isResolved ? "text-zinc-600" : "text-zinc-300")}>
-              {formatUsdCompact(pick.totalVolume)}
-            </span>
-          </div>
-          <div className="flex flex-col items-end">
-            <span className="uppercase text-[10px] tracking-[0.08em] text-zinc-600">Signal</span>
-            <span className={cn(
-              "text-[11px] px-1.5 py-0.5 rounded",
-              isResolved
-                ? "text-zinc-600"
-                : confidence >= 70
-                  ? "text-emerald-300 bg-emerald-500/10"
-                  : confidence >= 50
-                    ? "text-amber-300 bg-amber-500/10"
-                    : "text-zinc-400"
-            )}>
-              {confidence}%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop layout */}
-      <div className="hidden md:grid md:grid-cols-[1fr_70px_70px_80px_60px] md:items-center md:gap-2">
-        {/* Outcome */}
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={cn(
-            "shrink-0 w-4 h-4 rounded flex items-center justify-center",
-            isResolved
-              ? "text-zinc-600"
-              : isBullish
-                ? "text-emerald-400"
-                : "text-rose-400"
-          )}>
-            {isBullish ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-          </div>
-          <span className={cn(
-            "text-sm leading-5 line-clamp-1 truncate",
-            isResolved ? "text-zinc-600" : "text-zinc-300"
-          )} title={pick.marketQuestion || undefined}>
-            {extractMarketContext(pick.marketQuestion, pick.outcome)}
-          </span>
-          {isResolved && (
-            <span className="text-[9px] uppercase px-1 py-0.5 rounded bg-zinc-800 text-zinc-500">
-              Resolved
-            </span>
-          )}
         </div>
 
-        {/* Price */}
-        <div className="text-right">
-          <span className={cn(
-            "text-sm font-mono",
-            isResolved ? "text-zinc-600" : tradePrice >= 0.5 ? "text-emerald-300" : "text-amber-300"
-          )}>
-            {formatCents(tradePrice)}
-          </span>
-        </div>
+        {/* Footer Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/5">
+          <div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Confidence</div>
+            <div className="space-y-1">
+              <div className={cn(
+                "text-4xl font-black tracking-tight leading-none",
+                isBullish ? "text-emerald-400" : "text-rose-400"
+              )}>
+                {grade}
+              </div>
+              <div className="text-xs text-zinc-500 font-mono tracking-tight leading-none">
+                {confidence}%
+              </div>
+            </div>
+          </div>
 
-        {/* Top20 */}
-        <div className="text-right">
-          <span className={cn("text-sm", isResolved ? "text-zinc-600" : "text-zinc-400")}>
-            {formatPct(pick.top20Support)}
-          </span>
-        </div>
+          <div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Price</div>
+            <div className="text-2xl text-white font-mono tracking-tight">
+              {formatCents(pick.latestPrice || 0)}
+            </div>
+          </div>
 
-        {/* Volume */}
-        <div className="text-right">
-          <span className={cn("text-sm", isResolved ? "text-zinc-600" : "text-zinc-500")}>
-            {formatUsdCompact(pick.totalVolume)}
-          </span>
-        </div>
+          <div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Whales</div>
+            <div className="text-2xl text-white font-mono tracking-tight">
+              {pick.topTraderCount || 0}
+            </div>
+          </div>
 
-        {/* Signal */}
-        <div className="text-right">
-          <span className={cn(
-            "text-xs px-1.5 py-0.5 rounded",
-            isResolved
-              ? "text-zinc-600"
-              : confidence >= 70
-                ? "text-emerald-300 bg-emerald-500/10"
-                : confidence >= 50
-                  ? "text-amber-300 bg-amber-500/10"
-                  : "text-zinc-400"
-          )}>
-            {confidence}%
-          </span>
+          <div className="flex items-end justify-end">
+            <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white group-hover:text-black transition-all">
+              <ArrowRight className="w-5 h-5 -rotate-45 group-hover:rotate-0 transition-transform" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function SkeletonRows() {
+function SignalRow({ event, onSelectOutcome }: { event: GroupedEvent; onSelectOutcome: (pick: AiInsightPick) => void }) {
+  const bestGrade = confidenceToGrade(event.bestConfidence);
+
   return (
-    <div className="space-y-3">
-      {Array.from({ length: 3 }).map((_, idx) => (
-        <div
-          key={idx}
-          className="h-[120px] rounded-xl border border-zinc-800/60 bg-zinc-900/40 animate-pulse"
-        />
-      ))}
+    <div className="group relative bg-[#09090b] hover:bg-[#0F0F12] border-b border-white/5 transition-colors p-4 grid gap-4 md:grid-cols-[2fr_auto] md:grid-rows-[auto_auto] items-start">
+      {/* Left: Info */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          {event.bestRank && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-zinc-800 text-zinc-300 rounded-sm font-mono">
+              #{event.bestRank}
+            </span>
+          )}
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+            {formatUsdCompact(event.totalVolume)} Vol // {event.totalTopTraderCount} Whales
+          </span>
+        </div>
+        <h4 className="text-sm text-zinc-300 font-medium truncate pr-4">
+          {event.eventTitle}
+        </h4>
+      </div>
+
+      {/* Middle: Outcomes (full width) */}
+      <div className="md:col-span-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar mask-gradient-right pt-1">
+        {event.outcomes.map(pick => (
+          <button
+            key={pick.id}
+            onClick={() => onSelectOutcome(pick)}
+            className="flex items-center gap-3 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all min-w-max"
+          >
+            {(() => {
+              const confidence = getDisplayConfidence(pick);
+              const grade = getConfidenceGrade(pick);
+              return (
+                <>
+                  <span className={cn(
+                    "text-xs font-bold",
+                    pick.stance === "bullish" ? "text-emerald-400" : "text-rose-400"
+                  )}>
+                    {pick.stance === "bullish" ? "BUY" : "SELL"}
+                  </span>
+                  <span className="text-xs text-zinc-300 font-mono">
+                    {extractMarketContext(pick.marketQuestion, pick.outcome)}
+                  </span>
+                  <div className="h-3 w-px bg-white/10" />
+                  <span className="flex items-baseline gap-1">
+                    <span className={cn(
+                      "text-xs font-mono",
+                      confidence > 65 ? "text-white font-bold" : "text-zinc-500"
+                    )}>
+                      {grade}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">{confidence}%</span>
+                  </span>
+                </>
+              );
+            })()}
+          </button>
+        ))}
+      </div>
+
+      {/* Right: Best Signal */}
+      <div className="text-right pl-4 md:row-start-1 md:col-start-2 md:self-center">
+        <div className="space-y-1">
+          <div className={cn(
+            "text-2xl font-black tracking-tight leading-none",
+              event.bestConfidence >= 70 ? "text-primary" : "text-zinc-500"
+          )}>
+            {bestGrade}
+          </div>
+          <div className="text-[10px] text-zinc-500 font-mono tracking-tight leading-none">
+            {event.bestConfidence}%
+          </div>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

@@ -17,6 +17,14 @@ const PERIOD_LABELS: Record<TopTradesPeriod, string> = {
   max: "ALL"
 };
 
+const RANK_COLORS = [
+  "#F59E0B", // Gold
+  "#06B6D4", // Cyan
+  "#F97316", // Orange
+  "#8B5CF6", // Purple
+  "#10B981"  // Emerald
+];
+
 export function TopWhales() {
   const {
     topTrades,
@@ -31,22 +39,23 @@ export function TopWhales() {
   // Load initial data on mount only
   useEffect(() => {
     fetchTopTrades(selectedPeriod);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only runs once on mount
 
   return (
     <div className="w-full">
-      {/* Period selector */}
-      <div className="px-4 pb-3">
-        <div className="flex gap-1">
+      {/* Period selector - Glassmorphic pills */}
+      <div className="px-4 pb-4">
+        <div className="p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
           {PERIODS.map((period) => (
             <button
               key={period}
               onClick={() => setSelectedPeriod(period)}
               className={cn(
-                "flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all rounded border",
+                "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg",
                 selectedPeriod === period
-                  ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
-                  : "bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border-transparent"
+                  ? "bg-white/10 text-white shadow-sm border border-white/5 backdrop-blur-md"
+                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
               )}
             >
               {PERIOD_LABELS[period]}
@@ -62,16 +71,14 @@ export function TopWhales() {
       ) : topTrades.length > 0 ? (
         <div className="space-y-4 p-4 pl-10">
           {topTrades.map((anomaly, index) => (
-            <div key={anomaly.id} className="relative">
+            <div key={anomaly.id} className="relative group">
               {/* Rank indicator */}
               <div className="absolute -left-8 top-4 z-10">
                 <div className={cn(
-                  "w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold",
-                  index === 0 ? "border-yellow-500 bg-yellow-950/20 text-yellow-300" :
-                    index === 1 ? "border-gray-400 bg-gray-950/20 text-gray-300" :
-                      index === 2 ? "border-orange-600 bg-orange-950/20 text-orange-300" :
-                        "border-zinc-600 bg-zinc-800 text-zinc-400"
-                )}>
+                  "w-8 h-8 rounded-lg flex items-center justify-center backdrop-blur-sm shadow-inner",
+                  "font-black text-sm border border-white/5 bg-linear-to-b from-white/10 to-white/5",
+                  "transition-transform duration-200 group-hover:scale-105"
+                )} style={{ color: RANK_COLORS[index % RANK_COLORS.length] }}>
                   <NumericDisplay value={index + 1} size="xs" variant="bold" />
                 </div>
               </div>

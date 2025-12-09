@@ -41,15 +41,15 @@ export function TierOverlays({ isGod, isSuper, isMega, isWhale }: TierFlags) {
 
             {isSuper && (
                 <>
-                    <div className="absolute inset-0 z-0 pointer-events-none bg-red-500/10 animate-[pulse_0.5s_ease-in-out_infinite]" />
-                    <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(180deg,transparent_40%,rgba(239,68,68,0.8)_50%,transparent_60%)] bg-[length:100%_200%] animate-scanline mix-blend-plus-lighter opacity-80" />
+                    <div className="absolute inset-0 z-0 pointer-events-none bg-rose-500/16 animate-[pulse_0.5s_ease-in-out_infinite]" />
+                    <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(180deg,transparent_40%,rgba(248,113,113,0.92)_50%,transparent_60%)] bg-[length:100%_200%] animate-scanline mix-blend-plus-lighter opacity-90" />
                     <div className="absolute inset-0 z-0 pointer-events-none opacity-15">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/10 to-transparent animate-heat-distortion" />
-                        <div className="absolute inset-0 bg-gradient-to-l from-transparent via-red-600/8 to-transparent animate-heat-distortion" style={{ animationDelay: '0.5s' }} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-red-400/12 to-transparent animate-heat-distortion" style={{ animationDelay: '1s' }} />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-rose-500/16 to-transparent animate-heat-distortion" />
+                        <div className="absolute inset-0 bg-gradient-to-l from-transparent via-rose-600/12 to-transparent animate-heat-distortion" style={{ animationDelay: '0.5s' }} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-rose-400/16 to-transparent animate-heat-distortion" style={{ animationDelay: '1s' }} />
                     </div>
-                    <div className="absolute inset-0 z-0 pointer-events-none border-2 border-red-500/60 animate-rgb-glitch-cycle" />
-                    <div className="absolute inset-0 z-0 pointer-events-none border-2 border-red-500/30 animate-glitch-border" />
+                    <div className="absolute inset-0 z-0 pointer-events-none border-2 border-rose-400/70 animate-rgb-glitch-cycle" />
+                    <div className="absolute inset-0 z-0 pointer-events-none border-2 border-rose-400/40 animate-glitch-border" />
                     <div className="absolute inset-0 z-0 pointer-events-none opacity-10 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
                 </>
             )}
@@ -82,8 +82,10 @@ export function TierOverlays({ isGod, isSuper, isMega, isWhale }: TierFlags) {
 
             {isWhale && (
                 <>
-                    <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.4)_0%,rgba(59,130,246,0.1)_40%,transparent_70%)] animate-breathe" />
-                    <div className="absolute inset-0 z-0 pointer-events-none opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay animate-drift" />
+                    <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_28%_18%,rgba(125,211,252,0.42)_0%,rgba(56,189,248,0.24)_28%,transparent_58%),radial-gradient(circle_at_78%_78%,rgba(59,130,246,0.36)_0%,rgba(59,130,246,0.16)_32%,transparent_60%)] animate-breathe" />
+                    <div className="absolute inset-0 z-0 pointer-events-none bg-[conic-gradient(from_130deg_at_50%_50%,rgba(125,211,252,0.32)_0deg,rgba(59,130,246,0.16)_120deg,transparent_240deg)] mix-blend-screen opacity-70 animate-[spin_14s_linear_infinite]" />
+                    <div className="absolute inset-0 z-0 pointer-events-none rounded-xl border border-sky-300/25 shadow-[inset_0_0_32px_rgba(56,189,248,0.22)]" />
+                    <div className="absolute inset-0 z-0 pointer-events-none opacity-18 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay animate-drift" />
                 </>
             )}
         </>

@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { useMarketStore } from "@/lib/store";
 import type { LeaderboardRank } from "@/lib/client/api";
 import { TraderRibbon } from "./feed/anomaly-card/trader-ribbon";
+import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
 
 const selectLeaderboardRanks = (state: ReturnType<typeof useMarketStore.getState>) => state.leaderboardRanks;
 const selectFetchLeaderboardRanks = (state: ReturnType<typeof useMarketStore.getState>) => state.fetchLeaderboardRanks;
@@ -80,14 +81,14 @@ function getPnlChange(history: PnlHistoryPoint[]): number | null {
 
 // Neobrutalist sparkline
 function Sparkline({ data, color }: { data: PnlHistoryPoint[]; color: string }) {
-    if (data.length < 2) return <div className="h-8 w-full bg-zinc-800/50" />;
+    if (data.length < 2) return <div className="h-8 w-full bg-white/5 rounded-md backdrop-blur-sm" />;
 
     return (
         <ResponsiveContainer width="100%" height={32}>
             <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
                 <defs>
                     <linearGradient id={`spark-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                        <stop offset="0%" stopColor={color} stopOpacity={0.4} />
                         <stop offset="100%" stopColor={color} stopOpacity={0} />
                     </linearGradient>
                 </defs>
@@ -95,7 +96,7 @@ function Sparkline({ data, color }: { data: PnlHistoryPoint[]; color: string }) 
                     type="monotone"
                     dataKey="pnl"
                     stroke={color}
-                    strokeWidth={1.5}
+                    strokeWidth={2}
                     fill={`url(#spark-${color.replace("#", "")})`}
                     isAnimationActive={false}
                 />
@@ -109,10 +110,12 @@ function TraderCard({
     trader,
     index,
     leaderboardRanks,
+    onSelect,
 }: {
     trader: TraderData;
     index: number;
     leaderboardRanks: Record<string, LeaderboardRank[]>;
+    onSelect: () => void;
 }) {
     const color = TRADER_COLORS[index % TRADER_COLORS.length];
     const pnlChange = getPnlChange(trader.pnlHistory);
@@ -139,88 +142,76 @@ function TraderCard({
 
     const displayAccountName = isTop20Account ? accountName : null;
 
-    // Rank-based styling
-    const rankColors: Record<number, { badgeBg: string; text: string }> = {
-        1: { badgeBg: "bg-amber-500/20", text: "text-amber-200" },
-        2: { badgeBg: "bg-zinc-300/20", text: "text-zinc-100" },
-        3: { badgeBg: "bg-amber-600/20", text: "text-amber-300" },
-    };
-    const rankStyle = rankColors[trader.rank] || { badgeBg: "bg-zinc-800/60", text: "text-zinc-200" };
-
     return (
-        <Card className={cn(
-            "relative bg-zinc-950/70 rounded-lg overflow-hidden transition-all duration-200",
-            "border-none shadow-none",
-            "hover:-translate-y-0.5 cursor-pointer group"
-        )}>
-            {/* Top accent bar */}
-            <div className="h-0.5 w-full" style={{ backgroundColor: color }} />
+        <div
+            className={cn(
+                "relative group cursor-pointer overflow-hidden rounded-xl border border-white/5 bg-black/40 backdrop-blur-md transition-all duration-300",
+                "hover:border-white/10 hover:bg-black/60 hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.03)]"
+            )}
+            onClick={onSelect}
+        >
+            {/* Glass shine effect on hover */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-            <div className="p-3">
+            <div className="relative p-3">
                 {/* Header row */}
-                <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-start justify-between gap-3 mb-3">
                     {/* Rank + Name */}
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
                         {/* Rank badge */}
                         <div className={cn(
-                            "shrink-0 w-7 h-7 rounded flex items-center justify-center",
-                            "font-black text-sm",
-                            rankStyle.badgeBg,
-                            rankStyle.text
-                        )}>
+                            "shrink-0 w-8 h-8 rounded-lg flex items-center justify-center backdrop-blur-sm shadow-inner",
+                            "font-black text-sm border border-white/5",
+                            "bg-gradient-to-b from-white/10 to-white/5"
+                        )} style={{ color: color }}>
                             {trader.rank}
                         </div>
 
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex flex-col">
                             <a
                                 href={polymarketUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 text-sm font-bold text-zinc-100 truncate hover:text-zinc-200"
+                                className="flex items-center gap-1.5 text-sm font-bold text-zinc-100 truncate hover:text-white transition-colors"
                                 title="Open Polymarket profile"
                             >
-                                <span className="truncate">
+                                <span className="truncate tracking-tight">
                                     {displayAccountName || accountName || "Anonymous"}
                                 </span>
-                                <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />
+                                <ExternalLink className="w-3 h-3 opacity-40 group-hover:opacity-100 transition-opacity shrink-0" />
                             </a>
-                            <a
-                                href={polymarketUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-[10px] text-zinc-600 font-mono hover:text-zinc-400"
-                            >
-                                {trader.walletAddress.slice(0, 6)}...{trader.walletAddress.slice(-4)}
-                            </a>
+                            <span className="text-[10px] text-zinc-500 font-mono tracking-wider uppercase">
+                                {trader.walletAddress.slice(0, 4)}...{trader.walletAddress.slice(-4)}
+                            </span>
                         </div>
                     </div>
 
                     {/* P&L */}
-                    <div className="text-right shrink-0">
+                    <div className="text-right shrink-0 flex flex-col items-end">
                         <div className={cn(
-                            "text-lg font-black tracking-tight",
-                            isPositive ? "text-emerald-400" : "text-red-400"
+                            "text-lg font-black tracking-tighter drop-shadow-sm",
+                            isPositive ? "text-emerald-400" : "text-rose-400"
                         )}>
                             {formatPnl(trader.totalPnl)}
                         </div>
                         {pnlChange !== null && (
                             <div className={cn(
-                                "text-[10px] font-semibold",
-                                pnlChange >= 0 ? "text-emerald-400/70" : "text-red-400/70"
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm border border-white/5",
+                                pnlChange >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
                             )}>
-                                {pnlChange >= 0 ? "+" : ""}{pnlChange.toFixed(1)}%
+                                {pnlChange >= 0 ? "↑" : "↓"} {Math.abs(pnlChange).toFixed(1)}%
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Sparkline */}
-                <div className="mb-2">
+                <div className="mb-3 opacity-80 group-hover:opacity-100 transition-opacity">
                     <Sparkline data={trader.pnlHistory} color={color} />
                 </div>
-                <div className="mt-2 -mx-1">
+
+                <div className="-mx-1 px-1">
                     <TraderRibbon
                         displayAccountName={displayAccountName}
                         walletRanks={walletRanks}
@@ -231,7 +222,7 @@ function TraderCard({
                     />
                 </div>
             </div>
-        </Card>
+        </div>
     );
 }
 
@@ -257,7 +248,7 @@ function ComparisonChart({ traders }: { traders: TraderData[] }) {
 
     if (chartData.length < 2) {
         return (
-            <div className="h-48 flex items-center justify-center text-zinc-600 text-xs uppercase tracking-wider">
+            <div className="h-48 flex items-center justify-center text-zinc-600 text-xs uppercase tracking-widest font-medium">
                 Insufficient data
             </div>
         );
@@ -268,38 +259,53 @@ function ComparisonChart({ traders }: { traders: TraderData[] }) {
             <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
                 <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 9, fill: "#71717a" }}
+                    tick={{ fontSize: 9, fill: "#52525b" }}
                     tickFormatter={(val) =>
                         new Date(val).toLocaleDateString("en-US", { month: "short", day: "numeric" })
                     }
                     axisLine={false}
                     tickLine={false}
+                    dy={10}
                 />
                 <YAxis
-                    tick={{ fontSize: 9, fill: "#71717a" }}
+                    tick={{ fontSize: 9, fill: "#52525b" }}
                     tickFormatter={(val) => formatShortNumber(val)}
                     axisLine={false}
                     tickLine={false}
                     width={45}
+                    dx={-5}
                 />
                 <Tooltip
                     contentStyle={{
-                        backgroundColor: "#18181b",
-                        border: "none",
-                        borderRadius: "6px",
+                        backgroundColor: "rgba(9, 9, 11, 0.8)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        borderRadius: "12px",
                         fontSize: "10px",
-                        boxShadow: "none",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                        padding: "8px 12px",
+                    }}
+                    itemStyle={{
+                        padding: "2px 0",
+                    }}
+                    labelStyle={{
+                        color: "#a1a1aa",
+                        marginBottom: "4px",
+                        fontWeight: 600,
                     }}
                     labelFormatter={(label) =>
                         new Date(label).toLocaleDateString("en-US", {
-                            month: "short",
+                            month: "long",
                             day: "numeric",
                         })
                     }
                     formatter={(value: number, name: string) => {
                         const idx = parseInt(name.replace("t", ""), 10);
                         const trader = traders[idx];
-                        return [formatPnl(value), trader?.accountName || `#${idx + 1}`];
+                        return [
+                            <span key="val" className="font-mono text-zinc-100">{formatPnl(value)}</span>,
+                            trader?.accountName || `#${idx + 1}`
+                        ];
                     }}
                 />
                 {traders.slice(0, 5).map((trader, idx) => (
@@ -310,7 +316,9 @@ function ComparisonChart({ traders }: { traders: TraderData[] }) {
                         stroke={TRADER_COLORS[idx]}
                         strokeWidth={2}
                         dot={false}
+                        activeDot={{ r: 4, fill: TRADER_COLORS[idx], strokeWidth: 0 }}
                         name={`t${idx}`}
+                        strokeOpacity={0.8}
                     />
                 ))}
             </LineChart>
@@ -324,6 +332,7 @@ export function TopTradersPanel() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [period, setPeriod] = useState<Period>("Daily");
+    const [selectedTrader, setSelectedTrader] = useState<TraderData | null>(null);
     const leaderboardRanks = useMarketStore(selectLeaderboardRanks);
     const fetchLeaderboardRanks = useMarketStore(selectFetchLeaderboardRanks);
 
@@ -351,18 +360,18 @@ export function TopTradersPanel() {
     }, [fetchLeaderboardRanks]);
 
     return (
-        <div className="space-y-4 px-4 pb-6">
-            {/* Period selector - Neobrutalist pills */}
-            <div className="flex gap-1">
+        <div className="space-y-6 px-4 pb-6">
+            {/* Period selector - Glassmorphic pills */}
+            <div className="p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
                 {PERIODS.map((p) => (
                     <button
                         key={p}
                         onClick={() => setPeriod(p)}
                         className={cn(
-                            "flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all rounded border",
+                            "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg",
                             period === p
-                                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
-                                : "bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border-transparent"
+                                ? "bg-white/10 text-white shadow-sm border border-white/5 backdrop-blur-md"
+                                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
                         )}
                     >
                         {PERIOD_LABELS[p]}
@@ -372,18 +381,18 @@ export function TopTradersPanel() {
 
             {/* Error */}
             {error && (
-                <div className="text-[10px] text-red-400 bg-red-500/10 p-2 rounded">
+                <div className="text-[10px] text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 backdrop-blur-sm">
                     {error}
                 </div>
             )}
 
             {/* Loading skeletons */}
             {isLoading && (
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (
                         <div
                             key={i}
-                            className="h-24 rounded-lg bg-zinc-900/60 animate-pulse"
+                            className="h-32 rounded-xl bg-gradient-to-r from-zinc-900/50 to-zinc-900/30 animate-pulse border border-white/5"
                         />
                     ))}
                 </div>
@@ -391,16 +400,17 @@ export function TopTradersPanel() {
 
             {/* Chart */}
             {!isLoading && traders.length > 0 && (
-                <Card className="bg-zinc-950/70 rounded-lg p-3 border-none shadow-none">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[9px] uppercase tracking-[0.15em] text-zinc-500 font-bold">
-                            Top 5 Performance
+                <div className="relative rounded-xl border border-white/5 bg-black/20 backdrop-blur-md p-4 overflow-hidden">
+                    <div className="flex items-center justify-between mb-6">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Top 5
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
                             {traders.slice(0, 5).map((t, i) => (
-                                <div key={t.walletAddress} className="flex items-center gap-1">
-                                    <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: TRADER_COLORS[i] }} />
-                                    <span className="text-[8px] text-zinc-600 truncate max-w-[40px]">
+                                <div key={t.walletAddress} className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/5 border border-white/5">
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: TRADER_COLORS[i] }} />
+                                    <span className="text-[9px] text-zinc-300 font-medium truncate max-w-[60px]">
                                         {t.accountName || `#${t.rank}`}
                                     </span>
                                 </div>
@@ -408,18 +418,19 @@ export function TopTradersPanel() {
                         </div>
                     </div>
                     <ComparisonChart traders={traders} />
-                </Card>
+                </div>
             )}
 
             {/* Trader cards */}
             {!isLoading && traders.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                     {traders.map((trader, idx) => (
                         <TraderCard
                             key={trader.walletAddress}
                             trader={trader}
                             index={idx}
                             leaderboardRanks={leaderboardRanks}
+                            onSelect={() => setSelectedTrader(trader)}
                         />
                     ))}
                 </div>
@@ -427,12 +438,23 @@ export function TopTradersPanel() {
 
             {/* Empty state */}
             {!isLoading && !error && traders.length === 0 && (
-                <div className="text-center py-8 rounded-lg bg-zinc-900/50">
-                    <span className="text-[10px] uppercase tracking-wider text-zinc-600">
-                        No data for {period}
+                <div className="text-center py-12 rounded-xl border border-white/5 bg-black/20 backdrop-blur-sm">
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
+                        No data available for {period}
                     </span>
                 </div>
             )}
+
+            <AiInsightsTradesModal
+                pick={null}
+                trader={selectedTrader ? {
+                    walletAddress: selectedTrader.walletAddress,
+                    displayName: selectedTrader.accountName,
+                    rank: selectedTrader.rank,
+                    totalPnl: selectedTrader.totalPnl,
+                } : null}
+                onClose={() => setSelectedTrader(null)}
+            />
         </div>
     );
 }

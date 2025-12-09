@@ -5,6 +5,8 @@ import { Modal } from "@/components/ui/modal";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { AiInsightPick, Anomaly } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { Activity, X, Box, Layers, Zap } from "lucide-react";
 
 type TradesResponse = {
   trades: Anomaly[];
@@ -14,32 +16,50 @@ type TradesResponse = {
   snapshotAt?: string | null;
   since?: string;
   note?: string;
+  wallet?: string;
+  walletAddress?: string;
 };
 
 interface AiInsightsTradesModalProps {
   pick: AiInsightPick | null;
+  trader?: {
+    walletAddress: string;
+    displayName?: string | null;
+    rank?: number;
+    totalPnl?: number;
+  } | null;
   onClose: () => void;
 }
 
-export function AiInsightsTradesModal({ pick, onClose }: AiInsightsTradesModalProps) {
-  const isOpen = Boolean(pick);
+export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsightsTradesModalProps) {
+  const isOpen = Boolean(pick || trader);
+  const isWalletMode = Boolean(trader);
   const [trades, setTrades] = useState<Anomaly[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<TradesResponse | null>(null);
 
   useEffect(() => {
-    if (!isOpen || !pick) return;
+    if (!isOpen || (!pick && !trader)) return;
 
     const controller = new AbortController();
     const params = new URLSearchParams();
-    if (pick.conditionId) params.set("conditionId", pick.conditionId);
-    if (pick.outcome) params.set("outcome", pick.outcome);
 
+    if (isWalletMode && trader?.walletAddress) {
+      params.set("wallet", trader.walletAddress);
+    } else if (pick) {
+      if (pick.conditionId) params.set("conditionId", pick.conditionId);
+      if (pick.outcome) params.set("outcome", pick.outcome);
+    }
+
+    setTrades([]);
+    setMeta(null);
     setIsLoading(true);
     setError(null);
 
-    fetch(`/api/ai-insights/trades?${params.toString()}`, { signal: controller.signal })
+    const endpoint = isWalletMode ? "/api/wallet-trades" : "/api/ai-insights/trades";
+
+    fetch(`${endpoint}?${params.toString()}`, { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) {
           const message = await res.text();
@@ -53,15 +73,29 @@ export function AiInsightsTradesModal({ pick, onClose }: AiInsightsTradesModalPr
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
-        setError(err.message || "Failed to load trades");
+        const fallback = isWalletMode ? "Failed to load wallet trades" : "Failed to load trades";
+        setError(err.message || fallback);
       })
       .finally(() => setIsLoading(false));
 
     return () => controller.abort();
-  }, [isOpen, pick?.conditionId, pick?.outcome]);
+  }, [isOpen, pick?.conditionId, pick?.outcome, trader?.walletAddress, isWalletMode]);
 
-  const headerTitle = pick?.eventTitle || "Unknown market";
-  const headerOutcome = pick?.outcome || "Outcome";
+  const headerTitle = isWalletMode
+    ? (trader?.displayName || (trader?.walletAddress
+      ? `${trader.walletAddress.slice(0, 6)}...${trader.walletAddress.slice(-4)}`
+      : "Unknown wallet"))
+    : pick?.eventTitle || "Unknown market";
+
+  const headerOutcome = isWalletMode
+    ? (trader?.rank ? `Rank #${trader.rank}` : "Last 24h trades")
+    : pick?.outcome || "Outcome";
+
+  const kicker = isWalletMode ? "Wallet trades · Last 24h" : "Top-20 wallet trades · Last 24h";
+
+  const emptyMessage = isWalletMode
+    ? "No trades from this wallet in the last 24h."
+    : "No recent top-20 trades for this outcome in the last 24h.";
 
   const note = useMemo(() => {
     if (error) return null;
@@ -76,73 +110,150 @@ export function AiInsightsTradesModal({ pick, onClose }: AiInsightsTradesModalPr
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-5xl w-full border-emerald-500/30">
-      <div className="p-5 sm:p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="space-y-1 min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-300/80">
-              Top-20 wallet trades · Last 24h
-            </p>
-            <h2 className="text-lg sm:text-xl font-bold text-emerald-50 leading-tight line-clamp-2">
-              {headerTitle}
-            </h2>
-            <p className="text-sm text-zinc-400 line-clamp-1">{headerOutcome}</p>
-          </div>
-          <div className="text-right text-sm text-zinc-400">
-            {isLoading ? (
-              <span className="animate-pulse text-emerald-200">Loading…</span>
-            ) : (
-              <div className="space-y-1">
-                <div className="text-emerald-200 font-semibold">
-                  {trades.length} trade{trades.length === 1 ? "" : "s"}
-                </div>
-                {meta?.top20Wallets !== undefined && (
-                  <div className="text-[11px] text-zinc-500">
-                    {meta.top20Wallets} wallets considered{meta.period ? ` · ${meta.period}` : ""}
-                  </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      className="max-w-5xl w-full !bg-zinc-950/80 !backdrop-blur-3xl !border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.05)] p-0 overflow-hidden"
+    >
+      {/* Decorative gradients */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[80px] pointer-events-none translate-y-1/2 -translate-x-1/2" />
+
+      {/* Header Section */}
+      <div className="relative z-10 p-6 border-b border-white/5 bg-white/5 backdrop-blur-md">
+        <div className="flex flex-col gap-1 relative">
+          {/* Top Line Meta */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+              </span>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-emerald-400 font-bold font-mono">
+                {kicker}
+              </p>
+            </div>
+
+            {!isLoading && (
+              <div className="flex items-center gap-4 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                {meta?.top20Wallets !== undefined && !isWalletMode && (
+                  <span>{meta.top20Wallets} Wallets Scanned</span>
+                )}
+                {meta?.since && isWalletMode && (
+                  <span>Since {new Date(meta.since).toLocaleTimeString()}</span>
                 )}
               </div>
             )}
           </div>
-        </div>
 
+          <div className="flex items-start justify-between gap-6 mt-2">
+            <div className="space-y-1 min-w-0 flex-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-200 to-zinc-500 uppercase tracking-tight leading-[0.9] line-clamp-2">
+                {headerTitle}
+              </h2>
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Layers className="w-3.5 h-3.5" />
+                <p className="text-sm font-medium tracking-wide line-clamp-1">{headerOutcome}</p>
+              </div>
+            </div>
+
+            {/* Right side stats */}
+            <div className="shrink-0 text-right">
+              {isLoading ? (
+                <div className="flex items-center gap-2 text-xs font-mono text-emerald-500/50 h-10">
+                  <Activity className="w-4 h-4 animate-pulse" />
+                  <span className="tracking-widest">SYNCING...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-end">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black text-white tracking-tighter">
+                      {trades.length}
+                    </span>
+                    <span className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-1">TXs</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative z-10 flex flex-col h-[65vh]">
+        {/* Alerts Area */}
         {error && (
-          <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 text-rose-100 text-sm px-3 py-2">
+          <div className="mx-6 mt-6 p-4 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-200 text-sm backdrop-blur-sm">
+            <div className="flex items-center gap-2 font-bold mb-1">
+              <Zap className="w-4 h-4 text-rose-500" />
+              ERROR
+            </div>
             {error}
           </div>
         )}
 
         {note && !error && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 text-sm px-3 py-2">
-            {note}
+          <div className="mx-6 mt-6 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-200 text-sm backdrop-blur-sm flex items-start gap-2">
+            <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0" />
+            <span className="font-mono text-xs">{note}</span>
           </div>
         )}
 
-        <div className="max-h-[70vh] overflow-y-auto">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto no-scrollbar p-6">
           {isLoading && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="h-[140px] rounded-xl border border-emerald-500/20 bg-emerald-500/5 animate-pulse"
-                />
+                  className="h-[160px] rounded-xl border border-white/5 bg-white/5 animate-pulse relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                </div>
               ))}
             </div>
           )}
 
           {!isLoading && !error && trades.length === 0 && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-10 text-center text-sm text-zinc-400">
-              No recent top-20 trades for this outcome in the last 24h.
+            <div className="h-full flex flex-col items-center justify-center text-zinc-500 min-h-[300px]">
+              <div className="w-20 h-20 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(0,0,0,0.2)]">
+                <Box className="w-8 h-8 opacity-30" />
+              </div>
+              <p className="font-mono text-xs tracking-[0.2em] uppercase opacity-70 max-w-[200px] text-center leading-relaxed">
+                {emptyMessage}
+              </p>
             </div>
           )}
 
           {!isLoading && trades.length > 0 && (
             <div className="space-y-3">
-              {sortedTrades.map((trade) => (
-                <AnomalyCard key={trade.id} anomaly={trade} />
-              ))}
+              <AnimatePresence mode="popLayout">
+                {sortedTrades.map((trade, i) => (
+                  <motion.div
+                    key={trade.id}
+                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{
+                      duration: 0.3,
+                      delay: Math.min(i * 0.05, 0.5),
+                      ease: "easeOut"
+                    }}
+                  >
+                    <AnomalyCard anomaly={trade} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-3 border-t border-white/5 bg-black/40 backdrop-blur-xl flex justify-between items-center text-[10px] text-zinc-600 font-mono uppercase tracking-widest">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
+            AI_INSIGHTS_V2.0
+          </div>
+          <div>RTDS_STREAM_ACTIVE</div>
         </div>
       </div>
     </Modal>
