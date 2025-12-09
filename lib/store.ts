@@ -320,7 +320,7 @@ export const useMarketStore = create<MarketStore>((set, get) => ({
   fetchTopTrades: async (period, cursor) => {
     // If no cursor (initial load), set loading state and reset list
     if (!cursor) {
-      set({ topTradesLoading: true, topTrades: [], hasMore: true, nextCursor: undefined });
+      set({ topTradesLoading: true, hasMore: true, nextCursor: undefined });
     } else {
       // If loading more, just set loading state
       set({ topTradesLoading: true });

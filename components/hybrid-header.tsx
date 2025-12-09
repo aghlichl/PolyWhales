@@ -40,6 +40,7 @@ export function HybridHeader() {
     }, [topTrades]);
 
     const marqueeItems = tickerEntries;
+    const hasTickerEntries = marqueeItems.length > 0;
 
     return (
         <>
@@ -63,7 +64,11 @@ export function HybridHeader() {
                     <div className="absolute left-0 top-0 bottom-0 w-8 z-20 bg-gradient-to-r from-zinc-950/80 to-transparent pointer-events-none" />
                     <div className="absolute right-0 top-0 bottom-0 w-8 z-20 bg-gradient-to-l from-zinc-950/80 to-transparent pointer-events-none" />
 
-                    <div className="ticker-marquee w-full" aria-label="Top daily whales ticker">
+                    <div
+                        className={`ticker-marquee w-full ${hasTickerEntries ? "" : "opacity-0"}`}
+                        aria-label="Top daily whales ticker"
+                        style={{ animationPlayState: hasTickerEntries ? "running" : "paused" }}
+                    >
                         <div className="ticker-track">
                             {marqueeItems.map((item) => (
                                 <span

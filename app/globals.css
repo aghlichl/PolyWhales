@@ -360,18 +360,28 @@ body {
 
 .ticker-marquee {
   --ticker-distance: -50%;
-  display: inline-flex;
+  display: flex;
   width: max-content;
+  min-width: 100%;
   flex-shrink: 0;
   animation: ticker-marquee var(--ticker-speed, 250s) linear infinite;
   will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 
 .ticker-track {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: var(--ticker-gap, 22px);
   padding-right: var(--ticker-gap, 22px);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-marquee {
+    animation: none;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .ticker-chip {
