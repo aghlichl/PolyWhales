@@ -209,7 +209,7 @@ export function AIInsightsPanel() {
       {/* Floating Glassmorphism Cards */}
       {hasFeatured && (
         <div
-          className="relative h-[200px] group"
+          className="relative h-[200px] group overflow-hidden"
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
@@ -237,7 +237,7 @@ export function AIInsightsPanel() {
 
           {/* Card stack */}
           <div
-            className="relative h-full flex items-center justify-center"
+            className="relative h-full flex items-center justify-center overflow-hidden"
             style={{ perspective: 1200 }}
           >
             {featuredTrades.map((pick, idx) => {
@@ -482,76 +482,143 @@ function OutcomeRow({ pick, onClick }: { pick: AiInsightPick; onClick: () => voi
   return (
     <div
       className={cn(
-        "grid grid-cols-[1fr_70px_70px_80px_60px] gap-2 px-4 py-2.5 items-center cursor-pointer transition-colors",
+        "px-4 py-2.5 cursor-pointer transition-colors",
         isResolved
           ? "opacity-40 hover:opacity-60"
-          : "hover:bg-white/[0.02]"
+          : "hover:bg-white/2"
       )}
       onClick={onClick}
     >
-      {/* Outcome */}
-      <div className="flex items-center gap-2 min-w-0">
-        <div className={cn(
-          "shrink-0 w-4 h-4 rounded flex items-center justify-center",
-          isResolved
-            ? "text-zinc-600"
-            : isBullish
-              ? "text-emerald-400"
-              : "text-rose-400"
-        )}>
-          {isBullish ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {/* Mobile layout */}
+      <div className="flex flex-col gap-1 md:hidden">
+        <div className="flex items-start gap-2 justify-between">
+          <div className="flex items-start gap-2 min-w-0">
+            <div className={cn(
+              "shrink-0 w-4 h-4 rounded flex items-center justify-center",
+              isResolved
+                ? "text-zinc-600"
+                : isBullish
+                  ? "text-emerald-400"
+                  : "text-rose-400"
+            )}>
+              {isBullish ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+            </div>
+            <span className={cn(
+              "text-sm leading-5 line-clamp-2",
+              isResolved ? "text-zinc-600" : "text-zinc-300"
+            )} title={pick.marketQuestion || undefined}>
+              {extractMarketContext(pick.marketQuestion, pick.outcome)}
+            </span>
+            {isResolved && (
+              <span className="text-[9px] uppercase px-1 py-0.5 rounded bg-zinc-800 text-zinc-500">
+                Resolved
+              </span>
+            )}
+          </div>
+          <div className={cn(
+            "shrink-0 text-xs font-mono text-right min-w-[44px]",
+            isResolved ? "text-zinc-600" : tradePrice >= 0.5 ? "text-emerald-300" : "text-amber-300"
+          )}>
+            {formatCents(tradePrice)}
+          </div>
         </div>
-        <span className={cn(
-          "text-sm truncate",
-          isResolved ? "text-zinc-600" : "text-zinc-300"
-        )} title={pick.marketQuestion || undefined}>
-          {extractMarketContext(pick.marketQuestion, pick.outcome)}
-        </span>
-        {isResolved && (
-          <span className="text-[9px] uppercase px-1 py-0.5 rounded bg-zinc-800 text-zinc-500">
-            Resolved
+        <div className="grid grid-cols-3 items-center gap-2 text-[11px] text-zinc-500">
+          <div className="flex flex-col">
+            <span className="uppercase text-[10px] tracking-[0.08em] text-zinc-600">Support</span>
+            <span className={cn("text-xs", isResolved ? "text-zinc-600" : "text-zinc-300")}>
+              {formatPct(pick.top20Support)}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="uppercase text-[10px] tracking-[0.08em] text-zinc-600">Volume</span>
+            <span className={cn("text-xs", isResolved ? "text-zinc-600" : "text-zinc-300")}>
+              {formatUsdCompact(pick.totalVolume)}
+            </span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="uppercase text-[10px] tracking-[0.08em] text-zinc-600">Signal</span>
+            <span className={cn(
+              "text-[11px] px-1.5 py-0.5 rounded",
+              isResolved
+                ? "text-zinc-600"
+                : confidence >= 70
+                  ? "text-emerald-300 bg-emerald-500/10"
+                  : confidence >= 50
+                    ? "text-amber-300 bg-amber-500/10"
+                    : "text-zinc-400"
+            )}>
+              {confidence}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop layout */}
+      <div className="hidden md:grid md:grid-cols-[1fr_70px_70px_80px_60px] md:items-center md:gap-2">
+        {/* Outcome */}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={cn(
+            "shrink-0 w-4 h-4 rounded flex items-center justify-center",
+            isResolved
+              ? "text-zinc-600"
+              : isBullish
+                ? "text-emerald-400"
+                : "text-rose-400"
+          )}>
+            {isBullish ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+          </div>
+          <span className={cn(
+            "text-sm leading-5 line-clamp-1 truncate",
+            isResolved ? "text-zinc-600" : "text-zinc-300"
+          )} title={pick.marketQuestion || undefined}>
+            {extractMarketContext(pick.marketQuestion, pick.outcome)}
           </span>
-        )}
-      </div>
+          {isResolved && (
+            <span className="text-[9px] uppercase px-1 py-0.5 rounded bg-zinc-800 text-zinc-500">
+              Resolved
+            </span>
+          )}
+        </div>
 
-      {/* Price */}
-      <div className="text-right">
-        <span className={cn(
-          "text-sm font-mono",
-          isResolved ? "text-zinc-600" : tradePrice >= 0.5 ? "text-emerald-300" : "text-amber-300"
-        )}>
-          {formatCents(tradePrice)}
-        </span>
-      </div>
+        {/* Price */}
+        <div className="text-right">
+          <span className={cn(
+            "text-sm font-mono",
+            isResolved ? "text-zinc-600" : tradePrice >= 0.5 ? "text-emerald-300" : "text-amber-300"
+          )}>
+            {formatCents(tradePrice)}
+          </span>
+        </div>
 
-      {/* Top20 */}
-      <div className="text-right">
-        <span className={cn("text-sm", isResolved ? "text-zinc-600" : "text-zinc-400")}>
-          {formatPct(pick.top20Support)}
-        </span>
-      </div>
+        {/* Top20 */}
+        <div className="text-right">
+          <span className={cn("text-sm", isResolved ? "text-zinc-600" : "text-zinc-400")}>
+            {formatPct(pick.top20Support)}
+          </span>
+        </div>
 
-      {/* Volume */}
-      <div className="text-right">
-        <span className={cn("text-sm", isResolved ? "text-zinc-600" : "text-zinc-500")}>
-          {formatUsdCompact(pick.totalVolume)}
-        </span>
-      </div>
+        {/* Volume */}
+        <div className="text-right">
+          <span className={cn("text-sm", isResolved ? "text-zinc-600" : "text-zinc-500")}>
+            {formatUsdCompact(pick.totalVolume)}
+          </span>
+        </div>
 
-      {/* Signal */}
-      <div className="text-right">
-        <span className={cn(
-          "text-xs px-1.5 py-0.5 rounded",
-          isResolved
-            ? "text-zinc-600"
-            : confidence >= 70
-              ? "text-emerald-300 bg-emerald-500/10"
-              : confidence >= 50
-                ? "text-amber-300 bg-amber-500/10"
-                : "text-zinc-400"
-        )}>
-          {confidence}%
-        </span>
+        {/* Signal */}
+        <div className="text-right">
+          <span className={cn(
+            "text-xs px-1.5 py-0.5 rounded",
+            isResolved
+              ? "text-zinc-600"
+              : confidence >= 70
+                ? "text-emerald-300 bg-emerald-500/10"
+                : confidence >= 50
+                  ? "text-amber-300 bg-amber-500/10"
+                  : "text-zinc-400"
+          )}>
+            {confidence}%
+          </span>
+        </div>
       </div>
     </div>
   );

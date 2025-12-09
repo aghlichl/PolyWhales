@@ -16,29 +16,27 @@ export type TopTradersResponse = {
     snapshotAt: string | null;
 };
 
+const LOOKBACK_DAYS: Record<string, number | null> = {
+    Daily: 1,
+    Weekly: 7,
+    Monthly: 30,
+    "All Time": 30,
+};
+
+function getSinceDate(period: string): Date | null {
+    const days = LOOKBACK_DAYS[period] ?? LOOKBACK_DAYS["Daily"];
+    if (!days) return null;
+    const now = new Date();
+    return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const period = searchParams.get('period') || 'Daily';
 
         // Calculate date range based on period
-        const now = new Date();
-        let sinceDate: Date | null = null;
-        switch (period) {
-            case 'Daily':
-                sinceDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day
-                break;
-            case 'Weekly':
-                sinceDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days
-                break;
-            case 'Monthly':
-                sinceDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days
-                break;
-            case 'All Time':
-            default:
-                sinceDate = null; // No date filter for all time
-                break;
-        }
+        const sinceDate = getSinceDate(period);
 
         // Build snapshot query with date filter
         const snapshotWhere = sinceDate
@@ -51,7 +49,6 @@ export async function GET(request: Request) {
             orderBy: { snapshotAt: 'desc' },
             select: { snapshotAt: true },
             distinct: ['snapshotAt'],
-            take: 50,
         });
 
         if (recentSnapshots.length === 0) {
@@ -136,6 +133,9 @@ export async function GET(request: Request) {
             const walletKey = trader.walletAddress.toLowerCase();
             const previousRank = previousRanks[walletKey];
             const rankChange = previousRank !== undefined ? previousRank - trader.rank : null;
+            const pnlHistory = (historyByWallet[walletKey] || []).sort(
+                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+            );
 
             return {
                 walletAddress: trader.walletAddress,
@@ -143,7 +143,7 @@ export async function GET(request: Request) {
                 rank: trader.rank,
                 totalPnl: trader.totalPnl,
                 rankChange,
-                pnlHistory: historyByWallet[walletKey] || [],
+                pnlHistory,
             };
         });
 

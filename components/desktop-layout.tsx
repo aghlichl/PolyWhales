@@ -25,13 +25,13 @@ export function DesktopLayout({ children, leftPanel, rightPanel, fourthPanel, ce
             <div className="h-full pt-[calc(5rem+env(safe-area-inset-top,0px))] lg:pt-20 overflow-hidden min-h-0">
                 <div className={`grid grid-cols-1 ${fourthPanel ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} h-full divide-x divide-zinc-800/50 min-h-0`}>
                     {/* Left Panel - AI Insights */}
-                    <div className="hidden lg:flex lg:flex-col h-full bg-zinc-950/30 min-h-0">
+                    <div className="hidden lg:flex lg:flex-col h-full bg-zinc-950/30 min-h-0 overflow-x-hidden">
                         <div className="shrink-0 px-6 py-3 border-b border-zinc-800/30">
                             <h2 className="text-center text-sm tracking-wider uppercase">
                                 {leftTitle || <>AI <span className="text-emerald-400 animate-pulse">INSIGHTS</span></>}
                             </h2>
                         </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto p-6 scrollbar-hide">
+                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6 scrollbar-hide">
                             {leftPanel}
                         </div>
                     </div>
@@ -43,32 +43,32 @@ export function DesktopLayout({ children, leftPanel, rightPanel, fourthPanel, ce
                                 {centerTitle || <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>}
                             </h2>
                         </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide scroll-container">
+                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide scroll-container">
                             {children}
                         </div>
                     </div>
 
                     {/* Third Panel - Top Whales */}
-                        <div className="hidden lg:flex lg:flex-col h-full bg-zinc-950/30 min-h-0">
+                        <div className="hidden lg:flex lg:flex-col h-full bg-zinc-950/30 min-h-0 overflow-x-hidden">
                         <div className="shrink-0 px-6 py-3 border-b border-zinc-800/30">
                             <h2 className="text-center text-sm tracking-wider uppercase">
                                 {rightTitle || <>TOP <span className="text-blue-400 animate-pulse">WHALES</span></>}
                             </h2>
                         </div>
-                        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide">
                             {rightPanel}
                         </div>
                     </div>
 
                     {/* Fourth Panel - Top Traders (optional) */}
                     {fourthPanel && (
-                        <div className="hidden lg:flex lg:flex-col h-full bg-zinc-950/30 min-h-0">
+                        <div className="hidden lg:flex lg:flex-col h-full bg-zinc-950/30 min-h-0 overflow-x-hidden">
                             <div className="shrink-0 px-6 py-3 border-b border-zinc-800/30">
                                 <h2 className="text-center text-sm tracking-wider uppercase">
                                     {fourthTitle || <>TOP <span className="text-orange-400 animate-pulse">TRADERS</span></>}
                                 </h2>
                             </div>
-                            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+                            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide">
                                 {fourthPanel}
                             </div>
                         </div>
