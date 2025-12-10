@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMarketStore } from "@/lib/store";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,8 @@ const PERIOD_LABELS: Record<TopTradesPeriod, string> = {
   yearly: "1Y",
   max: "ALL"
 };
+
+const PAGE_SIZE = 20;
 
 const RANK_COLORS = [
   "#F59E0B", // Gold
@@ -35,12 +37,63 @@ export function TopWhales() {
     hasMore,
     loadMoreTopTrades
   } = useMarketStore();
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastPeriodRef = useRef<TopTradesPeriod>(selectedPeriod);
+
+  const visibleTrades = useMemo(
+    () => topTrades.slice(0, visibleCount),
+    [topTrades, visibleCount]
+  );
+
+  const canShowMoreLocal = visibleCount < topTrades.length;
 
   // Load initial data on mount only
   useEffect(() => {
     fetchTopTrades(selectedPeriod);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only runs once on mount
+
+  // Reset or clamp visible count when period changes or list shrinks
+  useEffect(() => {
+    if (lastPeriodRef.current !== selectedPeriod) {
+      lastPeriodRef.current = selectedPeriod;
+      setVisibleCount(Math.min(PAGE_SIZE, topTrades.length));
+      return;
+    }
+
+    setVisibleCount((prev) => {
+      if (topTrades.length <= PAGE_SIZE) return topTrades.length;
+      return Math.min(Math.max(prev, PAGE_SIZE), topTrades.length);
+    });
+  }, [selectedPeriod, topTrades.length]);
+
+  // Intersection Observer for infinite scroll
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (topTradesLoading) return;
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+
+      if (canShowMoreLocal) {
+        setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, topTrades.length));
+        return;
+      }
+
+      if (hasMore && !topTradesLoading) {
+        loadMoreTopTrades();
+      }
+    });
+
+    if (node) observerRef.current.observe(node);
+  }, [canShowMoreLocal, hasMore, loadMoreTopTrades, topTrades.length, topTradesLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, []);
 
   return (
     <div className="w-full">
@@ -70,7 +123,7 @@ export function TopWhales() {
         </div>
       ) : topTrades.length > 0 ? (
         <div className="space-y-4 p-4 pl-10">
-          {topTrades.map((anomaly, index) => (
+          {visibleTrades.map((anomaly, index) => (
             <div key={anomaly.id} className="relative group">
               {/* Rank indicator */}
               <div className="absolute -left-8 top-4 z-10">
@@ -85,26 +138,18 @@ export function TopWhales() {
               <AnomalyCard anomaly={anomaly} />
             </div>
           ))}
+          {(canShowMoreLocal || hasMore) && (
+            <div
+              ref={lastElementRef}
+              className="h-10 w-full rounded-lg border border-white/5 bg-white/5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 flex items-center justify-center"
+            >
+              {topTradesLoading ? "Loading..." : "Loading more whales..."}
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center text-zinc-600 mt-20">
           NO TRADES FOUND FOR {PERIOD_LABELS[selectedPeriod].toUpperCase()}
-        </div>
-      )}
-
-      {/* Load More Button */}
-      {topTrades.length > 0 && hasMore && (
-        <div className="flex justify-center py-8">
-          <button
-            onClick={() => loadMoreTopTrades()}
-            disabled={topTradesLoading}
-            className={cn(
-              "px-4 py-2 border-2 border-zinc-700 bg-zinc-900 text-zinc-400 text-sm uppercase tracking-wider transition-all hover:border-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg",
-              topTradesLoading && "opacity-50 cursor-wait"
-            )}
-          >
-            {topTradesLoading ? "LOADING..." : "LOAD MORE"}
-          </button>
         </div>
       )}
     </div>

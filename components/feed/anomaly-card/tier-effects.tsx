@@ -32,6 +32,14 @@ export function TierOverlays({ isGod, isSuper, isMega, isWhale }: TierFlags) {
             {isGod && (
                 <>
                     <div className="absolute inset-[-150%] z-0 pointer-events-none bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,rgba(251,191,36,0.4)_10deg,transparent_20deg,rgba(251,191,36,0.1)_50deg,transparent_60deg,rgba(251,191,36,0.4)_90deg,transparent_100deg)] animate-super-spin mix-blend-plus-lighter opacity-70 rounded-xl" />
+
+                    {/* DIVINE CRYSTAL LAYER 1: The Core */}
+                    <div className="absolute inset-[-50%] z-0 pointer-events-none bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,rgba(245,158,11,0.4)_45deg,rgba(217,119,6,0.5)_90deg,transparent_135deg,rgba(245,158,11,0.4)_180deg,rgba(217,119,6,0.5)_225deg,transparent_270deg,rgba(251,191,36,0.3)_315deg,transparent_360deg)] animate-[spin_24s_linear_infinite] mix-blend-overlay opacity-80" />
+
+                    {/* DIVINE CRYSTAL LAYER 2: Celestial Refractions */}
+                    <div className="absolute inset-[-50%] z-0 pointer-events-none bg-[conic-gradient(from_180deg_at_50%_50%,transparent_0deg,rgba(254,243,199,0.3)_30deg,rgba(255,255,255,0.2)_60deg,transparent_90deg,rgba(254,243,199,0.2)_150deg,rgba(255,255,255,0.25)_210deg,transparent_270deg,rgba(252,211,77,0.3)_330deg,transparent_360deg)] animate-[spin_18s_linear_infinite_reverse] mix-blend-plus-lighter opacity-70" />
+
+
                     <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,rgba(251,191,36,0.5)_20%,transparent_60%)] animate-flash mix-blend-screen" />
                     <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,rgba(251,191,36,0.6)_40%,transparent_50%)] animate-shockwave mix-blend-plus-lighter" />
                     <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(0deg,rgba(251,191,36,0.2)_0%,transparent_100%)] animate-pulse" />
@@ -42,6 +50,13 @@ export function TierOverlays({ isGod, isSuper, isMega, isWhale }: TierFlags) {
             {isSuper && (
                 <>
                     <div className="absolute inset-0 z-0 pointer-events-none bg-rose-500/16 animate-[pulse_0.5s_ease-in-out_infinite]" />
+
+                    {/* CRYSTAL LAYER 1: Deep Facets */}
+                    <div className="absolute inset-[-50%] z-0 pointer-events-none bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,rgba(190,18,60,0.3)_45deg,rgba(136,19,55,0.5)_90deg,transparent_135deg,rgba(190,18,60,0.3)_180deg,rgba(136,19,55,0.5)_225deg,transparent_270deg,rgba(159,18,57,0.4)_315deg,transparent_360deg)] animate-[spin_20s_linear_infinite] mix-blend-color-dodge opacity-80" />
+
+                    {/* CRYSTAL LAYER 2: Refractive Edges */}
+                    <div className="absolute inset-[-50%] z-0 pointer-events-none bg-[conic-gradient(from_180deg_at_50%_50%,transparent_0deg,rgba(244,63,94,0.3)_30deg,rgba(255,255,255,0.1)_60deg,transparent_90deg,rgba(244,63,94,0.2)_150deg,rgba(255,255,255,0.15)_210deg,transparent_270deg,rgba(225,29,72,0.3)_330deg,transparent_360deg)] animate-[spin_15s_linear_infinite_reverse] mix-blend-plus-lighter opacity-60" />
+
                     <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(180deg,transparent_40%,rgba(248,113,113,0.92)_50%,transparent_60%)] bg-[length:100%_200%] animate-scanline mix-blend-plus-lighter opacity-90" />
                     <div className="absolute inset-0 z-0 pointer-events-none opacity-15">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-rose-500/16 to-transparent animate-heat-distortion" />

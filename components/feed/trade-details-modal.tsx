@@ -7,6 +7,7 @@ import { NumericDisplay } from "@/components/ui/numeric-display";
 import { useState, useEffect, useMemo } from "react";
 import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
 import { useMarketStore } from "@/lib/store";
+import { CONFIG } from "@/lib/config";
 import { WalletPortfolio } from "@/components/wallet-portfolio";
 import {
     AreaChart,
@@ -138,11 +139,11 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
         return null;
     }, [walletRanks, wallet_context?.label, wallet_context?.address]);
 
-    const isTop20Account = useMemo(() => {
-        return walletRanks.some((r) => typeof r.rank === 'number' && r.rank > 0 && r.rank <= 20);
+    const isTopRankedAccount = useMemo(() => {
+        return walletRanks.some((r) => typeof r.rank === 'number' && r.rank > 0 && r.rank <= CONFIG.LEADERBOARD.TOP_RANK_THRESHOLD);
     }, [walletRanks]);
 
-    const displayAccountName = isTop20Account ? accountName : null;
+    const displayAccountName = isTopRankedAccount ? accountName : null;
 
     // Fallback to analysis tags if trader_context is missing (for older trades)
     const isInsider = analysis?.tags?.includes('INSIDER');

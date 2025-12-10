@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 import PrivyWrapper from "@/components/providers/privy-provider";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
+const spotifyMix = localFont({
+  src: [
+    {
+      path: "../public/fonts/Spotify Mix.ttf",
+      weight: "400",
+      style: "normal",
+    },
+  ],
+  variable: "--font-spotify-mix",
+  display: "swap",
+  fallback: [],
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {
@@ -25,9 +29,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${spotifyMix.variable} dark`}
+      suppressHydrationWarning
+    >
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground font-sans`}
+        className="antialiased bg-background text-foreground font-sans"
       >
         <PrivyWrapper>{children}</PrivyWrapper>
       </body>

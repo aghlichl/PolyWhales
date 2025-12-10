@@ -99,3 +99,4 @@ describe('Live score lookup respects league filters', () => {
         assert.strictEqual(none, undefined);
     });
 });
+

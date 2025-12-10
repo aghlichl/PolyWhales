@@ -12,6 +12,7 @@ import {
 } from "@/lib/signal-calculator";
 import { isMarketExpired } from "@/lib/utils";
 import type { SignalFactors } from "@/lib/types";
+import { CONFIG } from "@/lib/config";
 
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 
@@ -165,7 +166,7 @@ export async function GET() {
           walletToInfo.set(key, w);
         }
 
-        if (w.rank <= 20) {
+        if (w.rank <= CONFIG.LEADERBOARD.TOP_RANK_THRESHOLD) {
           top20Set.add(key);
         }
       }

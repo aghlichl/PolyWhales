@@ -20,6 +20,12 @@ export const CONFIG = {
         METADATA_REFRESH_INTERVAL: 5 * 60 * 1000, // 5 minutes
         HEARTBEAT_INTERVAL: 30000,
     },
+    LEADERBOARD: {
+        // Threshold for considering a wallet "top ranked" (e.g., top 20)
+        TOP_RANK_THRESHOLD: 200,
+        // Maximum rank to fetch from leaderboard snapshots (e.g., top 200 rows)
+        FETCH_LIMIT: 200,
+    },
     ENRICHMENT: {
         // Data-API rate limit: 75 requests per 10 seconds
         RATE_LIMIT_DELAY_MS: 200,        // ~5 req/s to stay under limit

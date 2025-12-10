@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { CONFIG } from '@/lib/config';
 
 export async function GET(request: Request) {
   try {
@@ -82,12 +83,12 @@ export async function GET(request: Request) {
       const latestSnapshotAt = recentSnapshots[0].snapshotAt;
       const previousSnapshotAt = recentSnapshots.length > 1 ? recentSnapshots[1].snapshotAt : null;
 
-      // Fetch top 200 rows for the latest snapshot
+      // Fetch top-N rows for the latest snapshot
       const latestSnapshots = await prisma.walletLeaderboardSnapshot.findMany({
         where: {
           period,
           snapshotAt: latestSnapshotAt,
-          rank: { lte: 200 }, // Top 200
+          rank: { lte: CONFIG.LEADERBOARD.FETCH_LIMIT }, // Top N (e.g., 200)
         },
         orderBy: { rank: 'asc' },
         select: {
@@ -105,7 +106,7 @@ export async function GET(request: Request) {
           where: {
             period,
             snapshotAt: previousSnapshotAt,
-            rank: { lte: 200 },
+          rank: { lte: CONFIG.LEADERBOARD.FETCH_LIMIT },
           },
           select: {
             walletAddress: true,

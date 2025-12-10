@@ -1,5 +1,28 @@
 @import "tailwindcss";
 
+:root {
+  --background: #050505;
+  --foreground: #E0E0E0;
+  --primary: #00FF94;
+  --secondary: #FF0055;
+  --gold: #FFD700;
+  --muted: #888888;
+  --card: #000000;
+  --border: #27272a;
+
+  /* Radius System */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  /* Ticker defaults */
+  --ticker-speed: 250s;
+  --ticker-gap: 22px;
+}
+
 @font-face {
   font-family: 'Spotify Mix';
   src: url('/fonts/Spotify Mix.ttf') format('truetype');
@@ -40,8 +63,8 @@
   --color-card: var(--card);
   --color-border: var(--border);
 
-  --font-sans: "Spotify Mix", var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-sans: var(--font-spotify-mix);
+  --font-mono: var(--font-spotify-mix);
 
   /* Radius Overrides */
   --radius-none: 0px;

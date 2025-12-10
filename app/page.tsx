@@ -7,7 +7,6 @@ import { Anomaly, UserPreferences as UserPreferencesType } from "@/lib/types";
 import { SlotReel } from "@/components/feed/slot-reel";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { BottomCarousel } from "@/components/bottom-carousel";
-import { TopWhales } from "@/components/top-whales";
 import { SearchButton } from "@/components/search-button";
 import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { motion } from "framer-motion";
@@ -17,6 +16,9 @@ import { HybridHeader } from "@/components/hybrid-header";
 import { DesktopLayout } from "@/components/desktop-layout";
 import { AIInsightsPanel } from "@/components/ai-insights-panel";
 import { TopTradersPanel } from "@/components/top-traders-panel";
+import { TopWhales } from "@/components/top-whales";
+
+const PAGE_SIZE = 20;
 
 // Helper function to check if anomaly passes user preferences
 function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType, top20Wallets?: Set<string>): boolean {
@@ -74,6 +76,7 @@ export default function Home() {
   const { preferences, loadPreferences } = usePreferencesStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Compute top 20 wallets from leaderboard ranks
   const top20Wallets = useMemo(() => {
@@ -82,20 +85,6 @@ export default function Home() {
     }
     return getTop20Wallets(leaderboardRanks);
   }, [leaderboardRanks]);
-
-  // Intersection Observer for Infinite Scroll
-  const observer = useRef<IntersectionObserver | null>(null);
-  const lastElementRef = useCallback((node: HTMLDivElement) => {
-    if (isLoading) return;
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMoreHistory) {
-        loadMoreHistory();
-      }
-    });
-    if (node) observer.current.observe(node);
-  }, [isLoading, hasMoreHistory, loadMoreHistory]);
-
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -127,6 +116,47 @@ export default function Home() {
   const filteredAnomalies = anomalies
     .filter(anomaly => passesPreferences(anomaly, preferences, top20Wallets))
     .filter(anomaly => intelligentSearch(anomaly, searchQuery));
+
+  const visibleAnomalies = useMemo(
+    () => filteredAnomalies.slice(0, visibleCount),
+    [filteredAnomalies, visibleCount]
+  );
+
+  const canShowMoreLocal = visibleCount < filteredAnomalies.length;
+
+  // Intersection Observer for Infinite Scroll (load more history or reveal more locally)
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement) => {
+    if (isLoading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (!entries[0].isIntersecting) return;
+
+      if (canShowMoreLocal) {
+        setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredAnomalies.length));
+        return;
+      }
+
+      if (!searchQuery && hasMoreHistory && !isLoading) {
+        loadMoreHistory();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [isLoading, hasMoreHistory, loadMoreHistory, canShowMoreLocal, filteredAnomalies.length, searchQuery]);
+
+  useEffect(() => {
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount((prev) => {
+      if (filteredAnomalies.length <= PAGE_SIZE) return filteredAnomalies.length;
+      const normalizedPrev = Math.max(prev, PAGE_SIZE);
+      return Math.min(normalizedPrev, filteredAnomalies.length);
+    });
+  }, [filteredAnomalies.length]);
 
   useEffect(() => {
     // Load user preferences on mount
@@ -189,13 +219,13 @@ export default function Home() {
             {currentPage === 1 && (
               <>
                 <SlotReel>
-                  {filteredAnomalies.map((anomaly) => (
+                  {visibleAnomalies.map((anomaly) => (
                     <AnomalyCard key={anomaly.id} anomaly={anomaly} />
                   ))}
                 </SlotReel>
 
                 {/* Sentinel for Infinite Scroll */}
-                {hasMoreHistory && !searchQuery && (
+                {(canShowMoreLocal || (hasMoreHistory && !searchQuery)) && (
                   <div ref={lastElementRef} className="h-4 w-full" />
                 )}
 

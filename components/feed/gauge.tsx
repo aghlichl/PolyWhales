@@ -9,7 +9,7 @@ interface GaugeProps {
     label?: string;
 }
 
-export function Gauge({ value, size = 60, strokeWidth = 8, className, label }: GaugeProps) {
+export function Gauge({ value, size = 60, strokeWidth = 5, className, label }: GaugeProps) {
     const radius = (size - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
     // We want a 220 degree gauge (leaving 140 degrees open at bottom)
@@ -30,16 +30,16 @@ export function Gauge({ value, size = 60, strokeWidth = 8, className, label }: G
                 viewBox={`0 0 ${size} ${size}`}
                 className="transform rotate-[160deg] translate-y-5" // Rotate to position the gap at the bottom
             >
-                {/* Background Track */}
+                {/* Background Track - Subtler */}
                 <circle
                     cx={size / 2}
                     cy={size / 2}
                     r={radius}
                     fill="none"
-                    stroke="#27272a" // zinc-800
+                    stroke="rgba(255,255,255,0.05)" // Much subtler track
                     strokeWidth={strokeWidth}
                     strokeDasharray={dashArray}
-                    strokeLinecap="butt"
+                    strokeLinecap="round" // Rounded ends for cleaner look
                 />
                 {/* Progress Path */}
                 <circle
@@ -51,19 +51,19 @@ export function Gauge({ value, size = 60, strokeWidth = 8, className, label }: G
                     strokeWidth={strokeWidth}
                     strokeDasharray={dashArray}
                     strokeDashoffset={offset}
-                    strokeLinecap="butt"
+                    strokeLinecap="round"
                     className="transition-all duration-500 ease-out"
                 />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-end" style={{ transform: 'none' }}>
-                <span className="text-sm font-black leading-none" style={{ color }}>
+                <span className="text-sm font-bold leading-none" style={{ color }}>
                     <NumericDisplay value={`${value}¢`} size="sm" variant="bold" />
                 </span>
                 {label && (
                     <span className={cn(
-                        "text-[9px] font-bold uppercase mt-0.5",
-                        label.toLowerCase() === 'sell' ? "text-red-500" :
-                            label.toLowerCase() === 'buy' ? "text-green-500" :
+                        "text-[9px] font-bold uppercase mt-0.5 tracking-wider opacity-90",
+                        label.toLowerCase() === 'sell' ? "text-red-400" :
+                            label.toLowerCase() === 'buy' ? "text-emerald-400" :
                                 "text-zinc-500"
                     )}>
                         {label}

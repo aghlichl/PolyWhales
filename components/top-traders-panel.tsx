@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { cn, formatShortNumber } from "@/lib/utils";
 import { ExternalLink } from "lucide-react";
 import {
@@ -18,6 +18,7 @@ import { useMarketStore } from "@/lib/store";
 import type { LeaderboardRank } from "@/lib/client/api";
 import { TraderRibbon } from "./feed/anomaly-card/trader-ribbon";
 import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
+import { CONFIG } from "@/lib/config";
 
 const selectLeaderboardRanks = (state: ReturnType<typeof useMarketStore.getState>) => state.leaderboardRanks;
 const selectFetchLeaderboardRanks = (state: ReturnType<typeof useMarketStore.getState>) => state.fetchLeaderboardRanks;
@@ -51,6 +52,8 @@ const PERIOD_LABELS: Record<Period, string> = {
     "Monthly": "1M",
     "All Time": "ALL"
 };
+
+const PAGE_SIZE = 20;
 
 const TRADER_COLORS = [
     "#F59E0B", // Gold
@@ -136,11 +139,11 @@ function TraderCard({
         return null;
     }, [walletRanks, trader.accountName, trader.walletAddress]);
 
-    const isTop20Account = useMemo(() => {
-        return walletRanks.some((r) => typeof r.rank === "number" && r.rank > 0 && r.rank <= 20);
+    const isTopRankedAccount = useMemo(() => {
+        return walletRanks.some((r) => typeof r.rank === "number" && r.rank > 0 && r.rank <= CONFIG.LEADERBOARD.TOP_RANK_THRESHOLD);
     }, [walletRanks]);
 
-    const displayAccountName = isTop20Account ? accountName : null;
+    const displayAccountName = isTopRankedAccount ? accountName : null;
 
     return (
         <div
@@ -333,8 +336,11 @@ export function TopTradersPanel() {
     const [error, setError] = useState<string | null>(null);
     const [period, setPeriod] = useState<Period>("Monthly");
     const [selectedTrader, setSelectedTrader] = useState<TraderData | null>(null);
+    const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
+    const [hasMore, setHasMore] = useState<boolean>(false);
     const leaderboardRanks = useMarketStore(selectLeaderboardRanks);
     const fetchLeaderboardRanks = useMarketStore(selectFetchLeaderboardRanks);
+    const observerRef = useRef<IntersectionObserver | null>(null);
 
     const fetchTraders = async (selectedPeriod: Period) => {
         setIsLoading(true);
@@ -344,8 +350,16 @@ export function TopTradersPanel() {
             if (!res.ok) throw new Error("Failed to fetch");
             const data: TopTradersResponse = await res.json();
             setTraders(data.traders);
+            const uniqueCount = new Set(
+                data.traders.map((t) => t.walletAddress.toLowerCase())
+            ).size;
+            setVisibleCount(Math.min(PAGE_SIZE, uniqueCount));
+            setHasMore(uniqueCount > PAGE_SIZE);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Unknown error");
+            setTraders([]);
+            setVisibleCount(PAGE_SIZE);
+            setHasMore(false);
         } finally {
             setIsLoading(false);
         }
@@ -358,6 +372,57 @@ export function TopTradersPanel() {
     useEffect(() => {
         fetchLeaderboardRanks();
     }, [fetchLeaderboardRanks]);
+
+    // Deduplicate traders by wallet address to prevent React key collisions
+    const uniqueTraders = useMemo(() => {
+        const seen = new Set<string>();
+        return traders.filter(trader => {
+            const key = trader.walletAddress.toLowerCase();
+            if (seen.has(key)) {
+                console.warn(`Duplicate trader found: ${trader.walletAddress}`);
+                return false;
+            }
+            seen.add(key);
+            return true;
+        });
+    }, [traders]);
+
+    const loadMoreTraders = useCallback(() => {
+        setVisibleCount((prev) => {
+            const next = Math.min(prev + PAGE_SIZE, uniqueTraders.length);
+            if (next >= uniqueTraders.length) {
+                setHasMore(false);
+            }
+            return next;
+        });
+    }, [uniqueTraders.length]);
+
+    const visibleTraders = useMemo(
+        () => uniqueTraders.slice(0, visibleCount),
+        [uniqueTraders, visibleCount]
+    );
+
+    const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+        if (isLoading) return;
+        if (observerRef.current) observerRef.current.disconnect();
+        observerRef.current = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && hasMore) {
+                loadMoreTraders();
+            }
+        });
+        if (node) observerRef.current.observe(node);
+    }, [isLoading, hasMore, loadMoreTraders]);
+
+    useEffect(() => {
+        return () => {
+            if (observerRef.current) observerRef.current.disconnect();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (isLoading) return;
+        setHasMore(visibleCount < uniqueTraders.length);
+    }, [visibleCount, uniqueTraders.length, isLoading]);
 
     return (
         <div className="space-y-6 px-4 pb-6">
@@ -399,7 +464,7 @@ export function TopTradersPanel() {
             )}
 
             {/* Chart */}
-            {!isLoading && traders.length > 0 && (
+            {!isLoading && uniqueTraders.length > 0 && (
                 <div className="relative rounded-xl border border-white/5 bg-black/20 backdrop-blur-md p-4 overflow-hidden">
                     <div className="flex items-center justify-between mb-6">
                         <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold flex items-center gap-2">
@@ -407,7 +472,7 @@ export function TopTradersPanel() {
                             Top 5
                         </span>
                         <div className="flex items-center gap-2 flex-wrap justify-end">
-                            {traders.slice(0, 5).map((t, i) => (
+                            {uniqueTraders.slice(0, 5).map((t, i) => (
                                 <div key={t.walletAddress} className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/5 border border-white/5">
                                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: TRADER_COLORS[i] }} />
                                     <span className="text-[9px] text-zinc-300 font-medium truncate max-w-[60px]">
@@ -417,14 +482,14 @@ export function TopTradersPanel() {
                             ))}
                         </div>
                     </div>
-                    <ComparisonChart traders={traders} />
+                    <ComparisonChart traders={uniqueTraders} />
                 </div>
             )}
 
             {/* Trader cards */}
-            {!isLoading && traders.length > 0 && (
+            {!isLoading && uniqueTraders.length > 0 && (
                 <div className="space-y-3">
-                    {traders.map((trader, idx) => (
+                    {visibleTraders.map((trader, idx) => (
                         <TraderCard
                             key={trader.walletAddress}
                             trader={trader}
@@ -433,6 +498,14 @@ export function TopTradersPanel() {
                             onSelect={() => setSelectedTrader(trader)}
                         />
                     ))}
+                    {hasMore && (
+                        <div
+                            ref={lastElementRef}
+                            className="h-8 w-full rounded-lg border border-white/5 bg-white/5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 flex items-center justify-center"
+                        >
+                            Loading more traders...
+                        </div>
+                    )}
                 </div>
             )}
 

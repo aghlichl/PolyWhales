@@ -12,18 +12,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { TierAura, TierOverlays } from "./anomaly-card/tier-effects";
 import { TraderRibbon } from "./anomaly-card/trader-ribbon";
 import { useScoreStore, getLiveScoreLogo } from '@/lib/useScoreStore';
+import { CONFIG } from "@/lib/config";
 import { TrendingUp, TrendingDown } from 'lucide-react';
-
-// Import distinctive fonts following Spotify/DoorDash/Robinhood patterns
-import { Inter } from 'next/font/google';
-
-
-
-const inter = Inter({
-    subsets: ['latin'],
-    weight: ['400', '500', '600', '700'], // Include semibold for currency amounts
-    display: 'swap',
-});
 
 interface AnomalyCardProps {
     anomaly: Anomaly;
@@ -64,7 +54,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
         return null;
     })();
 
-    const isTop20Account = walletRanks.some((r) => typeof r.rank === 'number' && r.rank > 0 && r.rank <= 20);
+    const isTop20Account = walletRanks.some((r) => typeof r.rank === 'number' && r.rank > 0 && r.rank <= CONFIG.LEADERBOARD.TOP_RANK_THRESHOLD);
 
     const displayAccountName = isTop20Account ? accountName : null;
 
@@ -201,7 +191,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                     isSuper && "bg-[radial-gradient(circle_at_24%_18%,rgba(130,34,34,0.55)_0%,rgba(71,10,10,0.9)_42%,rgba(12,4,4,0.95)_78%)] border-[rgba(130,34,34,0.6)] shadow-[5px_5px_0px_0px_rgba(130,34,34,0.22)] group-hover:shadow-[6px_6px_0px_0px_rgba(178,60,60,0.28)] group-hover:border-[rgba(178,60,60,0.75)] group-hover:-translate-y-1",
 
                     // God Whale - Mythic Gold (slightly more opaque for readability)
-                    isGod && "bg-yellow-950/20 border-yellow-500/40 shadow-[5px_5px_0px_0px_rgba(251,191,36,0.24)] group-hover:shadow-[6px_6px_0px_0px_rgba(251,191,36,0.32)] group-hover:border-yellow-400/70 group-hover:-translate-y-1"
+                    isGod && "bg-yellow-950/80 border-yellow-500/40 shadow-[5px_5px_0px_0px_rgba(251,191,36,0.44)] group-hover:shadow-[6px_6px_0px_0px_rgba(251,191,36,0.32)] group-hover:border-yellow-400/70 group-hover:-translate-y-1"
                 )}>
                     <TierOverlays isGod={isGod} isSuper={isSuper} isMega={isMega} isWhale={isWhale} />
 
@@ -249,25 +239,25 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 </div>
 
                                 <div className="relative flex-1 min-w-0">
-                                    {/* Tier-Specific Accent Bar (Vertical) */}
+                                    {/* Tier-Specific Accent Bar (Vertical) - Reduced for minimalism */}
                                     <div className={cn(
-                                        "absolute -left-2 top-1 bottom-1 w-1 rounded-full",
-                                        "opacity-40",
-                                        isGod ? "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]" :
-                                            isSuper ? "bg-[#8e2a2a] shadow-[0_0_10px_rgba(178,60,60,0.55)]" :
-                                                isMega ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" :
-                                                    isWhale ? "bg-sky-300 shadow-[0_0_16px_rgba(125,211,252,0.7)] opacity-70" :
+                                        "absolute -left-2 top-1 bottom-1 w-[2px] rounded-full", // Thinner accent
+                                        "opacity-30", // Reduced opacity
+                                        isGod ? "bg-yellow-400" :
+                                            isSuper ? "bg-[#8e2a2a]" :
+                                                isMega ? "bg-purple-500" :
+                                                    isWhale ? "bg-sky-300" :
                                                         "bg-zinc-600"
                                     )} />
 
-                                    <div className="flex flex-col gap-1">
+                                    <div className="flex flex-col gap-0.5"> {/* Tighter gap */}
                                         {/* Main Title - Auto-fit with 3-line support */}
                                         <h3
                                             ref={textRef as React.RefObject<HTMLHeadingElement>}
                                             className={cn(
-                                                "font-black uppercase tracking-tight",
+                                                "font-bold uppercase tracking-tight", // font-black -> font-bold
                                                 // Line height for consistent spacing
-                                                "leading-[1.2]",
+                                                "leading-[1.1]", // Tighter leading
                                                 // Layout: Flex column for vertical centering
                                                 "min-h-10 flex flex-col justify-center",
                                                 // Balanced text wrapping for better readability
@@ -287,10 +277,11 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                             </span>
                                         </h3>
                                         {(closeTimeLabel || volumeValue || liquidityValue) && (
-                                            <div className="mt-1.5 flex items-center gap-2 text-[10px] font-medium text-zinc-500">
+                                            <div className="mt-1 flex items-center flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium text-zinc-500">
                                                 {/* Time Left - High urgency signal */}
                                                 {closeTimeLabel && (
                                                     <span className={cn(
+                                                        "flex items-center gap-1",
                                                         closeTimeLabel.includes('m left') ? "text-red-400" :
                                                             closeTimeLabel.includes('h left') && parseInt(closeTimeLabel) < 12 ? "text-orange-400" :
                                                                 "text-zinc-500"
@@ -299,25 +290,17 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                                     </span>
                                                 )}
 
-                                                {(closeTimeLabel && (volumeValue || liquidityValue)) && (
-                                                    <span className="text-zinc-700 mx-px">•</span>
-                                                )}
-
                                                 {/* Volume - Primary Market Signal */}
                                                 {volumeValue !== null && (
                                                     <span className="text-zinc-400">
-                                                        Vol <span className="text-zinc-300">{formatUsdShort(volumeValue)}</span>
+                                                        Vol <span className="text-zinc-300 ml-0.5">{formatUsdShort(volumeValue)}</span>
                                                     </span>
-                                                )}
-
-                                                {(volumeValue && liquidityValue) && (
-                                                    <span className="text-zinc-700 mx-px">•</span>
                                                 )}
 
                                                 {/* Liquidity - Secondary Signal */}
                                                 {liquidityValue !== null && (
                                                     <span className="text-zinc-500">
-                                                        Liq <span className="text-zinc-400">{formatUsdShort(liquidityValue)}</span>
+                                                        Liq <span className="text-zinc-400 ml-0.5">{formatUsdShort(liquidityValue)}</span>
                                                     </span>
                                                 )}
                                             </div>
@@ -345,7 +328,6 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 )}>$</span>
 
                                 <span className={cn(
-                                    inter.className,
                                     "text-xl md:text-3xl font-semibold tracking-tight text-zinc-100"
                                 )}>
                                     {amount.replace('$', '')}
@@ -375,7 +357,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                                     "text-[0.6rem] uppercase tracking-wider font-bold opacity-80",
                                                     side === 'SELL' ? "text-red-400" : "text-emerald-400"
                                                 )}>
-                                                    {side === 'SELL' ? 'Short' : 'Long'}
+                                                    {side === 'SELL' ? 'SELL' : 'BUY'}
                                                 </span>
                                             </div>
 
@@ -404,7 +386,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                             {liveGame && (
                                 <div className="ml-2 mb-0.5 flex flex-col justify-end z-20">
                                     <div className={cn(
-                                        "flex items-center gap-2 md:gap-3 text-[10px] font-bold font-mono px-2 md:px-3 py-1.5 rounded-md min-w-[100px] md:min-w-[120px] shadow-sm transition-colors duration-300",
+                                        "flex items-center gap-2 md:gap-3 text-[10px] font-bold px-2 md:px-3 py-1.5 rounded-md min-w-[100px] md:min-w-[120px] shadow-sm transition-colors duration-300",
                                         isStandard
                                             ? "bg-black/40 border border-white/5 text-zinc-300"
                                             : "bg-white/[0.03] backdrop-blur-md border border-white/5 text-zinc-300 hover:bg-white/[0.05]"

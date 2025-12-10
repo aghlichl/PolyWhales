@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { CONFIG } from '@/lib/config';
 
 export type TraderData = {
     walletAddress: string;
@@ -62,14 +63,18 @@ export async function GET(request: Request) {
         const latestSnapshotAt = recentSnapshots[0].snapshotAt;
         const previousSnapshotAt = recentSnapshots.length > 1 ? recentSnapshots[1].snapshotAt : null;
 
-        // Fetch top 200 traders from the latest snapshot
+        // Fetch top-N traders from the latest snapshot (deduplicate by wallet address)
         const latestTraders = await prisma.walletLeaderboardSnapshot.findMany({
             where: {
                 period,
                 snapshotAt: latestSnapshotAt,
-                rank: { lte: 200 },
+                rank: { lte: CONFIG.LEADERBOARD.FETCH_LIMIT },
             },
-            orderBy: { rank: 'asc' },
+            orderBy: [
+                { rank: 'asc' },
+                { walletAddress: 'asc' } // Secondary sort for deterministic ordering of duplicates
+            ],
+            distinct: ['walletAddress'], // Ensure no duplicate wallet addresses
             select: {
                 walletAddress: true,
                 accountName: true,
@@ -85,7 +90,7 @@ export async function GET(request: Request) {
                 where: {
                     period,
                     snapshotAt: previousSnapshotAt,
-                    rank: { lte: 200 },
+                    rank: { lte: CONFIG.LEADERBOARD.FETCH_LIMIT },
                 },
                 select: {
                     walletAddress: true,

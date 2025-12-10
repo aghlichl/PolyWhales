@@ -12,8 +12,9 @@ import {
 } from './client/api';
 import { Anomaly, UserPreferences, EnrichedTrade } from './types';
 import { clientEnv } from './env';
+import { CONFIG } from './config';
 
-// Helper function to get top 20 wallet addresses from leaderboard ranks
+// Helper function to get top-N (configurable) wallet addresses from leaderboard ranks
 export function getTop20Wallets(leaderboardRanks: Record<string, LeaderboardRank[]>): Set<string> {
   const wallets: Array<{ address: string; bestRank: number }> = [];
 
@@ -27,7 +28,7 @@ export function getTop20Wallets(leaderboardRanks: Record<string, LeaderboardRank
 
   // Sort by best rank (ascending) and take top 20
   wallets.sort((a, b) => a.bestRank - b.bestRank);
-  const top20 = wallets.slice(0, 20);
+  const top20 = wallets.slice(0, CONFIG.LEADERBOARD.TOP_RANK_THRESHOLD);
 
   return new Set(top20.map(w => w.address));
 }
