@@ -116,43 +116,58 @@ export async function GET() {
     const nowMs = now.getTime();
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Find the freshest snapshot period we can use (prefer Daily)
-    const preferredPeriods = ["Daily", "Weekly", "Monthly", "All Time"];
-    let snapshotAt: Date | null = null;
-    let snapshotPeriod: string | null = null;
+    // Fetch latest leaderboard snapshots for each period and build a unified top-20 set
+    const leaderboardPeriods = ["Daily", "Weekly", "Monthly", "All Time"] as const;
 
-    for (const period of preferredPeriods) {
-      const latest = await prisma.walletLeaderboardSnapshot.findFirst({
-        where: { period },
-        orderBy: { snapshotAt: "desc" },
-        select: { snapshotAt: true },
-      });
-      if (latest?.snapshotAt) {
-        snapshotAt = latest.snapshotAt;
-        snapshotPeriod = period;
-        break;
+    const snapshots = await Promise.all(
+      leaderboardPeriods.map(async (period) => {
+        const latest = await prisma.walletLeaderboardSnapshot.findFirst({
+          where: { period },
+          orderBy: { snapshotAt: "desc" },
+          select: { snapshotAt: true },
+        });
+
+        if (!latest?.snapshotAt) return null;
+
+        const wallets = await prisma.walletLeaderboardSnapshot.findMany({
+          where: { snapshotAt: latest.snapshotAt, period, rank: { lte: 100 } },
+          orderBy: { rank: "asc" },
+          select: { walletAddress: true, rank: true, totalPnl: true, accountName: true },
+        });
+
+        return { period, snapshotAt: latest.snapshotAt, wallets };
+      })
+    );
+
+    const validSnapshots = snapshots.filter(
+      (s): s is NonNullable<typeof s> => s !== null
+    );
+
+    const snapshotAt = validSnapshots.length
+      ? new Date(Math.max(...validSnapshots.map((s) => s.snapshotAt.getTime())))
+      : null;
+    const snapshotPeriod = validSnapshots.length ? "Daily/Weekly/Monthly/All Time" : null;
+
+    // Create lookup maps using best rank per wallet across all periods
+    const walletToRank = new Map<string, number>();
+    const walletToInfo = new Map<string, LeaderboardWallet>();
+    const top20Set = new Set<string>();
+
+    for (const snap of validSnapshots) {
+      for (const w of snap.wallets) {
+        const key = w.walletAddress.toLowerCase();
+        const existingRank = walletToRank.get(key);
+
+        if (existingRank === undefined || w.rank < existingRank) {
+          walletToRank.set(key, w.rank);
+          walletToInfo.set(key, w);
+        }
+
+        if (w.rank <= 20) {
+          top20Set.add(key);
+        }
       }
     }
-
-    // Get top wallets with their ranks (extended to top 100 for rank-weighted scoring)
-    const topWallets = snapshotAt
-      ? await prisma.walletLeaderboardSnapshot.findMany({
-        where: { snapshotAt, period: snapshotPeriod!, rank: { lte: 100 } },
-        orderBy: { rank: "asc" },
-        select: { walletAddress: true, rank: true, totalPnl: true, accountName: true },
-      })
-      : [];
-
-    // Create lookup maps
-    const walletToRank = new Map<string, number>(
-      topWallets.map((w) => [w.walletAddress.toLowerCase(), w.rank])
-    );
-    const walletToInfo = new Map<string, LeaderboardWallet>(
-      topWallets.map((w) => [w.walletAddress.toLowerCase(), w])
-    );
-    const top20Set = new Set(
-      topWallets.filter(w => w.rank <= 20).map(w => w.walletAddress.toLowerCase())
-    );
 
     // Fetch trades
     const trades = await prisma.trade.findMany({

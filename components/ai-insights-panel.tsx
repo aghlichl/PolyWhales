@@ -835,6 +835,14 @@ function SignalRow({ event, onSelectOutcome }: { event: GroupedEvent; onSelectOu
                     </span>
                     <span className="text-[10px] text-zinc-500 font-mono">{confidence}%</span>
                   </span>
+                  {pick.topTraderCount ? (
+                    <>
+                      <div className="h-3 w-px bg-white/10" />
+                      <span className="text-[11px] font-mono text-zinc-300 flex items-center gap-1">
+                        {pick.topTraderCount}x <span aria-label="whales"> 🐋</span>
+                      </span>
+                    </>
+                  ) : null}
                 </>
               );
             })()}

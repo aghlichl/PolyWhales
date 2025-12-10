@@ -25,32 +25,52 @@ export async function GET(request: Request) {
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Find the freshest leaderboard snapshot (prefer Daily)
-    let snapshotAt: Date | null = null;
-    let snapshotPeriod: (typeof PREFERRED_PERIODS)[number] | null = null;
+    // Fetch latest leaderboard snapshots for each period and dedupe top-20 wallets
+    const snapshots = await Promise.all(
+      PREFERRED_PERIODS.map(async (period) => {
+        const latest = await prisma.walletLeaderboardSnapshot.findFirst({
+          where: { period },
+          orderBy: { snapshotAt: "desc" },
+          select: { snapshotAt: true },
+        });
 
-    for (const period of PREFERRED_PERIODS) {
-      const latest = await prisma.walletLeaderboardSnapshot.findFirst({
-        where: { period },
-        orderBy: { snapshotAt: "desc" },
-        select: { snapshotAt: true },
-      });
-      if (latest?.snapshotAt) {
-        snapshotAt = latest.snapshotAt;
-        snapshotPeriod = period;
-        break;
+        if (!latest?.snapshotAt) return null;
+
+        const wallets = await prisma.walletLeaderboardSnapshot.findMany({
+          where: { snapshotAt: latest.snapshotAt, period, rank: { lte: 20 } },
+          orderBy: { rank: "asc" },
+          select: { walletAddress: true, rank: true, accountName: true, totalPnl: true },
+        });
+
+        return { period, snapshotAt: latest.snapshotAt, wallets };
+      })
+    );
+
+    const validSnapshots = snapshots.filter(
+      (s): s is NonNullable<typeof s> => s !== null
+    );
+
+    const snapshotAt = validSnapshots.length
+      ? new Date(Math.max(...validSnapshots.map((s) => s.snapshotAt.getTime())))
+      : null;
+    const snapshotPeriod = validSnapshots.length ? "Daily/Weekly/Monthly/All Time" : null;
+
+    const walletBestRank = new Map<string, number>();
+    const walletAddresses = new Set<string>();
+
+    for (const snap of validSnapshots) {
+      for (const w of snap.wallets) {
+        const addr = w.walletAddress;
+        walletAddresses.add(addr);
+
+        const existing = walletBestRank.get(addr);
+        if (existing === undefined || w.rank < existing) {
+          walletBestRank.set(addr, w.rank);
+        }
       }
     }
 
-    const top20 = snapshotAt
-      ? await prisma.walletLeaderboardSnapshot.findMany({
-        where: { snapshotAt, period: snapshotPeriod!, rank: { lte: 20 } },
-        orderBy: { rank: "asc" },
-        select: { walletAddress: true, rank: true, accountName: true, totalPnl: true },
-      })
-      : [];
-
-    const topWalletAddresses = top20.map((w) => w.walletAddress);
+    const topWalletAddresses = Array.from(walletAddresses);
 
     // If we have no leaderboard data, still respond gracefully
     if (topWalletAddresses.length === 0) {
