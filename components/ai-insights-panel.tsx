@@ -5,6 +5,7 @@ import { useAiInsights } from "@/lib/useAiInsights";
 import { AiInsightPick } from "@/lib/types";
 import { cn, formatShortNumber, isMarketExpired } from "@/lib/utils";
 import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap } from "lucide-react";
+import { useScoreStore, getLiveScoreLogo } from '@/lib/useScoreStore';
 import svgPathsPrimary from "@/imports/svg-1ltd1kb2kd";
 import svgPathsSecondary from "@/imports/svg-7cdl22zaum";
 import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
@@ -89,6 +90,14 @@ const getConfidenceGrade = (pick: Partial<AiInsightPick> & { confidence: number 
 const formatCents = (value: number) => {
   const cents = Math.round(value * 100);
   return `${cents}¢`;
+};
+
+const getWhaleVolumeDisplay = (pick: Partial<AiInsightPick>) => {
+  const explicitTopVolume = pick.topTraderVolume;
+  const derivedTopVolume = (pick.topTraderBuyVolume ?? 0) + (pick.topTraderSellVolume ?? 0);
+  const volume = explicitTopVolume ?? derivedTopVolume;
+  if (!volume || Number.isNaN(volume) || volume <= 0) return null;
+  return formatUsdCompact(volume);
 };
 
 type AccentStop = {
@@ -453,10 +462,16 @@ export function AIInsightsPanel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
+  // Poll for live scores
+  useEffect(() => useScoreStore.getState().startPolling(), []);
+
   const activePicks = useMemo(() => {
-    return data?.picks?.filter(
-      (pick) => !pick.isResolved && !isMarketExpired(pick.closeTime, pick.resolutionTime)
-    ) ?? [];
+    const graceMs = 4 * 60 * 60 * 1000; // keep markets visible for 4h after start/close
+    return (
+      data?.picks?.filter(
+        (pick) => !pick.isResolved && !isMarketExpired(pick.closeTime, pick.resolutionTime, graceMs)
+      ) ?? []
+    );
   }, [data?.picks]);
 
   // Featured: Top 5 by confidence then volume
@@ -783,6 +798,7 @@ function FeaturedCard({ pick, onClick, variantIndex }: { pick: AiInsightPick; on
 
 function SignalRow({ event, onSelectOutcome }: { event: GroupedEvent; onSelectOutcome: (pick: AiInsightPick) => void }) {
   const bestGrade = confidenceToGrade(event.bestConfidence);
+  const liveGame = useScoreStore(state => state.getGameForTeam(event.eventTitle));
 
   return (
     <div className="group relative bg-[#09090b] hover:bg-[#0F0F12] border-b border-white/5 transition-colors p-4 grid gap-4 md:grid-cols-[2fr_auto] md:grid-rows-[auto_auto] items-start">
@@ -801,6 +817,70 @@ function SignalRow({ event, onSelectOutcome }: { event: GroupedEvent; onSelectOu
         <h4 className="text-sm text-zinc-300 font-medium truncate pr-4">
           {event.eventTitle}
         </h4>
+        {liveGame && (
+          <div className="mt-1 inline-flex items-center gap-2 text-[10px] font-bold font-mono text-zinc-400 bg-white/5 border border-white/5 px-2 py-1 rounded-md">
+            <div className="flex items-center gap-1">
+              {getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName) ? (
+                <img
+                  src={getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName)!}
+                  alt={liveGame.awayTeamShort}
+                  className="w-4 h-4 object-contain"
+                />
+              ) : (
+                <span className="uppercase text-zinc-500 text-[9px]">{liveGame.awayTeamShort}</span>
+              )}
+              <div className="flex items-center gap-0.5 min-w-[16px]">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={liveGame.awayScore}
+                    initial={{ y: 5, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -5, opacity: 0 }}
+                  >
+                    {liveGame.awayScore}
+                  </motion.span>
+                </AnimatePresence>
+                {liveGame.awayScoreTrend === 'UP' && <TrendingUp className="w-2 h-2 text-emerald-400" />}
+              </div>
+            </div>
+            <span className="text-zinc-600 pb-0.5">:</span>
+            <div className="flex items-center gap-1">
+              {getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName) ? (
+                <img
+                  src={getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName)!}
+                  alt={liveGame.homeTeamShort}
+                  className="w-4 h-4 object-contain"
+                />
+              ) : (
+                <span className="uppercase text-zinc-500 text-[9px]">{liveGame.homeTeamShort}</span>
+              )}
+              <div className="flex items-center gap-0.5 min-w-[16px]">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={liveGame.homeScore}
+                    initial={{ y: 5, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -5, opacity: 0 }}
+                  >
+                    {liveGame.homeScore}
+                  </motion.span>
+                </AnimatePresence>
+                {liveGame.homeScoreTrend === 'UP' && <TrendingUp className="w-2 h-2 text-emerald-400" />}
+              </div>
+            </div>
+
+            <div className="w-px h-3 bg-white/10 mx-1" />
+            <div className="flex items-center gap-1">
+              <span className={liveGame.status === 'in_progress' ? "text-red-400 animate-pulse" : ""}>{liveGame.clock}</span>
+              <span className="text-[9px] text-zinc-600">
+                {liveGame.league === 'MLB'
+                  ? (liveGame.period >= 10 ? `Ex` : `${liveGame.period}${['st', 'nd', 'rd'][liveGame.period - 1] || 'th'}`)
+                  : `Q${liveGame.period}`
+                }
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Middle: Outcomes (full width) */}
@@ -814,6 +894,7 @@ function SignalRow({ event, onSelectOutcome }: { event: GroupedEvent; onSelectOu
             {(() => {
               const confidence = getDisplayConfidence(pick);
               const grade = getConfidenceGrade(pick);
+              const whaleVolumeDisplay = getWhaleVolumeDisplay(pick);
               return (
                 <>
                   <span className={cn(
@@ -841,6 +922,14 @@ function SignalRow({ event, onSelectOutcome }: { event: GroupedEvent; onSelectOu
                       <span className="text-[11px] font-mono text-zinc-300 flex items-center gap-1">
                         {pick.topTraderCount}x <span aria-label="whales"> 🐋</span>
                       </span>
+                      {whaleVolumeDisplay ? (
+                        <>
+                          <div className="h-3 w-px bg-white/10" />
+                          <span className="text-[11px] font-mono text-zinc-300">
+                            {whaleVolumeDisplay}
+                          </span>
+                        </>
+                      ) : null}
                     </>
                   ) : null}
                 </>

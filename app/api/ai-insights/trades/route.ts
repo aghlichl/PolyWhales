@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Fetch latest leaderboard snapshots for each period and dedupe top-20 wallets
+    // Fetch latest leaderboard snapshots for each period and dedupe top-200 wallets
     const snapshots = await Promise.all(
       PREFERRED_PERIODS.map(async (period) => {
         const latest = await prisma.walletLeaderboardSnapshot.findFirst({
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         if (!latest?.snapshotAt) return null;
 
         const wallets = await prisma.walletLeaderboardSnapshot.findMany({
-          where: { snapshotAt: latest.snapshotAt, period, rank: { lte: 20 } },
+          where: { snapshotAt: latest.snapshotAt, period, rank: { lte: 200 } },
           orderBy: { rank: "asc" },
           select: { walletAddress: true, rank: true, accountName: true, totalPnl: true },
         });
@@ -80,10 +80,10 @@ export async function GET(request: Request) {
         since: since.toISOString(),
         conditionId,
         outcome,
-        top20Wallets: 0,
+        top200Wallets: 0,
         count: 0,
         trades: [],
-        note: "No leaderboard snapshot found; skipping top-20 filter",
+        note: "No leaderboard snapshot found; skipping top-200 filter",
       });
     }
 
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
       since: since.toISOString(),
       conditionId,
       outcome,
-      top20Wallets: topWalletAddresses.length,
+      top200Wallets: topWalletAddresses.length,
       count: anomalies.length,
       trades: anomalies,
     });

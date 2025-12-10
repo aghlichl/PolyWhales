@@ -31,7 +31,6 @@ import {
 } from "../lib/types";
 import { fetchPortfolio } from "../lib/gamma";
 import { CONFIG } from "../lib/config";
-import { load } from "cheerio";
 import fetch from "node-fetch";
 import { clearExpiredAlertCache, getAlertCacheSize, sendDiscordAlert } from "./worker/alerts";
 import { AdaptiveRateLimiter } from "./worker/rateLimiter";
@@ -44,8 +43,8 @@ type LeaderboardRow = {
   rank: number;
   displayName: string;
   wallet: string;
-  profitLabel: string;
-  volumeLabel: string;
+  totalPnl: number;
+  totalVolume: number;
 };
 
 type PositionResponse = {
@@ -98,110 +97,98 @@ class BoundedMap<K, V> extends Map<K, V> {
   }
 }
 
-const LEADERBOARD_URLS = [
-  { url: "https://polymarket.com/leaderboard/overall/today/profit", timeframe: "Daily" },
-  { url: "https://polymarket.com/leaderboard/overall/weekly/profit", timeframe: "Weekly" },
-  { url: "https://polymarket.com/leaderboard/overall/monthly/profit", timeframe: "Monthly" },
-  { url: "https://polymarket.com/leaderboard/overall/all/profit", timeframe: "All Time" },
+const LEADERBOARD_API_CONFIG = [
+  { timeframe: "Daily", timePeriod: "day" },
+  { timeframe: "Weekly", timePeriod: "week" },
+  { timeframe: "Monthly", timePeriod: "month" },
+  { timeframe: "All Time", timePeriod: "all" },
 ];
 
 const LEADERBOARD_SCRAPE_INTERVAL_MS = 60 * 60 * 1000; // Every 1 hour
-const LEADERBOARD_PAGE_SIZE = 20;
-const MAX_LEADERBOARD_PAGES = 5;
+const LEADERBOARD_LIMIT = 50;
+const LEADERBOARD_OFFSETS = [0, 50, 100, 150];
+const LEADERBOARD_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-type CheerioAPI = ReturnType<typeof load>;
+type LeaderboardApiRow = {
+  rank: number | string;
+  proxyWallet: string;
+  userName?: string | null;
+  pnl?: number | string | null;
+  vol?: number | string | null;
+};
 
-function parseCurrency(label: string): number | null {
-  const trimmed = label.trim();
-  if (!trimmed || trimmed === "—") return null;
-
-  const normalized = trimmed
-    .replace(/[$,]/g, "")
-    .replace(/^\+/, "");
-  const value = Number(normalized);
-  return Number.isFinite(value) ? value : null;
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
 }
 
-function extractPageLinks(
-  $: CheerioAPI,
-  baseUrl: string
-): { pageNum: number; url: string }[] {
-  const pages = new Map<number, string>();
-  const normalizedBase = new URL(baseUrl).toString();
-
-  const addPage = (pageNum: number, href?: string | null) => {
-    if (pageNum < 1 || pageNum > MAX_LEADERBOARD_PAGES) return;
-    if (pages.has(pageNum)) return;
-
-    const resolved =
-      href && href.trim()
-        ? new URL(href, baseUrl).toString()
-        : new URL(`?page=${pageNum}`, baseUrl).toString();
-
-    pages.set(pageNum, resolved);
-  };
-
-  // Always include page 1 (base URL)
-  addPage(1, normalizedBase);
-
-  // Pagination markup uses <li> with text numbers; href may live on li or nested anchor.
-  $("nav[role='navigation'] li, nav[aria-label='pagination'] li, nav ul li a").each(
-    (_, el
-  ) => {
-    const $el = $(el);
-    const label = $el.text().trim();
-    if (!/^\d+$/.test(label)) return;
-
-    const pageNum = Number.parseInt(label, 10);
-    const href =
-      $el.attr("href") ||
-      $el.attr("data-href") ||
-      $el.find("a").attr("href") ||
-      null;
-
-    // Accept query-only hrefs (e.g., ?page=2) and absolute/relative leaderboard links
-    if (href && !href.startsWith("/leaderboard/overall/") && !href.startsWith("?")) {
-      return;
-    }
-
-    addPage(pageNum, href);
-  });
-
-  return Array.from(pages.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(([pageNum, url]) => ({ pageNum, url }));
+function buildLeaderboardUrl(timePeriod: string, offset: number): string {
+  const url = new URL("https://data-api.polymarket.com/v1/leaderboard");
+  url.searchParams.set("timePeriod", timePeriod);
+  url.searchParams.set("orderBy", "PNL");
+  url.searchParams.set("limit", String(LEADERBOARD_LIMIT));
+  url.searchParams.set("offset", String(offset));
+  url.searchParams.set("category", "overall");
+  return url.toString();
 }
 
-function scrapeLeaderboardRowsFromPage(
-  $: CheerioAPI,
+async function fetchLeaderboardBatch(
   timeframe: LeaderboardRow["timeframe"],
-  pageNum: number
-): LeaderboardRow[] {
-  const rows: LeaderboardRow[] = [];
+  timePeriod: string
+): Promise<LeaderboardRow[]> {
+  const results: LeaderboardRow[] = [];
 
-  $(".flex.flex-col.gap-2.py-5.border-b").each((i, row) => {
-    if (i >= LEADERBOARD_PAGE_SIZE) return; // Top 20 per page
+  for (const offset of LEADERBOARD_OFFSETS) {
+    const url = buildLeaderboardUrl(timePeriod, offset);
+    console.log(`[Worker] Fetching leaderboard ${timeframe} offset ${offset}...`);
 
-    const $row = $(row);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": LEADERBOARD_USER_AGENT,
+        },
+      });
 
-    const usernameAnchor = $row.find('a[href^="/profile/"]').last();
-    const displayName = usernameAnchor.text().trim();
-    const wallet = usernameAnchor.attr("href")!.replace("/profile/", "");
+      if (!response.ok) {
+        console.warn(
+          `[Worker] Leaderboard API returned ${response.status} for ${timeframe} offset ${offset}`
+        );
+        continue;
+      }
 
-    const profitLabel = $row.find("p.text-text-primary").text().trim();
-    const volumeLabel = $row.find("p.text-text-secondary").text().trim();
+      const data = (await response.json()) as unknown;
+      if (!Array.isArray(data)) {
+        console.warn(`[Worker] Leaderboard API response not array for ${timeframe} offset ${offset}`);
+        continue;
+      }
 
-    rows.push({
-      timeframe,
-      rank: (pageNum - 1) * LEADERBOARD_PAGE_SIZE + (i + 1),
-      displayName,
-      wallet,
-      profitLabel,
-      volumeLabel,
-    });
-  });
+      data.forEach((entry: LeaderboardApiRow, idx: number) => {
+        const wallet = (entry.proxyWallet || "").toLowerCase();
+        if (!wallet) return;
 
-  return rows;
+        const rank = toNumber(entry.rank, offset + idx + 1);
+        const displayName = entry.userName?.trim() || wallet;
+
+        results.push({
+          timeframe,
+          rank,
+          displayName,
+          wallet,
+          totalPnl: toNumber(entry.pnl),
+          totalVolume: toNumber(entry.vol),
+        });
+      });
+    } catch (error) {
+      console.warn(`[Worker] Failed to fetch leaderboard for ${timeframe} offset ${offset}:`, error);
+    }
+  }
+
+  return results;
 }
 
 /**
@@ -232,52 +219,13 @@ async function scrapeLeaderboard() {
   const allRows: LeaderboardRow[] = [];
 
   try {
-    for (const { url, timeframe } of LEADERBOARD_URLS) {
-      console.log(`[Worker] Scraping base leaderboard page for ${timeframe}...`);
-
-      // Fetch base page (page 1)
-      const baseHtml = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        },
-      }).then((r) => r.text());
-
-      let $ = load(baseHtml);
-
-      // Get URLs for pages 1–5 from pagination
-      const pageLinks = extractPageLinks($, url);
-      console.log(
-        `[Worker] Found ${pageLinks.length} leaderboard pages for ${timeframe}:`,
-        pageLinks.map((p) => p.pageNum)
-      );
-
-      for (const { pageNum, url: pageUrl } of pageLinks) {
-        let html: string;
-
-        if (pageNum === 1) {
-          html = baseHtml; // already fetched
-        } else {
-          console.log(
-            `[Worker] Scraping ${timeframe} leaderboard page ${pageNum} (${pageUrl})...`
-          );
-          html = await fetch(pageUrl, {
-            headers: {
-              "User-Agent":
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            },
-          }).then((r) => r.text());
-        }
-
-        $ = load(html);
-        const pageRows = scrapeLeaderboardRowsFromPage($, timeframe, pageNum);
-        console.log(
-          `[Worker] Scraped ${pageRows.length} rows from ${timeframe} page ${pageNum}`
-        );
-        allRows.push(...pageRows);
-      }
+    for (const { timeframe, timePeriod } of LEADERBOARD_API_CONFIG) {
+      const timeframeRows = await fetchLeaderboardBatch(timeframe, timePeriod);
+      console.log(`[Worker] Fetched ${timeframeRows.length} rows for ${timeframe}`);
+      allRows.push(...timeframeRows);
     }
 
-    console.log(`[Worker] Scraped ${allRows.length} leaderboard rows`);
+    console.log(`[Worker] Collected ${allRows.length} leaderboard rows across all timeframes`);
 
     if (allRows.length > 0) {
       const snapshotAt = new Date();
@@ -287,8 +235,8 @@ async function scrapeLeaderboard() {
         walletAddress: row.wallet,
         period: row.timeframe,
         rank: row.rank,
-        totalPnl: parseCurrency(row.profitLabel) ?? 0,
-        totalVolume: parseCurrency(row.volumeLabel) ?? 0,
+        totalPnl: row.totalPnl,
+        totalVolume: row.totalVolume,
         winRate: 0, // Not available in this view
         snapshotAt,
         accountName: row.displayName,

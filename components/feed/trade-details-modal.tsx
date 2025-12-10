@@ -46,6 +46,11 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
     const { event, outcome, odds, value, side, trader_context, wallet_context, analysis, image } = anomaly;
     const { leaderboardRanks } = useMarketStore();
     const marketContext = anomaly.analysis?.market_context;
+    const leagueFromMeta = (() => {
+        const raw = (anomaly.league || marketContext?.league || marketContext?.sport || anomaly.sport || anomaly.category || '').toUpperCase();
+        if (raw === 'NBA' || raw === 'NFL' || raw === 'MLB' || raw === 'MLS' || raw === 'UEFA' || raw === 'NHL') return raw as any;
+        return undefined;
+    })();
     const eventContext = anomaly.analysis?.event || {
         id: anomaly.eventId,
         title: anomaly.eventTitle,
@@ -96,11 +101,12 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
     // Resolve team logo
     const { resolvedTeam, logoPath, usePolymarketFallback } = useMemo(() => {
         const team = resolveTeamFromMarket({
+            leagueHint: leagueFromMeta,
             marketTitle: event,
             outcomeLabel: outcome,
             question: event,
         });
-        const league = team?.league || inferLeagueFromMarket({ question: event } as MarketMeta);
+        const league = team?.league || inferLeagueFromMarket({ question: event, league: leagueFromMeta } as MarketMeta);
 
         // If no team found in teamMeta.ts, use Polymarket image as primary fallback
         const noTeamMatch = !team;
@@ -111,7 +117,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
             logoPath: noTeamMatch && hasPolymarketImage ? image : getLogoPathForTeam(team, league),
             usePolymarketFallback: noTeamMatch && hasPolymarketImage
         };
-    }, [event, outcome, image]);
+    }, [event, outcome, image, leagueFromMeta]);
 
     // Get leaderboard ranks for this wallet
     const walletRanks = useMemo(() => {

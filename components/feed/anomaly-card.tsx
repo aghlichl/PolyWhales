@@ -8,9 +8,11 @@ import { TradeDetailsModal } from "./trade-details-modal";
 import { resolveTeamFromMarket, getLogoPathForTeam, inferLeagueFromMarket } from "@/lib/teamResolver";
 import { useAutoFitText } from "@/lib/useAutoFitText";
 import { useMarketStore } from "@/lib/store";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { TierAura, TierOverlays } from "./anomaly-card/tier-effects";
 import { TraderRibbon } from "./anomaly-card/trader-ribbon";
+import { useScoreStore, getLiveScoreLogo } from '@/lib/useScoreStore';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 // Import distinctive fonts following Spotify/DoorDash/Robinhood patterns
 import { Inter } from 'next/font/google';
@@ -40,6 +42,12 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
     const { event: title, value, outcome, odds, type, timestamp, side, image } = anomaly;
     // Narrow store subscription so card only rerenders when leaderboard data changes
     const leaderboardRanks = useMarketStore((state) => state.leaderboardRanks);
+    const marketContext = anomaly.analysis?.market_context;
+    const leagueFromMeta = (() => {
+        const raw = (anomaly.league || marketContext?.league || marketContext?.sport || anomaly.sport || anomaly.category || '').toUpperCase();
+        if (raw === 'NBA' || raw === 'NFL' || raw === 'MLB' || raw === 'MLS' || raw === 'UEFA' || raw === 'NHL') return raw as any;
+        return undefined;
+    })();
 
     const walletRanks = anomaly.wallet_context?.address
         ? leaderboardRanks[anomaly.wallet_context.address.toLowerCase()] || []
@@ -61,48 +69,37 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
     const displayAccountName = isTop20Account ? accountName : null;
 
     // Auto-fit text hook for responsive title sizing
+    // Resolve team logo with league-aware guard
+    const { resolvedTeam, resolvedLeague, logoPath, usePolymarketFallback } = useMemo(() => {
+        const leagueHint = leagueFromMeta;
+        const team = resolveTeamFromMarket({
+            leagueHint,
+            marketTitle: title,
+            outcomeLabel: outcome,
+            question: title, // Anomaly event is usually the question/title
+        });
+
+        const inferredLeague = team?.league || inferLeagueFromMarket({ question: title, league: leagueHint } as MarketMeta);
+
+        const noTeamMatch = !team;
+        const hasPolymarketImage = image && image.length > 0;
+
+        return {
+            resolvedTeam: team,
+            resolvedLeague: inferredLeague,
+            logoPath: noTeamMatch && hasPolymarketImage ? image : getLogoPathForTeam(team, inferredLeague),
+            usePolymarketFallback: noTeamMatch && hasPolymarketImage
+        };
+    }, [title, outcome, image, leagueFromMeta]);
+
+    const liveGame = useScoreStore(state => state.getGameForTeam(outcome || title, resolvedLeague));
+
     const { textRef } = useAutoFitText({
         minFontSize: 0.75, // 12px at base 16px
         maxFontSize: 1.125, // 18px at base 16px
         maxLines: 3,
         lineHeight: 1.2,
     });
-
-    // Resolve team logo
-    const { resolvedTeam, logoPath, usePolymarketFallback } = useMemo(() => {
-
-        const team = resolveTeamFromMarket({
-            marketTitle: title,
-            outcomeLabel: outcome,
-            question: title, // Anomaly event is usually the question/title
-        });
-
-        // console.log('[TEAM_RESOLUTION_RESULT]', {
-        //     input: { title, outcome },
-        //     resolvedTeam: team ? {
-        //         league: team.league,
-        //         slug: team.slug,
-        //         name: team.name,
-        //         logoPath: team.logoPath
-        //     } : null,
-        //     finalLogoPath: !team && image && image.trim() !== '' ? image : team ? team.logoPath : '/logos/generic/default.svg'
-        // });
-        const league = team?.league || inferLeagueFromMarket({ question: title } as MarketMeta);
-
-        // If no team found in teamMeta.ts, use Polymarket image as primary fallback
-        const noTeamMatch = !team;
-        const hasPolymarketImage = image && image.length > 0;
-        // console.log('[IMAGE]', image);
-        // console.log('[HAS_POLYMARKET_IMAGE]', hasPolymarketImage);
-        // console.log('[NO_TEAM_MATCH]', noTeamMatch);
-        // console.log('[GET_LOGO_PATH_FOR_TEAM]', getLogoPathForTeam(team, league));
-        // console.log('[USE_POLYMARKET_FALLBACK]', noTeamMatch && hasPolymarketImage);
-        return {
-            resolvedTeam: team,
-            logoPath: noTeamMatch && hasPolymarketImage ? image : getLogoPathForTeam(team, league),
-            usePolymarketFallback: noTeamMatch && hasPolymarketImage
-        };
-    }, [title, outcome, image]);
 
     const amount = `$${Math.round(value).toLocaleString()}`;
     const isGod = type === 'GOD_WHALE';
@@ -113,7 +110,6 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const marketContext = anomaly.analysis?.market_context;
     const liquidityValue = marketContext?.liquidity ?? anomaly.liquidity ?? null;
     const volumeValue = marketContext?.volume24h ?? anomaly.volume24h ?? null;
     const closeTime = marketContext?.closeTime || anomaly.closeTime || null;
@@ -331,55 +327,29 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                             </div>
                         </div>
 
-                        {/* Top Right: Amount - REDESIGNED (Minimalist Neobrutalism) */}
+                        {/* Top Right: Amount - REDESIGNED (Seamless Minimalist) */}
                         <div className="flex items-start justify-end">
                             <div className={cn(
-                                "relative group rounded-lg px-4 py-2",
+                                "relative flex items-baseline gap-1 py-1 px-3 rounded-full transition-colors duration-300",
                                 isStandard
-                                    ? "bg-black border border-black"
-                                    : "bg-white/5 backdrop-blur-md border border-white/10" // Glass background/border for non-standard tiers
+                                    ? "bg-black/40 border border-white/5"
+                                    : "bg-white/[0.03] backdrop-blur-sm border border-white/5 hover:bg-white/[0.05]"
                             )}>
-                                {/* Tier Indicator - Minimal Corner Accent */}
-                                <div className={cn(
-                                    "absolute top-0 right-0 w-2 h-2",
-                                    "border-t border-r rounded-tr-lg", // Corner bracket style
-                                    isGod ? "border-yellow-500" :
-                                        isSuper ? "border-[#b23c3c]" :
-                                            isMega ? "border-purple-500" :
-                                                isWhale ? "border-blue-500" :
-                                                    "border-zinc-600"
-                                )} />
+                                <span className={cn(
+                                    "text-xs md:text-sm font-medium",
+                                    isGod ? "text-yellow-500/90" :
+                                        isSuper ? "text-[#e3b6b6]" :
+                                            isMega ? "text-purple-500/90" :
+                                                isWhale ? "text-sky-300" :
+                                                    "text-zinc-500"
+                                )}>$</span>
 
-                                {/* Bottom Left Accent - Balancing the composition */}
-                                <div className={cn(
-                                    "absolute bottom-0 left-0 w-2 h-2",
-                                    "border-b border-l rounded-bl-lg", // Corner bracket style
-                                    "opacity-50",
-                                    isGod ? "border-yellow-500" :
-                                        isSuper ? "border-[#b23c3c]" :
-                                            isMega ? "border-purple-500" :
-                                                isWhale ? "border-blue-500" :
-                                                    "border-zinc-600"
-                                )} />
-
-                                <div className="relative flex items-baseline gap-1">
-                                    <span className={cn(
-                                        // jetbrains.className removed
-                                        "text-sm font-bold",
-                                        isGod ? "text-yellow-500/90" :
-                                            isSuper ? "text-[#e3b6b6]" :
-                                                isMega ? "text-purple-500/90" :
-                                                    isWhale ? "text-sky-300" :
-                                                        "text-zinc-500"
-                                    )}>$</span>
-
-                                    <span className={cn(
-                                        inter.className,
-                                        "text-3xl font-semibold tracking-tight text-zinc-100"
-                                    )}>
-                                        {amount.replace('$', '')}
-                                    </span>
-                                </div>
+                                <span className={cn(
+                                    inter.className,
+                                    "text-xl md:text-3xl font-semibold tracking-tight text-zinc-100"
+                                )}>
+                                    {amount.replace('$', '')}
+                                </span>
                             </div>
                         </div>
 
@@ -387,61 +357,136 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         <div className="flex items-end z-20">
                             <div className="flex flex-col justify-end">
                                 <div className="relative group/outcome cursor-default">
-                                    {/* Main Container */}
+                                    {/* Main Container - Seamless Capsule/Rounded Design */}
                                     <div className={cn(
-                                        "relative flex flex-col min-w-[100px] overflow-hidden rounded-lg",
+                                        "relative flex flex-col min-w-[30px] overflow-hidden rounded-lg transition-all duration-300",
                                         isStandard
-                                            ? "bg-black border border-black"
-                                            : "bg-white/5 backdrop-blur-md border border-white/10"
+                                            ? "bg-black/40 border border-white/5"
+                                            : "bg-white/[0.03] backdrop-blur-sm border border-white/5 hover:bg-white/[0.05]"
                                     )}>
-                                        {/* Decorative Top Bar */}
-                                        <div className={cn(
-                                            "h-0.5 w-full",
-                                            side === 'SELL'
-                                                ? "bg-gradient-to-r from-red-500 via-orange-500 to-transparent"
-                                                : "bg-gradient-to-r from-emerald-500 via-cyan-500 to-transparent"
-                                        )} />
-
-                                        <div className="px-2 py-1.5">
-                                            {/* Label - Micro Typography */}
+                                        <div className="px-2.5 py-1.5 md:px-3 md:py-2">
+                                            {/* Label - Reduced noise */}
                                             <div className="flex items-center gap-1.5 mb-0.5">
+                                                <div className={cn(
+                                                    "w-1 h-1 rounded-full",
+                                                    side === 'SELL' ? "bg-red-500" : "bg-emerald-500"
+                                                )} />
                                                 <span className={cn(
-                                                    // bricolage.className removed
-                                                    "text-[0.65rem] uppercase tracking-[0.25em] font-black",
+                                                    "text-[0.6rem] uppercase tracking-wider font-bold opacity-80",
                                                     side === 'SELL' ? "text-red-400" : "text-emerald-400"
                                                 )}>
                                                     {side === 'SELL' ? 'Short' : 'Long'}
                                                 </span>
-                                                {/* Animated Dot */}
-                                                <div className={cn(
-                                                    "w-1 h-1 rounded-full animate-pulse",
-                                                    side === 'SELL' ? "bg-red-500" : "bg-emerald-500"
-                                                )} />
                                             </div>
 
-                                            {/* The Outcome Text - Hero */}
+                                            {/* The Outcome Text - Clean & Sophisticated */}
                                             <div className="relative">
                                                 <span className={cn(
-                                                    // bricolage.className removed
-                                                    "block text-lg font-black italic tracking-tighter leading-none uppercase text-zinc-100"
+                                                    "block text-base md:text-2xl font-bold tracking-tight leading-none text-zinc-100"
                                                 )}>
                                                     {outcome}
                                                 </span>
-
                                             </div>
                                         </div>
 
-                                        {/* Background Pattern - Subtle Grid */}
-                                        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none bg-[size:4px_4px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)]" />
-
-                                        {/* Corner Accent */}
+                                        {/* Simplified decorative bottom bar */}
                                         <div className={cn(
-                                            "absolute bottom-0 right-0 w-2 h-2 border-b-1.5 border-r-1.5",
-                                            side === 'SELL' ? "border-red-500" : "border-emerald-500"
+                                            "h-[1px] w-full opacity-60",
+                                            side === 'SELL'
+                                                ? "bg-gradient-to-r from-red-500/50 to-transparent"
+                                                : "bg-gradient-to-r from-emerald-500/50 to-transparent"
                                         )} />
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Live Score Block - Inserted between Outcome and Gauge (visually) */}
+                            {liveGame && (
+                                <div className="ml-2 mb-0.5 flex flex-col justify-end z-20">
+                                    <div className={cn(
+                                        "flex items-center gap-2 md:gap-3 text-[10px] font-bold font-mono px-2 md:px-3 py-1.5 rounded-md min-w-[100px] md:min-w-[120px] shadow-sm transition-colors duration-300",
+                                        isStandard
+                                            ? "bg-black/40 border border-white/5 text-zinc-300"
+                                            : "bg-white/[0.03] backdrop-blur-md border border-white/5 text-zinc-300 hover:bg-white/[0.05]"
+                                    )}>
+
+                                        {/* Away Team */}
+                                        <div className="flex flex-col items-center gap-1 min-w-[24px]">
+                                            {getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName) ? (
+                                                <img
+                                                    src={getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName)!}
+                                                    alt={liveGame.awayTeamShort}
+                                                    className="w-6 h-6 object-contain drop-shadow-md"
+                                                />
+                                            ) : (
+                                                <span className="text-[9px] text-zinc-500 uppercase">{liveGame.awayTeamShort.substring(0, 3)}</span>
+                                            )}
+                                            <div className="flex items-center gap-0.5">
+                                                <AnimatePresence mode="popLayout" initial={false}>
+                                                    <motion.span
+                                                        key={liveGame.awayScore}
+                                                        initial={{ y: 10, opacity: 0 }}
+                                                        animate={{ y: 0, opacity: 1 }}
+                                                        exit={{ y: -10, opacity: 0 }}
+                                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                    >
+                                                        {liveGame.awayScore}
+                                                    </motion.span>
+                                                </AnimatePresence>
+                                                {liveGame.awayScoreTrend === 'UP' && <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />}
+                                            </div>
+                                        </div>
+
+                                        <span className="text-zinc-600 pb-4 text-xs">:</span>
+
+                                        {/* Home Team */}
+                                        <div className="flex flex-col items-center gap-1 min-w-[24px]">
+                                            {getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName) ? (
+                                                <img
+                                                    src={getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName)!}
+                                                    alt={liveGame.homeTeamShort}
+                                                    className="w-6 h-6 object-contain drop-shadow-md"
+                                                />
+                                            ) : (
+                                                <span className="text-[9px] text-zinc-500 uppercase">{liveGame.homeTeamShort.substring(0, 3)}</span>
+                                            )}
+                                            <div className="flex items-center gap-0.5">
+                                                <AnimatePresence mode="popLayout" initial={false}>
+                                                    <motion.span
+                                                        key={liveGame.homeScore}
+                                                        initial={{ y: 10, opacity: 0 }}
+                                                        animate={{ y: 0, opacity: 1 }}
+                                                        exit={{ y: -10, opacity: 0 }}
+                                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                    >
+                                                        {liveGame.homeScore}
+                                                    </motion.span>
+                                                </AnimatePresence>
+                                                {liveGame.homeScoreTrend === 'UP' && <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />}
+                                            </div>
+                                        </div>
+
+                                        {/* Clock separator */}
+                                        <div className="w-px h-8 bg-white/10 mx-1" />
+
+                                        {/* Clock & Period */}
+                                        <div className="flex flex-col items-end justify-center leading-none gap-1 min-w-[34px]">
+                                            <span className={cn(
+                                                "text-[10px] font-bold whitespace-nowrap px-1 py-0.5 rounded",
+                                                liveGame.status === 'in_progress' ? "bg-red-500/20 text-red-400 animate-pulse border border-red-500/30" : "text-zinc-400"
+                                            )}>
+                                                {liveGame.clock}
+                                            </span>
+                                            <span className="text-[9px] text-zinc-500 font-medium">
+                                                {liveGame.league === 'MLB'
+                                                    ? (liveGame.period >= 10 ? `Ex` : `${liveGame.period}${['st', 'nd', 'rd'][liveGame.period - 1] || 'th'}`)
+                                                    : `Q${liveGame.period}`
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Bottom Right: Gauge */}

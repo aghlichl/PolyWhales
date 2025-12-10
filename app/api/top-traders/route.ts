@@ -62,12 +62,12 @@ export async function GET(request: Request) {
         const latestSnapshotAt = recentSnapshots[0].snapshotAt;
         const previousSnapshotAt = recentSnapshots.length > 1 ? recentSnapshots[1].snapshotAt : null;
 
-        // Fetch top 20 traders from the latest snapshot
+        // Fetch top 200 traders from the latest snapshot
         const latestTraders = await prisma.walletLeaderboardSnapshot.findMany({
             where: {
                 period,
                 snapshotAt: latestSnapshotAt,
-                rank: { lte: 20 },
+                rank: { lte: 200 },
             },
             orderBy: { rank: 'asc' },
             select: {
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
                 where: {
                     period,
                     snapshotAt: previousSnapshotAt,
-                    rank: { lte: 20 },
+                    rank: { lte: 200 },
                 },
                 select: {
                     walletAddress: true,

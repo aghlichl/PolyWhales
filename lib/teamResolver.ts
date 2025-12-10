@@ -6,6 +6,7 @@ export interface ResolvedTeam {
     slug: string;
     name: string;
     logoPath: string;
+    aliases: string[];
 }
 
 // Helper to normalize text for comparison
@@ -46,6 +47,94 @@ function matchesToken(text: string, token: string): boolean {
     }
 }
 
+// Extract potential matchup teams from a question/title like "Panthers vs Utah"
+function extractMatchupTeams(text: string): string[] | null {
+    if (!text) return null;
+    // Normalize separators to " vs "
+    const normalized = text
+        .replace(/@/g, ' vs ')
+        .replace(/\svs\.?\s/gi, ' vs ')
+        .replace(/\sv\.?\s/gi, ' vs ')
+        .replace(/\s-\s/gi, ' vs ')
+        .replace(/\s•\s/gi, ' vs ');
+
+    const parts = normalized.split(/vs/i).map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 2) return parts;
+    return null;
+}
+
+function resolveTeamByText(raw: string, leagueHint?: League): ResolvedTeam | null {
+    const normalizedOutcome = normalize(raw);
+    const candidateTeams = leagueHint
+        ? TEAMS.filter((t) => t.league === leagueHint)
+        : TEAMS;
+
+    // Strategy A: Exact match on name or aliases
+    const exactMatch = candidateTeams.find((team) => {
+        if (normalize(team.name) === normalizedOutcome) return true;
+        return team.aliases.some((alias) => normalize(alias) === normalizedOutcome);
+    });
+    if (exactMatch) return toResolvedTeam(exactMatch);
+
+    // Strategy B: Strip suffixes (for soccer) and try exact match
+    const strippedOutcome = stripSoccerSuffixes(normalizedOutcome);
+    if (strippedOutcome !== normalizedOutcome) {
+        const suffixMatch = candidateTeams.find((team) => {
+            if (normalize(team.name) === strippedOutcome) return true;
+            return team.aliases.some((alias) => normalize(alias) === strippedOutcome);
+        });
+        if (suffixMatch) return toResolvedTeam(suffixMatch);
+    }
+
+    // Strategy C: Token match (contains alias as whole word)
+    const partialMatch = candidateTeams.find((team) => {
+        if (matchesToken(normalizedOutcome, team.name)) return true;
+        return team.aliases.some((alias) => matchesToken(normalizedOutcome, alias));
+    });
+    if (partialMatch) return toResolvedTeam(partialMatch);
+
+    return null;
+}
+
+function pickTeamByOutcome(
+    outcomeLabel: string | undefined,
+    candidates: ResolvedTeam[],
+    leagueHint?: League
+): ResolvedTeam | null {
+    if (!candidates.length) return null;
+
+    if (leagueHint) {
+        const leagueFiltered = candidates.filter((c) => c.league === leagueHint);
+        if (leagueFiltered.length === 1) return leagueFiltered[0];
+        if (leagueFiltered.length > 1) {
+            candidates = leagueFiltered;
+        }
+    }
+
+    if (outcomeLabel) {
+        const normalizedOutcome = normalize(outcomeLabel);
+        const exact = candidates.find((team) =>
+            normalize(team.name) === normalizedOutcome ||
+            team.aliases.some((alias) => normalize(alias) === normalizedOutcome)
+        );
+        if (exact) return exact;
+
+        const token = candidates.find((team) =>
+            matchesToken(normalizedOutcome, team.name) ||
+            team.aliases.some((alias) => matchesToken(normalizedOutcome, alias))
+        );
+        if (token) return token;
+    }
+
+    // If all candidates share a league, return the first; otherwise we bail to avoid cross-league mistakes.
+    const uniqueLeagues = new Set(candidates.map((c) => c.league));
+    if (uniqueLeagues.size === 1) {
+        return candidates[0];
+    }
+
+    return null;
+}
+
 export function resolveTeamFromMarket(params: {
     leagueHint?: League;
     marketTitle?: string;
@@ -54,63 +143,54 @@ export function resolveTeamFromMarket(params: {
 }): ResolvedTeam | null {
     const { leagueHint, marketTitle, question, outcomeLabel } = params;
 
-    // 1. Filter teams by league hint if provided
-    const candidateTeams = leagueHint
-        ? TEAMS.filter((t) => t.league === leagueHint)
-        : TEAMS;
+    const combinedText = (() => {
+        if (marketTitle && question && marketTitle !== question) return `${marketTitle} ${question}`.trim();
+        return (marketTitle || question || '').trim();
+    })();
+    const matchupParts = extractMatchupTeams(combinedText);
+    const inferredLeague = leagueHint || inferLeagueFromMarket({ question: combinedText } as MarketMeta);
+    let matchupAmbiguous = false;
 
-    // 2. Try to match outcomeLabel
-    if (outcomeLabel) {
-        const normalizedOutcome = normalize(outcomeLabel);
+    // If we can parse a matchup, require both sides to land in the same league.
+    if (matchupParts && matchupParts.length === 2) {
+        const [home, away] = matchupParts;
+        const homeTeam = resolveTeamByText(home, inferredLeague);
+        const awayTeam = resolveTeamByText(away, inferredLeague);
 
-        // Strategy A: Exact match on name or aliases
-        const exactMatch = candidateTeams.find((team) => {
-            if (normalize(team.name) === normalizedOutcome) return true;
-            return team.aliases.some((alias) => normalize(alias) === normalizedOutcome);
-        });
-        if (exactMatch) return toResolvedTeam(exactMatch);
-
-        // Strategy B: Strip suffixes (for soccer) and try exact match
-        const strippedOutcome = stripSoccerSuffixes(normalizedOutcome);
-        if (strippedOutcome !== normalizedOutcome) {
-            const suffixMatch = candidateTeams.find((team) => {
-                if (normalize(team.name) === strippedOutcome) return true;
-                return team.aliases.some((alias) => normalize(alias) === strippedOutcome);
-            });
-            if (suffixMatch) return toResolvedTeam(suffixMatch);
+        if (homeTeam && awayTeam) {
+            if (homeTeam.league === awayTeam.league) {
+                const candidate = pickTeamByOutcome(outcomeLabel, [homeTeam, awayTeam], inferredLeague);
+                if (candidate) return candidate;
+                // Fall back to home if same league and still ambiguous
+                return homeTeam;
+            }
+            // Cross-league matchup detected; avoid returning the wrong logo.
+            return null;
         }
 
-        // Strategy C: Token match (contains alias as whole word)
-        // e.g. outcomeLabel: "Texas Rangers" (matches alias "Rangers")
-        // outcomeLabel: "North Texas" (does NOT match alias "Texas" if we strictly check word boundaries and "Texas" is removed from aliases).
-        // BUT if "Texas" was an alias, "North Texas" contains "Texas". 
-        // We want to avoid matching if it's part of another word, but "North Texas" has "Texas" as a separate word.
-        // The issue was "Texas" matching "Texas Rangers". 
-        // If we remove "Texas" alias, then "North Texas" won't match "Rangers" (alias "Rangers").
-        // "North Texas" vs "Rangers" -> No match.
-        // So simply removing the alias fixes the main issue.
-        // But adding word boundaries is good practice: prevents "NotRangers" matching "Rangers" (unlikely) or "Rangersteam" matching "Rangers".
-
-        const partialMatch = candidateTeams.find((team) => {
-            // Check name
-            if (matchesToken(normalizedOutcome, team.name)) return true;
-            // Check aliases
-            return team.aliases.some((alias) => matchesToken(normalizedOutcome, alias));
-        });
-        if (partialMatch) return toResolvedTeam(partialMatch);
+        // If we couldn't cleanly resolve both sides of a matchup, treat it as ambiguous to avoid picking the wrong league.
+        matchupAmbiguous = true;
     }
 
-    // 3. Parse marketTitle / question if no match yet
-    const textToSearch = (marketTitle || '') + ' ' + (question || '');
-    if (textToSearch.trim()) {
-        const normalizedText = normalize(textToSearch);
+    if (matchupAmbiguous) return null;
 
-        const match = candidateTeams.find((team) => {
-            if (matchesToken(normalizedText, team.name)) return true;
-            return team.aliases.some((alias) => matchesToken(normalizedText, alias));
-        });
+    // Fall back to outcome-first resolution (legacy path) but with league filtering and safer ambiguity handling.
+    const candidate = outcomeLabel ? resolveTeamByText(outcomeLabel, inferredLeague) : null;
+    if (candidate) return candidate;
 
-        if (match) return toResolvedTeam(match);
+    // As a last resort, search the text of the market/question.
+    if (combinedText) {
+        const tokens = TEAMS
+            .filter((t) => !inferredLeague || t.league === inferredLeague)
+            .filter((team) => {
+                const normalizedText = normalize(combinedText);
+                if (matchesToken(normalizedText, team.name)) return true;
+                return team.aliases.some((alias) => matchesToken(normalizedText, alias));
+            })
+            .map(toResolvedTeam);
+
+        const chosen = pickTeamByOutcome(outcomeLabel, tokens, inferredLeague);
+        if (chosen) return chosen;
     }
 
     return null;
@@ -122,6 +202,7 @@ function toResolvedTeam(meta: TeamMeta): ResolvedTeam {
         slug: meta.slug,
         name: meta.name,
         logoPath: meta.logoPath,
+        aliases: meta.aliases,
     };
 }
 
@@ -138,24 +219,33 @@ export function getLogoPathForTeam(team: ResolvedTeam | null, leagueFallback?: L
 }
 
 export function inferLeagueFromMarket(market: PolymarketMarket | MarketMeta): League | undefined {
-    // 1. Check explicit tags or categories if available (MarketMeta doesn't have tags typed explicitly as string[], but Anomaly does in analysis.tags)
-    // But here we accept PolymarketMarket or MarketMeta.
+    // Prefer explicit league metadata when available
+    const metaLeague = (market as any).league || (market as any).sport || (market as any).category;
+    if (typeof metaLeague === 'string') {
+        const normalized = metaLeague.toLowerCase();
+        if (normalized.includes('nba')) return 'NBA';
+        if (normalized.includes('nfl')) return 'NFL';
+        if (normalized.includes('mlb')) return 'MLB';
+        if (normalized.includes('mls')) return 'MLS';
+        if (normalized.includes('nhl') || normalized.includes('hockey')) return 'NHL';
+        if (normalized.includes('uefa') || normalized.includes('soccer') || normalized.includes('football')) return 'UEFA';
+    }
 
-    // Let's look at the question or event title
+    // Look at question or title text
     const text = ((market as any).question || (market as any).eventTitle || (market as any).title || '').toLowerCase();
 
+    if (text.includes('nhl') || text.includes('hockey') || text.includes('stanley cup')) return 'NHL';
     if (text.includes('nba') || text.includes('basketball')) return 'NBA';
-    if (text.includes('nfl') || text.includes('football')) return 'NFL'; // 'football' is ambiguous (soccer), but in US context often NFL. 
+    if (text.includes('nfl') || text.includes('american football')) return 'NFL';
     if (text.includes('mlb') || text.includes('baseball')) return 'MLB';
-    if (text.includes('mls') || text.includes('soccer')) return 'MLS'; // 'soccer' could be UEFA too
+    if (text.includes('mls') || text.includes('mls cup')) return 'MLS';
     if (text.includes('uefa') || text.includes('champions league') || text.includes('premier league') || text.includes('la liga') || text.includes('bundesliga') || text.includes('serie a')) return 'UEFA';
 
-    // 2. Check against known teams
-    // If we find a team name in the text, assume that league
+    // Check against known teams for hints
     for (const team of TEAMS) {
-        if (text.includes(normalize(team.name))) return team.league;
+        if (matchesToken(text, team.name)) return team.league;
         for (const alias of team.aliases) {
-            if (text.includes(normalize(alias))) return team.league;
+            if (matchesToken(text, alias)) return team.league;
         }
     }
 

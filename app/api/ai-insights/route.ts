@@ -10,8 +10,10 @@ import {
   type MarketBaseline,
   type EnhancedSignalMetrics,
 } from "@/lib/signal-calculator";
-import { EXPIRY_GRACE_MS, isMarketExpired } from "@/lib/utils";
+import { isMarketExpired } from "@/lib/utils";
 import type { SignalFactors } from "@/lib/types";
+
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 
 type LeaderboardWallet = {
   walletAddress: string;
@@ -205,7 +207,7 @@ export async function GET() {
       const resolvedForTrade = isMarketExpired(
         trade.closeTime,
         trade.resolutionTime,
-        EXPIRY_GRACE_MS,
+        FOUR_HOURS_MS,
         nowMs
       );
       const closeIso = trade.closeTime ? trade.closeTime.toISOString() : null;
@@ -341,7 +343,7 @@ export async function GET() {
       const expired = isMarketExpired(
         pick.closeTime,
         pick.resolutionTime,
-        EXPIRY_GRACE_MS,
+        FOUR_HOURS_MS,
         nowMs
       );
       if (expired) {
