@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAiInsights } from "@/lib/useAiInsights";
 import { AiInsightPick } from "@/lib/types";
 import { cn, formatShortNumber, isMarketExpired } from "@/lib/utils";
-import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap, Trophy } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap } from "lucide-react";
 import { useScoreStore, getLiveScoreLogo } from '@/lib/useScoreStore';
 import svgPathsPrimary from "@/imports/svg-1ltd1kb2kd";
 import svgPathsSecondary from "@/imports/svg-7cdl22zaum";
@@ -614,16 +614,16 @@ export function AIInsightsPanel() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex p-0.5 bg-zinc-900 border border-white/5 rounded-none">
+            <div className="flex p-0.5 backdrop-blur-sm bg-black/60 border border-white/10 rounded-2xl shadow-2xl">
               {(["confidence", "volume"] as SortKey[]).map((key) => (
                 <button
                   key={key}
                   onClick={() => setSortKey(key)}
                   className={cn(
-                    "px-3 py-1 text-[10px] font-mono uppercase tracking-wider transition-all border border-transparent",
+                    "px-3 py-1 text-[10px] font-mono uppercase tracking-wider transition-all border border-transparent rounded-xl",
                     sortKey === key
                       ? "bg-white/10 text-white border-white/10"
-                      : "text-zinc-600 hover:text-zinc-400"
+                      : "text-zinc-400 hover:text-zinc-300"
                   )}
                 >
                   {key}
@@ -633,7 +633,7 @@ export function AIInsightsPanel() {
             <button
               onClick={refresh}
               disabled={isLoading}
-              className="group p-2 text-zinc-500 hover:text-white transition-colors"
+              className="group p-2 backdrop-blur-sm bg-black/60 border border-white/10 rounded-2xl shadow-2xl text-zinc-400 hover:text-white hover:bg-black/70 transition-all"
             >
               <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
             </button>
@@ -651,7 +651,7 @@ export function AIInsightsPanel() {
           {hasMore && (
             <div
               ref={lastElementRef}
-              className="h-10 w-full rounded-lg border border-white/5 bg-white/5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 flex items-center justify-center"
+              className="h-10 w-full backdrop-blur-sm bg-black/60 border border-white/10 rounded-2xl shadow-2xl text-[10px] uppercase tracking-[0.2em] text-zinc-400 flex items-center justify-center"
             >
               {isLoading ? "Loading..." : "Loading more signals..."}
             </div>
@@ -849,60 +849,107 @@ function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOut
   }, [pick.confidenceHistory, confidence]);
 
   return (
-    <div className="group relative bg-[#09090b]/40 border-b border-white/5 transition-all hover:bg-white/2 p-4 grid gap-4 grid-cols-1 md:grid-cols-[280px_1fr_200px] items-center">
-
-      {/* LEFT: Market Info & Header */}
-      <div className="min-w-0 pr-4 border-r border-white/5 h-full flex flex-col justify-center">
-        <div className="flex items-center gap-2 mb-1.5">
-          {pick.bestRank && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-sm font-mono flex items-center gap-1">
-              <Trophy className="w-2.5 h-2.5" /> #{pick.bestRank} Ranked
-            </span>
-          )}
-          <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
-            Signal Detected
-          </span>
-        </div>
-
-        <h4 className="text-sm text-zinc-200 font-semibold truncate leading-tight mb-2">
-          {pick.eventTitle}
+    <button
+      type="button"
+      onClick={() => onSelectOutcome(pick)}
+      className={cn(
+        "group relative w-full text-left cursor-pointer",
+        // Glassmorphism base - matching featured card style
+        "backdrop-blur-sm bg-black/60",
+        // Border & shadow
+        "border border-white/10 rounded-2xl",
+        "shadow-2xl",
+        // Hover state
+        "hover:bg-black/70 hover:border-white/15",
+        // Layout: Mobile two-column, Desktop three-column
+        "p-3 md:p-4 grid gap-3 md:gap-4",
+        "grid-cols-[1fr_auto] md:grid-cols-[280px_1fr_auto] items-center",
+        // Transition
+        "transition-all duration-200 ease-out"
+      )}
+    >
+      {/* LEFT: Market Info & Stats (Mobile) / Market Info Only (Desktop) */}
+      <div className="min-w-0 flex flex-col gap-2 md:gap-0 md:pr-4 md:border-r md:border-white/5 md:h-full md:justify-center">
+        {/* Title - Compact on mobile */}
+        <h4 className="text-xs md:text-sm text-zinc-200 font-semibold line-clamp-1 leading-tight">
+          {pick.eventTitle} | {extractMarketContext(pick.marketQuestion, pick.outcome)}
         </h4>
 
+        {/* Live Score - Compact on mobile */}
         {liveGame && (
-          <div className="inline-flex items-center gap-2 text-[10px] font-bold font-mono text-zinc-400 bg-black/20 border border-white/5 px-2 py-1 rounded-md w-fit">
-            <div className="flex items-center gap-1">
+          <div className="inline-flex items-center gap-1.5 text-[9px] md:text-[10px] font-bold font-mono text-zinc-400 bg-black/20 border border-white/5 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md w-fit">
+            <div className="flex items-center gap-0.5 md:gap-1">
               {getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName) ? (
                 <img
                   src={getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName)!}
                   alt={liveGame.awayTeamShort}
-                  className="w-3.5 h-3.5 object-contain"
+                  className="w-3 h-3 md:w-3.5 md:h-3.5 object-contain"
                 />
               ) : (
-                <span className="uppercase text-zinc-500 text-[9px]">{liveGame.awayTeamShort}</span>
+                <span className="uppercase text-zinc-500 text-[8px] md:text-[9px]">{liveGame.awayTeamShort}</span>
               )}
               <span className={cn(liveGame.awayScoreTrend === 'UP' && "text-white")}>{liveGame.awayScore}</span>
             </div>
             <span className="text-zinc-600 pb-0.5">:</span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 md:gap-1">
               {getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName) ? (
                 <img
                   src={getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName)!}
                   alt={liveGame.homeTeamShort}
-                  className="w-3.5 h-3.5 object-contain"
+                  className="w-3 h-3 md:w-3.5 md:h-3.5 object-contain"
                 />
               ) : (
-                <span className="uppercase text-zinc-500 text-[9px]">{liveGame.homeTeamShort}</span>
+                <span className="uppercase text-zinc-500 text-[8px] md:text-[9px]">{liveGame.homeTeamShort}</span>
               )}
               <span className={cn(liveGame.homeScoreTrend === 'UP' && "text-white")}>{liveGame.homeScore}</span>
             </div>
-            <div className="w-px h-3 bg-white/10 mx-1" />
+            <div className="w-px h-2.5 md:h-3 bg-white/10 mx-0.5 md:mx-1" />
             <span className={liveGame.status === 'in_progress' ? "text-red-400 animate-pulse" : ""}>{liveGame.clock}</span>
           </div>
         )}
+
+        {/* Stats Block - Mobile Only (shown inline on mobile, hidden on desktop where it's in middle column) */}
+        <div className="flex items-center gap-4 md:hidden">
+          {/* Volume */}
+          <div>
+            <div className="text-[8px] text-zinc-500 uppercase tracking-widest mb-0.5">Volume</div>
+            <div className="font-mono text-xs text-zinc-300 font-medium">
+              {formatUsdCompact(pick.totalVolume)}
+            </div>
+          </div>
+
+          {/* Top Traders - Compact badges */}
+          <div>
+            <div className="text-[8px] text-zinc-500 uppercase tracking-widest mb-1">Traders</div>
+            <div className="flex items-center gap-1">
+              {aggregator.gold > 0 && (
+                <div title="Gold Tier (Top 20)" className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-400/10 border border-amber-400/20 text-[9px] font-mono text-amber-400">
+                  <div className="w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_3px_rgba(251,191,36,0.5)]" />
+                  {aggregator.gold}
+                </div>
+              )}
+              {aggregator.silver > 0 && (
+                <div title="Silver Tier (Top 100)" className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-zinc-400/10 border border-zinc-400/20 text-[9px] font-mono text-zinc-400">
+                  <div className="w-1 h-1 rounded-full bg-zinc-400" />
+                  {aggregator.silver}
+                </div>
+              )}
+              {aggregator.bronze > 0 && (
+                <div title="Bronze Tier (Top 200)" className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-orange-700/10 border border-orange-700/20 text-[9px] font-mono text-orange-700">
+                  <div className="w-1 h-1 rounded-full bg-orange-700" />
+                  {aggregator.bronze}
+                </div>
+              )}
+              {aggregator.gold === 0 && aggregator.silver === 0 && aggregator.bronze === 0 && (
+                <span className="text-zinc-600 text-[9px]">-</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* MIDDLE: Stats, Segmentation & Graph */}
-      <div className="grid grid-cols-[auto_1fr] gap-6 items-center px-2">
+      {/* MIDDLE: Stats, Segmentation & Graph (Desktop Only) */}
+      <div className="hidden md:grid grid-cols-[auto_1fr] gap-6 items-center px-2">
         {/* Stats Block */}
         <div className="flex flex-col gap-2 min-w-[140px]">
           {/* Volume */}
@@ -982,36 +1029,41 @@ function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOut
         </div>
       </div>
 
-      {/* RIGHT: Action & Outcomes */}
-      <div className="flex flex-col items-end gap-3 pl-4 border-l border-white/5 h-full justify-center bg-white/1">
-        <div className="flex items-center gap-2">
-          <div className="text-right">
-            <div className={cn("text-xl font-black leading-none tracking-tighter", confidence >= 80 ? "text-emerald-400" : "text-white")}>
-              {grade}
-            </div>
-            <div className="text-[10px] text-zinc-500 font-mono">{confidence}% Conf</div>
-          </div>
+      {/* RIGHT: Chart + Grade & Confidence (Mobile) / Grade & Confidence Only (Desktop) */}
+      <div className="flex flex-col items-end gap-1.5 md:gap-2 md:pl-4 md:border-l md:border-white/5 md:h-full md:justify-center">
+        {/* Chart - Mobile Only (compact) */}
+        <div className="h-12 w-20 md:hidden opacity-50 group-hover:opacity-100 transition-opacity">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={historyData}>
+              <defs>
+                <linearGradient id={`grad_mobile_${pick.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="#10b981"
+                strokeWidth={1.5}
+                fill={`url(#grad_mobile_${pick.id})`}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
 
-        <button
-          onClick={() => onSelectOutcome(pick)}
-          className="w-full text-right group/btn relative overflow-hidden"
-        >
-          <div className="flex items-center justify-end gap-2 text-xs py-1.5 px-3 rounded-md bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/20">
-            <span className="text-zinc-300 group-hover/btn:text-white transition-colors truncate max-w-[140px]">
-              {extractMarketContext(pick.marketQuestion, pick.outcome)}
-            </span>
-            <span className={cn(
-              "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm",
-              pick.stance === 'bullish' ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
-            )}>
-              {pick.stance === 'bullish' ? 'Buy' : 'Sell'}
-            </span>
+        {/* Grade & Confidence */}
+        <div className="flex flex-col items-end gap-0.5 md:gap-2">
+          <div className={cn("text-lg md:text-xl font-black leading-none tracking-tighter", confidence >= 80 ? "text-emerald-400" : "text-white")}>
+            {grade}
           </div>
-        </button>
+          <div className="text-[9px] md:text-[10px] text-zinc-500 font-mono">{confidence}% Conf</div>
+        </div>
       </div>
 
-    </div>
+    </button>
   )
 }
 

@@ -178,9 +178,9 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
 
                 <Card className={cn(
                     "relative z-10 h-full p-4 transition-all duration-300 ease-out rounded-xl overflow-hidden border backdrop-blur-md",
-                    // Standard Tier (Default)
+                    // Standard Tier (Default) - match glass style used elsewhere + hover lift
                     !isGod && !isSuper && !isMega && !isWhale &&
-                    "bg-black/40 border-zinc-800/50 shadow-[5px_5px_0px_0px_rgba(39,39,42,0.5)] group-hover:shadow-[6px_6px_0px_0px_rgba(39,39,42,0.6)] group-hover:-translate-y-1",
+                    "backdrop-blur-sm bg-black/60 border-black/60 shadow-[5px_5px_0px_0px_rgba(216,217,221,0.30)] group-hover:-translate-y-1 group-hover:bg-black/70 group-hover:border-black/70 group-hover:shadow-[6px_6px_0px_0px_rgba(216,217,221,0.30)]",
 
                     // Whale Tier - Subtle Blue
                     isWhale && "bg-[radial-gradient(circle_at_22%_18%,rgba(99,179,237,0.45)_0%,rgba(14,30,54,0.78)_40%,rgba(8,14,34,0.95)_78%)] border-sky-400/50 shadow-[5px_5px_0px_0px_rgba(56,189,248,0.24)] group-hover:shadow-[6px_6px_0px_0px_rgba(56,189,248,0.32)] group-hover:border-sky-300/70 group-hover:-translate-y-1",
@@ -195,6 +195,12 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                     isGod && "bg-yellow-950/80 border-yellow-500/40 shadow-[5px_5px_0px_0px_rgba(251,191,36,0.44)] group-hover:shadow-[6px_6px_0px_0px_rgba(251,191,36,0.32)] group-hover:border-yellow-400/70 group-hover:-translate-y-1"
                 )}>
                     <TierOverlays isGod={isGod} isSuper={isSuper} isMega={isMega} isWhale={isWhale} />
+                    {isStandard && (
+                        <div
+                            className="pointer-events-none absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"
+                            aria-hidden
+                        />
+                    )}
 
                     <div className={cn(
                         "relative z-10 grid grid-cols-[1fr_auto] gap-2",
@@ -375,14 +381,17 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 </div>
                             </div>
 
-                            {liveGame && (
-                                <div className="flex-1 flex justify-center mb-0.5 z-20">
-                                    <LiveScoreboard game={liveGame} isStandard={isStandard} />
-                                </div>
-                            )}
+                            {/* Shared row for scoreboard + gauge so gauge anchors right even when scoreboard is missing */}
+                            <div className="flex items-end gap-2 md:gap-3 flex-1 min-w-0">
+                                {liveGame && (
+                                    <div className="flex justify-center items-end z-20 flex-1 min-w-0 h-12 md:h-16">
+                                        <LiveScoreboard game={liveGame} isStandard={isStandard} />
+                                    </div>
+                                )}
 
-                            <div className="flex items-end justify-end">
-                                <Gauge value={odds} label={side} size={64} strokeWidth={2} />
+                                <div className="ml-auto flex items-end justify-end shrink-0 h-12 w-12 md:h-16 md:w-16">
+                                    <Gauge value={odds} label={side} size={64} strokeWidth={2} className="w-full h-full max-md:scale-75" />
+                                </div>
                             </div>
                         </div>
                     </div>
