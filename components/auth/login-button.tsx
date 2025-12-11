@@ -3,14 +3,18 @@
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { Loader2, Settings, User } from "lucide-react";
+import { useState } from "react";
+import { AuthModal } from "@/components/auth/auth-modal";
 
 type LoginButtonProps = {
     onOpenPreferences?: () => void;
     showPreferencesTrigger?: boolean;
+    compact?: boolean;
 };
 
-export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false, compact = false }: LoginButtonProps & { compact?: boolean }) {
+export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false, compact = false }: LoginButtonProps) {
     const { login, ready, authenticated, user, logout } = usePrivy();
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
     const pillClass =
         "inline-flex items-center gap-1 rounded-full bg-transparent px-1 py-0.5 backdrop-blur-0 shadow-none ring-0";
@@ -77,7 +81,7 @@ export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false,
                 <div className={pillClass}>
                     <button
                         type="button"
-                        onClick={login}
+                        onClick={() => setIsAuthModalOpen(true)}
                         aria-label="Log in"
                         className={segmentClass}
                     >
@@ -86,6 +90,7 @@ export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false,
                     </button>
                     {preferencesSegment}
                 </div>
+                <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
             </div>
         );
     }
@@ -129,7 +134,7 @@ export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false,
     return (
         <div className="flex items-center gap-2">
             <Button
-                onClick={login}
+                onClick={() => setIsAuthModalOpen(true)}
                 size="sm"
                 variant="ghost"
                 className={`group relative h-8 px-2 sm:px-4 text-[10px] font-bold uppercase tracking-[0.15em] bg-zinc-950/60 text-zinc-500 hover:text-emerald-400 hover:bg-zinc-900/70 hover:shadow-[0_0_12px_-4px_rgba(52,211,153,0.2)] rounded-sm transition-all duration-300 backdrop-blur-sm ${compact ? 'h-6 text-[9px] px-2' : ''}`}
@@ -138,6 +143,8 @@ export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false,
                 <span className="hidden sm:inline">Log In {compact ? '' : '/ Sign Up'}</span>
             </Button>
             {preferencesSegment}
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
         </div>
     );
 }
+

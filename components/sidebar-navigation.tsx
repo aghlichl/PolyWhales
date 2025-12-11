@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Activity, BarChart2 } from "lucide-react";
+import { Activity, BarChart2, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LoginButton } from "@/components/auth/login-button";
+import { UserPreferencesModal } from "@/components/user-preferences-modal";
 
 export type DesktopPage = "live" | "charts";
 
@@ -14,6 +16,7 @@ interface SidebarNavigationProps {
 
 export function SidebarNavigation({ activePage, onPageChange }: SidebarNavigationProps) {
     const [isHovering, setIsHovering] = useState(false);
+    const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
 
     return (
         <div
@@ -49,9 +52,26 @@ export function SidebarNavigation({ activePage, onPageChange }: SidebarNavigatio
                             label="CHARTS"
                             colorClass="text-blue-400"
                         />
+                        <div className="w-full h-px bg-white/10" />
+                        <div className="flex flex-col gap-2">
+                            <div className="flex justify-center">
+                                <LoginButton compact={true} />
+                            </div>
+                            <NavButton
+                                isActive={false}
+                                onClick={() => setIsPreferencesModalOpen(true)}
+                                icon={<Settings className="w-5 h-5" />}
+                                label="PREFS"
+                                colorClass="text-purple-400"
+                            />
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
+            <UserPreferencesModal 
+                isOpen={isPreferencesModalOpen} 
+                onClose={() => setIsPreferencesModalOpen(false)} 
+            />
         </div>
     );
 }
