@@ -21,10 +21,110 @@ const DECAY_LAMBDA = 0.1;
 const RANK_DECAY_RATE = 0.15;
 
 /** Maximum rank to consider (beyond this, minimal contribution) */
-const MAX_RANK = 100;
+const MAX_RANK = 200;
 
 /** Z-score threshold for "unusual activity" flag */
 export const UNUSUAL_ZSCORE_THRESHOLD = 2.0;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TIER WEIGHTS - Differentiate trader quality within top 200
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tier weight multipliers for trader count calculations
+ * Elite traders have 10x the signal weight of bronze traders
+ */
+export const TIER_WEIGHTS = {
+    ELITE: 1.0,    // Rank 1-10: Full impact (the best of the best)
+    GOLD: 0.6,     // Rank 11-30: Strong impact
+    SILVER: 0.3,   // Rank 31-100: Moderate impact
+    BRONZE: 0.1,   // Rank 101-200: Minor impact
+} as const;
+
+/** Tier boundaries (inclusive upper bounds) */
+export const TIER_BOUNDS = {
+    ELITE: 10,
+    GOLD: 30,
+    SILVER: 100,
+    BRONZE: 200,
+} as const;
+
+/** Breakdown of traders by tier */
+export interface TierBreakdown {
+    elite: number;
+    gold: number;
+    silver: number;
+    bronze: number;
+}
+
+/**
+ * Get the tier for a given rank
+ */
+export function getTierForRank(rank: number): keyof typeof TIER_WEIGHTS | null {
+    if (rank <= 0) return null;
+    if (rank <= TIER_BOUNDS.ELITE) return 'ELITE';
+    if (rank <= TIER_BOUNDS.GOLD) return 'GOLD';
+    if (rank <= TIER_BOUNDS.SILVER) return 'SILVER';
+    if (rank <= TIER_BOUNDS.BRONZE) return 'BRONZE';
+    return null;
+}
+
+/**
+ * Get tier weight for a given rank
+ */
+export function getTierWeight(rank: number): number {
+    const tier = getTierForRank(rank);
+    if (!tier) return 0;
+    return TIER_WEIGHTS[tier];
+}
+
+/**
+ * Calculate tier breakdown from an array of ranks
+ */
+export function calculateTierBreakdown(ranks: number[]): TierBreakdown {
+    const breakdown: TierBreakdown = { elite: 0, gold: 0, silver: 0, bronze: 0 };
+    
+    for (const rank of ranks) {
+        const tier = getTierForRank(rank);
+        if (tier === 'ELITE') breakdown.elite++;
+        else if (tier === 'GOLD') breakdown.gold++;
+        else if (tier === 'SILVER') breakdown.silver++;
+        else if (tier === 'BRONZE') breakdown.bronze++;
+    }
+    
+    return breakdown;
+}
+
+/**
+ * Calculate weighted trader count using tier weights
+ * 1 elite trader = 10 bronze traders in signal weight
+ */
+export function calculateWeightedTraderCount(ranks: number[]): number {
+    let weightedCount = 0;
+    
+    for (const rank of ranks) {
+        weightedCount += getTierWeight(rank);
+    }
+    
+    return weightedCount;
+}
+
+/**
+ * Calculate weighted trader count with buy/sell breakdown
+ */
+export function calculateWeightedTraderCountBySide(
+    buyRanks: number[],
+    sellRanks: number[]
+): { buyWeighted: number; sellWeighted: number; totalWeighted: number } {
+    const buyWeighted = calculateWeightedTraderCount(buyRanks);
+    const sellWeighted = calculateWeightedTraderCount(sellRanks);
+    
+    return {
+        buyWeighted,
+        sellWeighted,
+        totalWeighted: buyWeighted + sellWeighted,
+    };
+}
 
 /** HHI threshold for "concentrated" whale consensus */
 export const CONCENTRATED_HHI_THRESHOLD = 0.25;
@@ -279,15 +379,16 @@ export function directionStrength(buyVolume: number, sellVolume: number): number
 
 /**
  * Factor weights for composite signal
- * These are derived from backtesting intuition and can be tuned
+ * Rebalanced to reduce alignment dominance and prioritize rank quality
+ * Total: 1.0 (100%)
  */
 const FACTOR_WEIGHTS = {
-    volume: 0.14,        // Z-score based unusual volume
-    rank: 0.20,          // Quality of whales involved
-    concentration: 0.10, // HHI - conviction from consensus
-    recency: 0.12,       // Time-decayed volume freshness
-    direction: 0.09,     // Buy/sell pressure clarity
-    alignment: 0.35,     // Strong weight for multi-top-trader alignment with volume
+    volume: 0.15,        // Z-score based unusual volume (was 0.14)
+    rank: 0.28,          // Quality of whales involved - INCREASED (was 0.20)
+    concentration: 0.12, // HHI - conviction from consensus (was 0.10)
+    recency: 0.12,       // Time-decayed volume freshness (unchanged)
+    direction: 0.08,     // Buy/sell pressure clarity (was 0.09)
+    alignment: 0.25,     // Reduced from 0.35 - with tier weighting, need less raw alignment weight
 } as const;
 
 export interface CompositeSignalInput {
@@ -319,6 +420,14 @@ export interface CompositeSignalInput {
         totalTopTraders: number;
         buyCount: number;
         sellCount: number;
+    };
+
+    // Tier-weighted trader data (new)
+    weightedTraderData?: {
+        buyWeighted: number;
+        sellWeighted: number;
+        totalWeighted: number;
+        tierBreakdown: TierBreakdown;
     };
 }
 
@@ -363,14 +472,35 @@ export function calculateCompositeSignal(input: CompositeSignalInput): Omit<Enha
     const conviction = directionConviction(buyVolume, sellVolume);
     const dirStrength = directionStrength(buyVolume, sellVolume);
 
-    // 6. Alignment of unique top traders on a single side
+    // 6. Alignment of unique top traders on a single side (with tier weighting)
     const { totalTopTraders, buyCount, sellCount } = topTraderAlignment;
     const { buyVolume: topTraderBuyVol, sellVolume: topTraderSellVol, totalVolume: topTraderTotalVol } = topTraderVolume;
-    const dominantCount = Math.max(buyCount, sellCount);
-    const engagementScore = clamp(totalTopTraders / 5); // 5+ top traders caps the engagement benefit
-    const alignmentRatio = totalTopTraders > 0 ? dominantCount / totalTopTraders : 0;
-    const clusterBoost = clamp(dominantCount / 3); // Strong boost once 3+ top traders align
-    const alignmentScoreCounts = clamp(0.5 * alignmentRatio + 0.5 * clusterBoost);
+    
+    // Use weighted counts if available, otherwise fall back to raw counts
+    const weightedData = input.weightedTraderData;
+    const buyWeighted = weightedData?.buyWeighted ?? buyCount;
+    const sellWeighted = weightedData?.sellWeighted ?? sellCount;
+    const totalWeighted = weightedData?.totalWeighted ?? totalTopTraders;
+    
+    const dominantWeighted = Math.max(buyWeighted, sellWeighted);
+    
+    // LOGARITHMIC SCALING: Replaces linear caps for diminishing returns
+    // log2(x+1)/log2(10) gives: 0->0, 1->0.3, 2->0.48, 4->0.7, 8->0.95, 10->1.0
+    // This means you need ~8 "weighted" traders to approach max engagement
+    // With tier weights: 8 elite = 8, but 80 bronze = 8 weighted
+    const engagementScore = clamp(Math.log2(totalWeighted + 1) / Math.log2(10));
+    
+    // Alignment ratio: how dominant is the majority side?
+    const alignmentRatio = totalWeighted > 0 ? dominantWeighted / totalWeighted : 0;
+    
+    // Cluster boost with log scaling: need 2+ weighted traders for meaningful boost
+    // log2(2+1)/log2(5) = 0.68, log2(4+1)/log2(5) = 1.0 (caps at ~4 weighted)
+    const clusterBoost = clamp(Math.log2(dominantWeighted + 1) / Math.log2(5));
+    
+    // Combined count-based alignment (reduced weight since we're using quality metrics)
+    const alignmentScoreCounts = clamp(0.4 * alignmentRatio + 0.6 * clusterBoost);
+    
+    // Volume-based alignment (unchanged logic)
     const dominantTopTraderVol = Math.max(topTraderBuyVol, topTraderSellVol);
     const topTraderVolDominance = topTraderTotalVol > 0 ? dominantTopTraderVol / topTraderTotalVol : 0;
     const topTraderMarketShare = totalVolume > 0 ? topTraderTotalVol / totalVolume : 0;
@@ -378,16 +508,19 @@ export function calculateCompositeSignal(input: CompositeSignalInput): Omit<Enha
         0.65 * topTraderVolDominance +
         0.35 * clamp(topTraderMarketShare * 1.5)
     );
-    const alignmentScore = clamp(0.55 * alignmentScoreCounts + 0.45 * volumeAlignmentScore);
+    
+    // Final alignment: balance between count quality and volume dominance
+    const alignmentScore = clamp(0.5 * alignmentScoreCounts + 0.5 * volumeAlignmentScore);
 
     // Calculate factor contributions
+    // Engagement is now integrated via log scaling, no separate additive bonus needed
     const signalFactors: SignalFactors = {
         volumeContribution: volumeScore * FACTOR_WEIGHTS.volume,
         rankContribution: rankNormalized * FACTOR_WEIGHTS.rank,
         concentrationContribution: concentrationScore * FACTOR_WEIGHTS.concentration,
         recencyContribution: recencyScore * FACTOR_WEIGHTS.recency,
         directionContribution: dirStrength * FACTOR_WEIGHTS.direction,
-        alignmentContribution: alignmentScore * FACTOR_WEIGHTS.alignment + engagementScore * 0.05,
+        alignmentContribution: alignmentScore * FACTOR_WEIGHTS.alignment,
     };
 
     // Composite raw confidence (0-1)

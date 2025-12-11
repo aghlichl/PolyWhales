@@ -118,6 +118,18 @@ type LeaderboardApiRow = {
   vol?: number | string | null;
 };
 
+type BiggestWinnerApiRow = {
+  winRank: string;
+  proxyWallet: string;
+  userName?: string;
+  eventSlug: string;
+  eventTitle: string;
+  initialValue: number;
+  finalValue: number;
+  pnl: number;
+  profileImage?: string;
+};
+
 function toNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
   if (typeof value === "string") {
@@ -251,6 +263,92 @@ async function scrapeLeaderboard() {
 
   } catch (error) {
     console.error("[Worker] Leaderboard scraping failed:", error);
+  }
+}
+
+/**
+ * Fetch biggest winners batch
+ */
+async function fetchBiggestWinnersBatch(offset: number, timePeriod: string): Promise<BiggestWinnerApiRow[]> {
+  const url = new URL("https://data-api.polymarket.com/v1/biggest-winners");
+  url.searchParams.set("timePeriod", timePeriod);
+  url.searchParams.set("limit", String(LEADERBOARD_LIMIT));
+  url.searchParams.set("offset", String(offset));
+  url.searchParams.set("category", "overall");
+
+  console.log(`[Worker] Fetching biggest winners (${timePeriod}) offset ${offset}...`);
+
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        "User-Agent": LEADERBOARD_USER_AGENT,
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`[Worker] Biggest Winners API returned ${response.status} for offset ${offset}`);
+      return [];
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      console.warn(`[Worker] Biggest Winners API response not array for offset ${offset}`);
+      return [];
+    }
+
+    return data as BiggestWinnerApiRow[];
+  } catch (error) {
+    console.warn(`[Worker] Failed to fetch biggest winners offset ${offset}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Scrape Biggest Winners and save to DB
+ */
+async function scrapeBiggestWinners() {
+  console.log("[Worker] Starting Biggest Winners scrape...");
+  const timePeriods = ["day", "week", "month", "all"];
+  const offsets = [0, 50]; // Top 100 only
+
+  try {
+    const snapshotAt = new Date();
+
+    for (const period of timePeriods) {
+      const periodRows: BiggestWinnerApiRow[] = [];
+
+      for (const offset of offsets) {
+        const batch = await fetchBiggestWinnersBatch(offset, period);
+        console.log(`[Worker] Fetched ${batch.length} biggest winners for ${period} at offset ${offset}`);
+        periodRows.push(...batch);
+      }
+
+      if (periodRows.length > 0) {
+        const rowsToInsert = periodRows.map((row) => ({
+          winRank: parseInt(row.winRank, 10),
+          proxyWallet: row.proxyWallet,
+          userName: row.userName,
+          eventSlug: row.eventSlug,
+          eventTitle: row.eventTitle,
+          initialValue: row.initialValue,
+          finalValue: row.finalValue,
+          pnl: row.pnl,
+          profileImage: row.profileImage,
+          timePeriod: period, // Save the time period
+          snapshotAt,
+        }));
+
+        await prisma.biggestWinner.createMany({
+          data: rowsToInsert,
+        });
+        console.log(`[Worker] Saved ${rowsToInsert.length} biggest winners for ${period}`);
+      }
+    }
+
+    console.log("[Worker] Successfully completed Biggest Winners scrape");
+
+  } catch (error) {
+    console.error("[Worker] Biggest Winners scraping failed:", error);
   }
 }
 
@@ -1270,6 +1368,12 @@ function connectToPolymarket() {
       setInterval(scrapeLeaderboard, LEADERBOARD_SCRAPE_INTERVAL_MS);
       // Run once on startup after a delay
       setTimeout(scrapeLeaderboard, 30000);
+
+      // Start biggest winners scraper (hourly)
+      console.log("[Worker] Starting biggest winners scraper schedule (hourly)...");
+      setInterval(scrapeBiggestWinners, LEADERBOARD_SCRAPE_INTERVAL_MS);
+      // Run once on startup after a delay
+      setTimeout(scrapeBiggestWinners, 35000);
 
       // Cache cleanup interval
       setInterval(() => {

@@ -377,6 +377,14 @@ export interface SignalFactors {
     alignmentContribution?: number;
 }
 
+/** Breakdown of traders by quality tier */
+export interface TierBreakdown {
+    elite: number;   // Rank 1-10
+    gold: number;    // Rank 11-30
+    silver: number;  // Rank 31-100
+    bronze: number;  // Rank 101-200
+}
+
 export interface AiInsightPick {
     id: string;
     conditionId: string | null;
@@ -441,6 +449,22 @@ export interface AiInsightPick {
 
     /** Flag: true if HHI >= 0.25 (concentrated whale consensus) */
     isConcentrated?: boolean;
+
+    /** Historical confidence snapshots for sparkline visualization */
+    confidenceHistory?: Array<{
+        timestamp: string;
+        value: number;
+    }>;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TIER-WEIGHTED TRADER METRICS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** Weighted count of traders (elite=1.0, gold=0.6, silver=0.3, bronze=0.1) */
+    weightedTraderCount?: number;
+
+    /** Breakdown of traders by quality tier */
+    tierBreakdown?: TierBreakdown;
 }
 
 export interface AiInsightsSummary {

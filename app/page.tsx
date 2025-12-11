@@ -17,6 +17,7 @@ import { DesktopLayout } from "@/components/desktop-layout";
 import { AIInsightsPanel } from "@/components/ai-insights-panel";
 import { TopTradersPanel } from "@/components/top-traders-panel";
 import { TopWhales } from "@/components/top-whales";
+import { BiggestWinnersPanel } from "@/components/leaderboard/biggest-winners-panel";
 
 const PAGE_SIZE = 20;
 
@@ -183,6 +184,8 @@ export default function Home() {
         return <>TOP <span className="text-orange-400 animate-pulse">TRADERS</span></>;
       case 3:
         return <>TOP <span className="text-blue-400 animate-pulse">WHALES</span></>;
+      case 4:
+        return <>BIGGEST <span className="text-green-400 animate-pulse">WINS</span></>;
       default:
         return <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
     }
@@ -193,6 +196,8 @@ export default function Home() {
       leftPanel={<AIInsightsPanel />}
       rightPanel={<TopTradersPanel />}
       fourthPanel={<TopWhales />}
+      biggestWinnersPanel={<BiggestWinnersPanel />}
+      winnersTitle={<>BIGGEST <span className="text-green-400 animate-pulse">WINS</span></>}
       centerTitle={getCenterTitle()}
       header={<HybridHeader />}
       ticker={null}
@@ -252,6 +257,12 @@ export default function Home() {
             {currentPage === 3 && (
               <div className="lg:hidden">
                 <TopWhales />
+              </div>
+            )}
+
+            {currentPage === 4 && (
+              <div className="lg:hidden">
+                <BiggestWinnersPanel />
               </div>
             )}
           </motion.div>

@@ -84,3 +84,13 @@ export type WalletLeaderboardSnapshot = Prisma.WalletLeaderboardSnapshotModel
  * 
  */
 export type WhalePositionSnapshot = Prisma.WhalePositionSnapshotModel
+/**
+ * Model AiInsightHistory
+ * 
+ */
+export type AiInsightHistory = Prisma.AiInsightHistoryModel
+/**
+ * Model BiggestWinner
+ * 
+ */
+export type BiggestWinner = Prisma.BiggestWinnerModel

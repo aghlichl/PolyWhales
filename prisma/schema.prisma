@@ -242,3 +242,60 @@ model WhalePositionSnapshot {
   @@index([snapshotAt])
   @@map("whale_position_snapshots")
 }
+
+model AiInsightHistory {
+  id                   String   @id @default(cuid())
+
+  // Pick identifier (composite key)
+  conditionId          String
+  outcome              String
+  eventTitle           String?
+
+  // Snapshot metadata
+  snapshotAt           DateTime @default(now())
+
+  // Core metrics
+  confidence           Int
+  confidencePercentile Float
+
+  // Volume & activity
+  totalVolume          Float
+  topTraderVolume      Float
+  topTraderCount       Int
+
+  // Market state
+  latestPrice          Float
+  isResolved           Boolean  @default(false)
+
+  // Enhanced metrics
+  volumeZScore         Float?
+  hhiConcentration     Float?
+  rankWeightedScore    Float?
+  directionConviction  Float?
+  isUnusualActivity    Boolean  @default(false)
+  isConcentrated       Boolean  @default(false)
+
+  @@unique([conditionId, outcome, snapshotAt])
+  @@index([conditionId, outcome, snapshotAt])
+  @@index([snapshotAt])
+  @@map("ai_insight_history")
+}
+
+model BiggestWinner {
+  id            String   @id @default(cuid())
+  winRank       Int
+  proxyWallet   String
+  userName      String?
+  eventSlug     String?
+  eventTitle    String?
+  initialValue  Float
+  finalValue    Float
+  pnl           Float
+  profileImage  String?
+  timePeriod    String   @default("day")
+  snapshotAt    DateTime @default(now())
+
+  @@index([snapshotAt, timePeriod])
+  @@index([winRank])
+  @@map("biggest_winners")
+}

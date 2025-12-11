@@ -7,8 +7,12 @@ import {
   timeDecayWeight,
   clamp,
   directionConviction,
+  calculateTierBreakdown,
+  calculateWeightedTraderCount,
+  getTierWeight,
   type MarketBaseline,
   type EnhancedSignalMetrics,
+  type TierBreakdown,
 } from "@/lib/signal-calculator";
 import { isMarketExpired } from "@/lib/utils";
 import type { SignalFactors } from "@/lib/types";
@@ -68,6 +72,10 @@ type InsightPick = {
   isUnusualActivity: boolean;
   isConcentrated: boolean;
 
+  // Tier-weighted trader metrics
+  weightedTraderCount: number;
+  tierBreakdown: TierBreakdown;
+
   // Internal tracking (not returned)
   _walletVolumes: Map<string, number>;
   _timeDecayedTop20Volume: number;
@@ -75,6 +83,8 @@ type InsightPick = {
   _topTraderSellers: Set<string>;
   _topTraderBuyVolume: number;
   _topTraderSellVolume: number;
+  _buyerRanks: number[];
+  _sellerRanks: number[];
 };
 
 // Legacy confidence calculation for backwards compatibility fallback
@@ -267,6 +277,10 @@ export async function GET() {
           isUnusualActivity: false,
           isConcentrated: false,
 
+          // Tier-weighted trader metrics (initialized)
+          weightedTraderCount: 0,
+          tierBreakdown: { elite: 0, gold: 0, silver: 0, bronze: 0 },
+
           // Internal tracking
           _walletVolumes: new Map<string, number>(),
           _timeDecayedTop20Volume: 0,
@@ -274,6 +288,8 @@ export async function GET() {
           _topTraderSellers: new Set<string>(),
           _topTraderBuyVolume: 0,
           _topTraderSellVolume: 0,
+          _buyerRanks: [],
+          _sellerRanks: [],
         });
       }
 
@@ -315,16 +331,24 @@ export async function GET() {
         pick._timeDecayedTop20Volume += trade.tradeValue * decayWeight;
       }
 
-      // Track top 20 specifically (for legacy compatibility)
+      // Track top 200 traders (for tier-weighted analysis)
       if (isTop20) {
         pick.top20Volume += trade.tradeValue;
         pick.top20Trades += 1;
         const lb = walletToInfo.get(walletKey)!;
         if (trade.side === "BUY") {
-          pick._topTraderBuyers.add(walletKey);
+          // Track unique buyers with their ranks
+          if (!pick._topTraderBuyers.has(walletKey)) {
+            pick._topTraderBuyers.add(walletKey);
+            pick._buyerRanks.push(lb.rank);
+          }
           pick._topTraderBuyVolume += trade.tradeValue;
         } else if (trade.side === "SELL") {
-          pick._topTraderSellers.add(walletKey);
+          // Track unique sellers with their ranks
+          if (!pick._topTraderSellers.has(walletKey)) {
+            pick._topTraderSellers.add(walletKey);
+            pick._sellerRanks.push(lb.rank);
+          }
           pick._topTraderSellVolume += trade.tradeValue;
         }
         if (!pick.topRanks.find((r) => r.address === walletKey)) {
@@ -381,7 +405,16 @@ export async function GET() {
       pick.bestRank = pick.topRanks.length > 0 ? Math.min(...pick.topRanks.map((r) => r.rank)) : null;
       pick.stance = pick.buyVolume >= pick.sellVolume ? "bullish" : "bearish";
 
-      // Calculate composite signal using new calculator
+      // Calculate tier-weighted trader metrics
+      const allRanks = pick.topRanks.map(r => r.rank);
+      pick.tierBreakdown = calculateTierBreakdown(allRanks);
+      pick.weightedTraderCount = calculateWeightedTraderCount(allRanks);
+
+      // Calculate weighted buy/sell counts for alignment scoring
+      const buyWeighted = calculateWeightedTraderCount(pick._buyerRanks);
+      const sellWeighted = calculateWeightedTraderCount(pick._sellerRanks);
+
+      // Calculate composite signal using new calculator with tier weighting
       const signalInput = {
         totalVolume: pick.totalVolume,
         top20Volume: pick.top20Volume,
@@ -400,6 +433,13 @@ export async function GET() {
           totalTopTraders: pick.topTraderCount,
           buyCount: pick.topTraderBuyCount,
           sellCount: pick.topTraderSellCount,
+        },
+        // New: pass tier-weighted data for more accurate alignment scoring
+        weightedTraderData: {
+          buyWeighted,
+          sellWeighted,
+          totalWeighted: pick.weightedTraderCount,
+          tierBreakdown: pick.tierBreakdown,
         },
       };
 
@@ -435,13 +475,51 @@ export async function GET() {
       activePicks[i].confidencePercentile = percentiles[i];
     }
 
-    // Phase 5: Filter and sort by new percentile ranking
+    // Phase 5: Save historical snapshots (throttled to ~5 minutes)
+    if (activePicks.length > 0) {
+      const shouldSnapshot = await shouldCreateSnapshot();
+      if (shouldSnapshot) {
+        await saveConfidenceSnapshots(activePicks);
+        await cleanupOldSnapshots();
+      }
+    }
+
+    // Phase 6: Load historical confidence data for active picks
+    const historiesMap = new Map<string, Array<{ timestamp: Date; value: number }>>();
+    const historyPromises = activePicks
+      .filter((p) => !p.isResolved && p.conditionId && p.outcome)
+      .map(async (p) => {
+        const key = `${p.conditionId}::${p.outcome}`;
+        const history = await getConfidenceHistory(p.conditionId!, p.outcome!);
+        return { key, history };
+      });
+
+    const historyResults = await Promise.all(historyPromises);
+    historyResults.forEach(({ key, history }) => {
+      historiesMap.set(key, history);
+    });
+
+    // Phase 7: Filter and sort by new percentile ranking
     const picks = activePicks
-      .filter(pick => pick.top20Trades > 0) // Strict user requirement: ONLY top 20 activity
+      .filter(pick => pick.top20Trades > 0) // Strict user requirement: ONLY top trader activity
       .map(pick => {
         // Remove internal tracking fields before returning
-        const { _walletVolumes, _timeDecayedTop20Volume, _topTraderBuyers, _topTraderSellers, _topTraderBuyVolume, _topTraderSellVolume, ...cleanPick } = pick;
-        return cleanPick;
+        const { 
+          _walletVolumes, 
+          _timeDecayedTop20Volume, 
+          _topTraderBuyers, 
+          _topTraderSellers, 
+          _topTraderBuyVolume, 
+          _topTraderSellVolume,
+          _buyerRanks,
+          _sellerRanks,
+          ...cleanPick 
+        } = pick;
+        const key = pick.conditionId && pick.outcome ? `${pick.conditionId}::${pick.outcome}` : pick.id;
+        return {
+          ...cleanPick,
+          confidenceHistory: historiesMap.get(key) ?? [],
+        };
       })
       .sort((a, b) => b.confidencePercentile - a.confidencePercentile);
 
@@ -493,4 +571,72 @@ export async function GET() {
     console.error("[API] ai-insights error:", error);
     return NextResponse.json({ error: "Failed to compute AI insights" }, { status: 500 });
   }
+}
+
+async function shouldCreateSnapshot(): Promise<boolean> {
+  const latestSnapshot = await prisma.aiInsightHistory.findFirst({
+    orderBy: { snapshotAt: "desc" },
+    select: { snapshotAt: true },
+  });
+
+  if (!latestSnapshot) return true;
+
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  return latestSnapshot.snapshotAt < fiveMinutesAgo;
+}
+
+async function saveConfidenceSnapshots(picks: InsightPick[]) {
+  const snapshots = picks
+    .filter((p) => !p.isResolved)
+    .map((pick) => ({
+      conditionId: pick.conditionId ?? pick.id,
+      outcome: pick.outcome ?? "unknown",
+      eventTitle: pick.eventTitle ?? null,
+      confidence: pick.confidence,
+      confidencePercentile: pick.confidencePercentile ?? 0,
+      totalVolume: pick.totalVolume ?? 0,
+      topTraderVolume: pick.topTraderVolume ?? 0,
+      topTraderCount: pick.topTraderCount ?? 0,
+      latestPrice: pick.latestPrice ?? 0,
+      isResolved: pick.isResolved,
+      volumeZScore: pick.volumeZScore ?? null,
+      hhiConcentration: pick.hhiConcentration ?? null,
+      rankWeightedScore: pick.rankWeightedScore ?? null,
+      directionConviction: pick.directionConviction ?? null,
+      isUnusualActivity: pick.isUnusualActivity ?? false,
+      isConcentrated: pick.isConcentrated ?? false,
+    }));
+
+  if (!snapshots.length) return;
+
+  await prisma.aiInsightHistory.createMany({
+    data: snapshots,
+    skipDuplicates: true,
+  });
+}
+
+async function cleanupOldSnapshots() {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  await prisma.aiInsightHistory.deleteMany({
+    where: { snapshotAt: { lt: cutoff } },
+  });
+}
+
+async function getConfidenceHistory(
+  conditionId: string,
+  outcome: string
+): Promise<Array<{ timestamp: Date; value: number }>> {
+  const history = await prisma.aiInsightHistory.findMany({
+    where: { conditionId, outcome },
+    orderBy: { snapshotAt: "asc" },
+    select: {
+      snapshotAt: true,
+      confidencePercentile: true,
+    },
+  });
+
+  return history.map(({ snapshotAt, confidencePercentile }) => ({
+    timestamp: snapshotAt,
+    value: confidencePercentile,
+  }));
 }

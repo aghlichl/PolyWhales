@@ -1,17 +1,20 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAiInsights } from "@/lib/useAiInsights";
 import { AiInsightPick } from "@/lib/types";
 import { cn, formatShortNumber, isMarketExpired } from "@/lib/utils";
-import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap, Trophy } from "lucide-react";
 import { useScoreStore, getLiveScoreLogo } from '@/lib/useScoreStore';
 import svgPathsPrimary from "@/imports/svg-1ltd1kb2kd";
 import svgPathsSecondary from "@/imports/svg-7cdl22zaum";
 import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
 import { motion, AnimatePresence } from "framer-motion";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 
 type SortKey = "confidence" | "topTraders" | "volume";
+
+const PAGE_SIZE = 20;
 
 const formatUsdCompact = (value?: number | null) => {
   if (value === null || value === undefined || Number.isNaN(value)) return "--";
@@ -20,62 +23,93 @@ const formatUsdCompact = (value?: number | null) => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
+// Tier weights for trader quality differentiation
+const TIER_WEIGHTS = {
+  ELITE: 1.0,    // Rank 1-10
+  GOLD: 0.6,     // Rank 11-30
+  SILVER: 0.3,   // Rank 31-100
+  BRONZE: 0.1,   // Rank 101-200
+};
+
+const getTierWeight = (rank: number): number => {
+  if (rank <= 0 || rank > 200) return 0;
+  if (rank <= 10) return TIER_WEIGHTS.ELITE;
+  if (rank <= 30) return TIER_WEIGHTS.GOLD;
+  if (rank <= 100) return TIER_WEIGHTS.SILVER;
+  return TIER_WEIGHTS.BRONZE;
+};
+
+const countTiers = (topRanks: Array<{ rank: number }>) => {
+  let elite = 0, gold = 0, silver = 0, bronze = 0;
+  for (const { rank } of topRanks) {
+    if (rank <= 10) elite++;
+    else if (rank <= 30) gold++;
+    else if (rank <= 100) silver++;
+    else if (rank <= 200) bronze++;
+  }
+  return { elite, gold, silver, bronze };
+};
+
 const computeAdjustedConfidence = (pick: Partial<AiInsightPick> & { confidence: number }) => {
+  // Use backend percentile as the primary signal - it already has sophisticated weighting
   const base = pick.confidencePercentile ?? pick.confidence ?? 0;
 
-  const buyVol = pick.topTraderBuyVolume ?? pick.buyVolume ?? 0;
-  const sellVol = pick.topTraderSellVolume ?? pick.sellVolume ?? 0;
-  const inferredTopVolume = (pick.topTraderBuyVolume ?? 0) + (pick.topTraderSellVolume ?? 0);
-  const whaleVolume =
-    pick.topTraderVolume ??
-    (inferredTopVolume > 0 ? inferredTopVolume : (pick.buyVolume ?? 0) + (pick.sellVolume ?? 0));
-  const totalVolume = pick.totalVolume ?? 0;
+  // Calculate tier-weighted trader count from topRanks
+  const topRanks = pick.topRanks ?? [];
+  let weightedCount = 0;
+  for (const { rank } of topRanks) {
+    weightedCount += getTierWeight(rank);
+  }
 
-  const whaleShare = clamp(totalVolume > 0 ? whaleVolume / totalVolume : 0, 0, 1);
+  // Volume dominance (how one-sided is the volume?)
+  const buyVol = pick.topTraderBuyVolume ?? 0;
+  const sellVol = pick.topTraderSellVolume ?? 0;
   const volumeForDelta = buyVol + sellVol;
-  const volumeDominance = volumeForDelta > 0 ? Math.abs((buyVol - sellVol) / (volumeForDelta + 1e-6)) : 0;
+  const volumeDominance = volumeForDelta > 0 
+    ? Math.abs((buyVol - sellVol) / (volumeForDelta + 1e-6)) 
+    : 0;
 
+  // Count dominance (how aligned are traders on one side?)
   const buyCount = pick.topTraderBuyCount ?? 0;
   const sellCount = pick.topTraderSellCount ?? 0;
   const countedTotal = buyCount + sellCount;
-  const totalCount = (pick.topTraderCount ?? 0) || countedTotal;
-  const countDominance = countedTotal > 0 ? Math.abs((buyCount - sellCount) / (countedTotal + 1e-6)) : volumeDominance;
+  const countDominance = countedTotal > 0 
+    ? Math.abs((buyCount - sellCount) / (countedTotal + 1e-6)) 
+    : volumeDominance;
 
-  const consensus = 0.6 * countDominance + 0.4 * volumeDominance;
+  // Consensus combines count and volume dominance
+  const consensus = 0.5 * countDominance + 0.5 * volumeDominance;
 
-  let crowdFactor = 0.9;
-  if (totalCount <= 1 && totalCount > 0) {
-    crowdFactor = 0.78;
-  } else if (totalCount === 2) {
-    crowdFactor = 0.9;
-  } else if (totalCount === 3) {
-    crowdFactor = 1.02;
-  } else if (totalCount === 4) {
-    crowdFactor = 1.08;
-  } else if (totalCount >= 5) {
-    crowdFactor = 1.15;
-  }
+  // LOGARITHMIC crowd factor with tier weighting
+  // Uses log scaling so going from 1->2 elite traders matters more than 10->11 bronze
+  // log2(weightedCount + 1) / log2(8) gives: 0->0, 1->0.33, 2->0.53, 4->0.77, 8->1.0
+  // Scaled to 0.88-1.02 range (much more conservative than old 0.78-1.15)
+  const logFactor = Math.log2(weightedCount + 1) / Math.log2(8);
+  const crowdFactor = 0.88 + 0.14 * clamp(logFactor, 0, 1);
 
-  const dominanceFactor = 0.65 + 0.35 * consensus;
-  const shareFactor = 0.65 + 0.35 * whaleShare;
+  // Consensus boost: slight increase for clear conviction (max +3%)
+  const consensusBoost = 1 + 0.03 * consensus;
 
-  const factorRaw = dominanceFactor * shareFactor * crowdFactor;
-  const factor = clamp(factorRaw, 0.45, 1.05);
+  // Combined adjustment factor (much more conservative)
+  const factorRaw = crowdFactor * consensusBoost;
+  const factor = clamp(factorRaw, 0.85, 1.05);
 
   return clamp(Math.round(base * factor), 1, 99);
 };
 
 const confidenceToGrade = (score: number) => {
-  if (score >= 97) return "A+";
-  if (score >= 93) return "A";
-  if (score >= 90) return "A-";
-  if (score >= 87) return "B+";
-  if (score >= 83) return "B";
-  if (score >= 80) return "B-";
-  if (score >= 76) return "C+";
-  if (score >= 72) return "C";
-  if (score >= 68) return "C-";
-  if (score >= 60) return "D";
+  // Tightened thresholds to spread distribution across full range
+  // A+ is now reserved for truly exceptional signals (top ~1-2%)
+  if (score >= 99) return "A+";  // was 97 - elite signals only
+  if (score >= 95) return "A";   // was 93
+  if (score >= 91) return "A-";  // was 90
+  if (score >= 87) return "B+";  // unchanged
+  if (score >= 83) return "B";   // unchanged
+  if (score >= 78) return "B-";  // was 80
+  if (score >= 72) return "C+";  // was 76
+  if (score >= 65) return "C";   // was 72
+  if (score >= 58) return "C-";  // was 68
+  if (score >= 50) return "D";   // was 60
   return "F";
 };
 
@@ -368,60 +402,7 @@ const accentVariants: AccentVariant[] = [
 
 // --- Types & Data Helpers ---
 
-interface GroupedEvent {
-  eventTitle: string;
-  eventSlug: string | null;
-  conditionId: string | null;
-  outcomes: AiInsightPick[];
-  totalVolume: number;
-  bestConfidence: number;
-  bestRank: number | null;
-  totalTopTraderCount: number;
-}
 
-function groupPicksByEvent(picks: AiInsightPick[]): GroupedEvent[] {
-  const eventMap = new Map<string, GroupedEvent>();
-
-  for (const pick of picks) {
-    const key = pick.eventTitle || pick.conditionId || "Unknown";
-
-    if (!eventMap.has(key)) {
-      eventMap.set(key, {
-        eventTitle: pick.eventTitle || "Unknown Market",
-        eventSlug: pick.eventSlug,
-        conditionId: pick.conditionId,
-        outcomes: [],
-        totalVolume: 0,
-        bestConfidence: 0,
-        bestRank: null,
-        totalTopTraderCount: 0,
-      });
-    }
-
-    const group = eventMap.get(key)!;
-    group.outcomes.push(pick);
-    group.totalVolume += pick.totalVolume;
-    group.totalTopTraderCount += pick.topTraderCount ?? 0;
-
-    const pickConfidence = getDisplayConfidence(pick);
-    if (pickConfidence > group.bestConfidence) {
-      group.bestConfidence = pickConfidence;
-    }
-
-    if (pick.bestRank !== null) {
-      if (group.bestRank === null || pick.bestRank < group.bestRank) {
-        group.bestRank = pick.bestRank;
-      }
-    }
-  }
-
-  // Sort outcomes within each group
-  for (const group of eventMap.values()) {
-    group.outcomes.sort((a, b) => getDisplayConfidence(b) - getDisplayConfidence(a));
-  }
-
-  return Array.from(eventMap.values());
-}
 
 function extractMarketContext(question: string | null | undefined, outcome: string | null | undefined): string {
   if (!question) return outcome || "Unknown";
@@ -461,6 +442,8 @@ export function AIInsightsPanel() {
   const [selectedPick, setSelectedPick] = useState<AiInsightPick | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Poll for live scores
   useEffect(() => useScoreStore.getState().startPolling(), []);
@@ -496,16 +479,49 @@ export function AIInsightsPanel() {
     return () => clearInterval(interval);
   }, [featuredTrades.length, isHovering]);
 
-  const groupedEvents = useMemo(() => {
+  const sortedPicks = useMemo(() => {
     if (!activePicks.length) return [];
-    const groups = groupPicksByEvent(activePicks);
-    groups.sort((a, b) => {
+    const picks = [...activePicks];
+    picks.sort((a, b) => {
       if (sortKey === "volume") return b.totalVolume - a.totalVolume;
-      if (sortKey === "topTraders") return b.totalTopTraderCount - a.totalTopTraderCount;
-      return b.bestConfidence - a.bestConfidence;
+      if (sortKey === "topTraders") return (b.topTraderCount || 0) - (a.topTraderCount || 0);
+      return getDisplayConfidence(b) - getDisplayConfidence(a);
     });
-    return groups.slice(0, 20);
+    return picks.slice(0, 50);
   }, [activePicks, sortKey]);
+
+  const visiblePicks = useMemo(
+    () => sortedPicks.slice(0, visibleCount),
+    [sortedPicks, visibleCount]
+  );
+
+  const hasMore = visibleCount < sortedPicks.length;
+
+  useEffect(() => {
+    setVisibleCount(Math.min(PAGE_SIZE, sortedPicks.length));
+  }, [sortedPicks.length, sortKey]);
+
+  const lastElementRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isLoading) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, sortedPicks.length));
+        }
+      });
+
+      if (node) observerRef.current.observe(node);
+    },
+    [hasMore, isLoading, sortedPicks.length]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, []);
 
   const hasFeatured = featuredTrades.length > 0;
 
@@ -624,20 +640,22 @@ export function AIInsightsPanel() {
           </div>
         </div>
 
-        {!isLoading && groupedEvents.length === 0 && (
-          <div className="py-20 text-center border border-dashed border-white/5 text-zinc-600 font-mono text-sm uppercase">
-            Waiting for incoming signals...
-          </div>
-        )}
-
         <div className="grid gap-2">
-          {groupedEvents.map((event) => (
+          {visiblePicks.map((pick) => (
             <SignalRow
-              key={event.eventTitle}
-              event={event}
+              key={pick.id}
+              pick={pick}
               onSelectOutcome={setSelectedPick}
             />
           ))}
+          {hasMore && (
+            <div
+              ref={lastElementRef}
+              className="h-10 w-full rounded-lg border border-white/5 bg-white/5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 flex items-center justify-center"
+            >
+              {isLoading ? "Loading..." : "Loading more signals..."}
+            </div>
+          )}
         </div>
       </div>
 
@@ -796,52 +814,73 @@ function FeaturedCard({ pick, onClick, variantIndex }: { pick: AiInsightPick; on
   );
 }
 
-function SignalRow({ event, onSelectOutcome }: { event: GroupedEvent; onSelectOutcome: (pick: AiInsightPick) => void }) {
-  const bestGrade = confidenceToGrade(event.bestConfidence);
-  const liveGame = useScoreStore(state => state.getGameForTeam(event.eventTitle));
+function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOutcome: (pick: AiInsightPick) => void }) {
+  const confidence = getDisplayConfidence(pick);
+  const grade = getConfidenceGrade(pick);
+  const liveGame = useScoreStore(state => state.getGameForTeam(pick.eventTitle || ""));
+  const whaleVolumeDisplay = getWhaleVolumeDisplay(pick);
+
+  // Determine tiers for top traders
+  // Gold: 1-20, Silver: 21-100, Bronze: 101-200
+  const aggregator = useMemo(() => {
+    let gold = 0;
+    let silver = 0;
+    let bronze = 0;
+
+    pick.topRanks.forEach(r => {
+      if (r.rank <= 20) gold++;
+      else if (r.rank <= 100) silver++;
+      else if (r.rank <= 200) bronze++;
+    });
+
+    return { gold, silver, bronze };
+  }, [pick.topRanks]);
+
+  // Confidence history from API (fallback to current confidence)
+  const historyData = useMemo(() => {
+    if (!pick.confidenceHistory || pick.confidenceHistory.length === 0) {
+      return [{ value: confidence }];
+    }
+
+    return pick.confidenceHistory.map((h) => ({
+      value: h.value,
+      timestamp: new Date(h.timestamp).getTime(),
+    }));
+  }, [pick.confidenceHistory, confidence]);
 
   return (
-    <div className="group relative bg-[#09090b] hover:bg-[#0F0F12] border-b border-white/5 transition-colors p-4 grid gap-4 md:grid-cols-[2fr_auto] md:grid-rows-[auto_auto] items-start">
-      {/* Left: Info */}
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          {event.bestRank && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-zinc-800 text-zinc-300 rounded-sm font-mono">
-              #{event.bestRank}
+    <div className="group relative bg-[#09090b]/40 border-b border-white/5 transition-all hover:bg-white/2 p-4 grid gap-4 grid-cols-1 md:grid-cols-[280px_1fr_200px] items-center">
+
+      {/* LEFT: Market Info & Header */}
+      <div className="min-w-0 pr-4 border-r border-white/5 h-full flex flex-col justify-center">
+        <div className="flex items-center gap-2 mb-1.5">
+          {pick.bestRank && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-sm font-mono flex items-center gap-1">
+              <Trophy className="w-2.5 h-2.5" /> #{pick.bestRank} Ranked
             </span>
           )}
-          <span className="text-[10px] uppercase tracking-wider text-zinc-500">
-            {formatUsdCompact(event.totalVolume)} Vol // {event.totalTopTraderCount} Whales
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
+            Signal Detected
           </span>
         </div>
-        <h4 className="text-sm text-zinc-300 font-medium truncate pr-4">
-          {event.eventTitle}
+
+        <h4 className="text-sm text-zinc-200 font-semibold truncate leading-tight mb-2">
+          {pick.eventTitle}
         </h4>
+
         {liveGame && (
-          <div className="mt-1 inline-flex items-center gap-2 text-[10px] font-bold font-mono text-zinc-400 bg-white/5 border border-white/5 px-2 py-1 rounded-md">
+          <div className="inline-flex items-center gap-2 text-[10px] font-bold font-mono text-zinc-400 bg-black/20 border border-white/5 px-2 py-1 rounded-md w-fit">
             <div className="flex items-center gap-1">
               {getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName) ? (
                 <img
                   src={getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName)!}
                   alt={liveGame.awayTeamShort}
-                  className="w-4 h-4 object-contain"
+                  className="w-3.5 h-3.5 object-contain"
                 />
               ) : (
                 <span className="uppercase text-zinc-500 text-[9px]">{liveGame.awayTeamShort}</span>
               )}
-              <div className="flex items-center gap-0.5 min-w-[16px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={liveGame.awayScore}
-                    initial={{ y: 5, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -5, opacity: 0 }}
-                  >
-                    {liveGame.awayScore}
-                  </motion.span>
-                </AnimatePresence>
-                {liveGame.awayScoreTrend === 'UP' && <TrendingUp className="w-2 h-2 text-emerald-400" />}
-              </div>
+              <span className={cn(liveGame.awayScoreTrend === 'UP' && "text-white")}>{liveGame.awayScore}</span>
             </div>
             <span className="text-zinc-600 pb-0.5">:</span>
             <div className="flex items-center gap-1">
@@ -849,110 +888,130 @@ function SignalRow({ event, onSelectOutcome }: { event: GroupedEvent; onSelectOu
                 <img
                   src={getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName)!}
                   alt={liveGame.homeTeamShort}
-                  className="w-4 h-4 object-contain"
+                  className="w-3.5 h-3.5 object-contain"
                 />
               ) : (
                 <span className="uppercase text-zinc-500 text-[9px]">{liveGame.homeTeamShort}</span>
               )}
-              <div className="flex items-center gap-0.5 min-w-[16px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={liveGame.homeScore}
-                    initial={{ y: 5, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -5, opacity: 0 }}
-                  >
-                    {liveGame.homeScore}
-                  </motion.span>
-                </AnimatePresence>
-                {liveGame.homeScoreTrend === 'UP' && <TrendingUp className="w-2 h-2 text-emerald-400" />}
-              </div>
+              <span className={cn(liveGame.homeScoreTrend === 'UP' && "text-white")}>{liveGame.homeScore}</span>
             </div>
-
             <div className="w-px h-3 bg-white/10 mx-1" />
-            <div className="flex items-center gap-1">
-              <span className={liveGame.status === 'in_progress' ? "text-red-400 animate-pulse" : ""}>{liveGame.clock}</span>
-              <span className="text-[9px] text-zinc-600">
-                {liveGame.league === 'MLB'
-                  ? (liveGame.period >= 10 ? `Ex` : `${liveGame.period}${['st', 'nd', 'rd'][liveGame.period - 1] || 'th'}`)
-                  : `Q${liveGame.period}`
-                }
-              </span>
-            </div>
+            <span className={liveGame.status === 'in_progress' ? "text-red-400 animate-pulse" : ""}>{liveGame.clock}</span>
           </div>
         )}
       </div>
 
-      {/* Middle: Outcomes (full width) */}
-      <div className="md:col-span-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar mask-gradient-right pt-1">
-        {event.outcomes.map(pick => (
-          <button
-            key={pick.id}
-            onClick={() => onSelectOutcome(pick)}
-            className="flex items-center gap-3 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all min-w-max"
-          >
-            {(() => {
-              const confidence = getDisplayConfidence(pick);
-              const grade = getConfidenceGrade(pick);
-              const whaleVolumeDisplay = getWhaleVolumeDisplay(pick);
-              return (
-                <>
-                  <span className={cn(
-                    "text-xs font-bold",
-                    pick.stance === "bullish" ? "text-emerald-400" : "text-rose-400"
-                  )}>
-                    {pick.stance === "bullish" ? "BUY" : "SELL"}
-                  </span>
-                  <span className="text-xs text-zinc-300 font-mono">
-                    {extractMarketContext(pick.marketQuestion, pick.outcome)}
-                  </span>
-                  <div className="h-3 w-px bg-white/10" />
-                  <span className="flex items-baseline gap-1">
-                    <span className={cn(
-                      "text-xs font-mono",
-                      confidence > 65 ? "text-white font-bold" : "text-zinc-500"
-                    )}>
-                      {grade}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 font-mono">{confidence}%</span>
-                  </span>
-                  {pick.topTraderCount ? (
-                    <>
-                      <div className="h-3 w-px bg-white/10" />
-                      <span className="text-[11px] font-mono text-zinc-300 flex items-center gap-1">
-                        {pick.topTraderCount}x <span aria-label="whales"> 🐋</span>
-                      </span>
-                      {whaleVolumeDisplay ? (
-                        <>
-                          <div className="h-3 w-px bg-white/10" />
-                          <span className="text-[11px] font-mono text-zinc-300">
-                            {whaleVolumeDisplay}
-                          </span>
-                        </>
-                      ) : null}
-                    </>
-                  ) : null}
-                </>
-              );
-            })()}
-          </button>
-        ))}
-      </div>
-
-      {/* Right: Best Signal */}
-      <div className="text-right pl-4 md:row-start-1 md:col-start-2 md:self-center">
-        <div className="space-y-1">
-          <div className={cn(
-            "text-2xl font-black tracking-tight leading-none",
-            event.bestConfidence >= 70 ? "text-primary" : "text-zinc-500"
-          )}>
-            {bestGrade}
+      {/* MIDDLE: Stats, Segmentation & Graph */}
+      <div className="grid grid-cols-[auto_1fr] gap-6 items-center px-2">
+        {/* Stats Block */}
+        <div className="flex flex-col gap-2 min-w-[140px]">
+          {/* Volume */}
+          <div>
+            <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-0.5">Volume</div>
+            <div className="font-mono text-sm text-zinc-300 font-medium">
+              {formatUsdCompact(pick.totalVolume)}
+            </div>
           </div>
-          <div className="text-[10px] text-zinc-500 font-mono tracking-tight leading-none">
-            {event.bestConfidence}%
+
+          {/* Whales Segmentation */}
+          <div>
+            <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1.5">Top Traders</div>
+            <div className="flex items-center gap-1.5">
+              {aggregator.gold > 0 && (
+                <div title="Gold Tier (Top 20)" className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-400/10 border border-amber-400/20 text-[10px] font-mono text-amber-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]" />
+                  {aggregator.gold}
+                </div>
+              )}
+              {aggregator.silver > 0 && (
+                <div title="Silver Tier (Top 100)" className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-400/10 border border-zinc-400/20 text-[10px] font-mono text-zinc-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                  {aggregator.silver}
+                </div>
+              )}
+              {aggregator.bronze > 0 && (
+                <div title="Bronze Tier (Top 200)" className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-700/10 border border-orange-700/20 text-[10px] font-mono text-orange-700">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-700" />
+                  {aggregator.bronze}
+                </div>
+              )}
+              {aggregator.gold === 0 && aggregator.silver === 0 && aggregator.bronze === 0 && (
+                <span className="text-zinc-600 text-[10px]">-</span>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Chart Area */}
+        <div className="h-16 w-full opacity-50 group-hover:opacity-100 transition-opacity">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={historyData}>
+              <defs>
+                <linearGradient id={`grad_${pick.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
+              <Tooltip
+                content={({ payload }) => {
+                  if (!payload?.[0]) return null;
+                  const data = payload[0].payload as { value: number; timestamp?: number };
+                  return (
+                    <div className="bg-black/90 border border-white/10 px-2 py-1 rounded text-xs">
+                      <div className="text-zinc-400">Confidence: {Math.round(data.value)}%</div>
+                      {data.timestamp && (
+                        <div className="text-zinc-600 text-[10px]">
+                          {new Date(data.timestamp).toLocaleTimeString()}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="#10b981"
+                strokeWidth={1.5}
+                fill={`url(#grad_${pick.id})`}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
+
+      {/* RIGHT: Action & Outcomes */}
+      <div className="flex flex-col items-end gap-3 pl-4 border-l border-white/5 h-full justify-center bg-white/1">
+        <div className="flex items-center gap-2">
+          <div className="text-right">
+            <div className={cn("text-xl font-black leading-none tracking-tighter", confidence >= 80 ? "text-emerald-400" : "text-white")}>
+              {grade}
+            </div>
+            <div className="text-[10px] text-zinc-500 font-mono">{confidence}% Conf</div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => onSelectOutcome(pick)}
+          className="w-full text-right group/btn relative overflow-hidden"
+        >
+          <div className="flex items-center justify-end gap-2 text-xs py-1.5 px-3 rounded-md bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/20">
+            <span className="text-zinc-300 group-hover/btn:text-white transition-colors truncate max-w-[140px]">
+              {extractMarketContext(pick.marketQuestion, pick.outcome)}
+            </span>
+            <span className={cn(
+              "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm",
+              pick.stance === 'bullish' ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
+            )}>
+              {pick.stance === 'bullish' ? 'Buy' : 'Sell'}
+            </span>
+          </div>
+        </button>
+      </div>
+
     </div>
   )
 }
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { Zap, Activity, BarChart3, TrendingUp } from "lucide-react";
+import { Zap, Activity, BarChart3, TrendingUp, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,8 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
     { icon: Zap, label: "AI Insights", id: "ai" },
     { icon: Activity, label: "Live Feed", id: "feed" },
     { icon: TrendingUp, label: "Top Traders", id: "traders" },
-    { icon: BarChart3, label: "Top Whales", id: "whales" }
+    { icon: BarChart3, label: "Top Whales", id: "whales" },
+    { icon: Trophy, label: "Winners", id: "winners" }
   ] as const;
 
   type PageId = (typeof pages)[number]["id"];
@@ -36,6 +37,10 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
     whales: {
       active: "text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]",
       inactive: "text-zinc-500 group-hover:text-zinc-300"
+    },
+    winners: {
+      active: "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]",
+      inactive: "text-zinc-500 group-hover:text-zinc-300"
     }
   };
 
@@ -46,7 +51,7 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
         {/* Top Shine Line */}
         <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
 
-        <div className="grid grid-cols-4 w-full relative z-10">
+        <div className="grid grid-cols-5 w-full relative z-10">
           {pages.map((page, index) => {
             const Icon = page.icon;
             const isActive = index === currentPage;

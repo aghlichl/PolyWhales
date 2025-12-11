@@ -14,6 +14,7 @@ import { TraderRibbon } from "./anomaly-card/trader-ribbon";
 import { useScoreStore, getLiveScoreLogo } from '@/lib/useScoreStore';
 import { CONFIG } from "@/lib/config";
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { LiveScoreboard } from "@/components/live-scoreboard";
 
 interface AnomalyCardProps {
     anomaly: Anomaly;
@@ -312,12 +313,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
 
                         {/* Top Right: Amount - REDESIGNED (Seamless Minimalist) */}
                         <div className="flex items-start justify-end">
-                            <div className={cn(
-                                "relative flex items-baseline gap-1 py-1 px-3 rounded-full transition-colors duration-300",
-                                isStandard
-                                    ? "bg-black/40 border border-white/5"
-                                    : "bg-white/[0.03] backdrop-blur-sm border border-white/5 hover:bg-white/[0.05]"
-                            )}>
+                            <div className="relative flex items-baseline gap-1 py-1 px-3">
                                 <span className={cn(
                                     "text-xs md:text-sm font-medium",
                                     isGod ? "text-yellow-500/90" :
@@ -335,145 +331,59 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                             </div>
                         </div>
 
-                        {/* Bottom Left: Outcome - REDESIGNED */}
-                        <div className="flex items-end z-20">
-                            <div className="flex flex-col justify-end">
-                                <div className="relative group/outcome cursor-default">
-                                    {/* Main Container - Seamless Capsule/Rounded Design */}
-                                    <div className={cn(
-                                        "relative flex flex-col min-w-[30px] overflow-hidden rounded-lg transition-all duration-300",
-                                        isStandard
-                                            ? "bg-black/40 border border-white/5"
-                                            : "bg-white/[0.03] backdrop-blur-sm border border-white/5 hover:bg-white/[0.05]"
-                                    )}>
-                                        <div className="px-2.5 py-1.5 md:px-3 md:py-2">
-                                            {/* Label - Reduced noise */}
-                                            <div className="flex items-center gap-1.5 mb-0.5">
-                                                <div className={cn(
-                                                    "w-1 h-1 rounded-full",
-                                                    side === 'SELL' ? "bg-red-500" : "bg-emerald-500"
-                                                )} />
-                                                <span className={cn(
-                                                    "text-[0.6rem] uppercase tracking-wider font-bold opacity-80",
-                                                    side === 'SELL' ? "text-red-400" : "text-emerald-400"
-                                                )}>
-                                                    {side === 'SELL' ? 'SELL' : 'BUY'}
-                                                </span>
+                        {/* Bottom Row: Outcome, Live Score, Gauge */}
+                        <div className="col-span-2 flex items-end gap-3">
+                            <div className="flex items-end z-20">
+                                <div className="flex flex-col justify-end">
+                                    <div className="relative group/outcome cursor-default">
+                                        {/* Main Container - Seamless Capsule/Rounded Design */}
+                                        <div className="relative flex flex-col min-w-[30px] overflow-hidden rounded-lg transition-all duration-300">
+                                            <div className="px-2.5 py-1.5 md:px-3 md:py-2">
+                                                {/* Label - Reduced noise */}
+                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                    <div className={cn(
+                                                        "w-1 h-1 rounded-full",
+                                                        side === 'SELL' ? "bg-red-500" : "bg-emerald-500"
+                                                    )} />
+                                                    <span className={cn(
+                                                        "text-[0.6rem] uppercase tracking-wider font-bold opacity-80",
+                                                        side === 'SELL' ? "text-red-400" : "text-emerald-400"
+                                                    )}>
+                                                        {side === 'SELL' ? 'SELL' : 'BUY'}
+                                                    </span>
+                                                </div>
+
+                                                {/* The Outcome Text - Clean & Sophisticated */}
+                                                <div className="relative">
+                                                    <span className={cn(
+                                                        "block text-base md:text-2xl font-bold tracking-tight leading-none text-zinc-100"
+                                                    )}>
+                                                        {outcome}
+                                                    </span>
+                                                </div>
                                             </div>
 
-                                            {/* The Outcome Text - Clean & Sophisticated */}
-                                            <div className="relative">
-                                                <span className={cn(
-                                                    "block text-base md:text-2xl font-bold tracking-tight leading-none text-zinc-100"
-                                                )}>
-                                                    {outcome}
-                                                </span>
-                                            </div>
+                                            {/* Simplified decorative bottom bar */}
+                                            <div className={cn(
+                                                "h-px w-full opacity-60",
+                                                side === 'SELL'
+                                                    ? "bg-linear-to-r from-red-500/50 to-transparent"
+                                                    : "bg-linear-to-r from-emerald-500/50 to-transparent"
+                                            )} />
                                         </div>
-
-                                        {/* Simplified decorative bottom bar */}
-                                        <div className={cn(
-                                            "h-[1px] w-full opacity-60",
-                                            side === 'SELL'
-                                                ? "bg-gradient-to-r from-red-500/50 to-transparent"
-                                                : "bg-gradient-to-r from-emerald-500/50 to-transparent"
-                                        )} />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Live Score Block - Inserted between Outcome and Gauge (visually) */}
                             {liveGame && (
-                                <div className="ml-2 mb-0.5 flex flex-col justify-end z-20">
-                                    <div className={cn(
-                                        "flex items-center gap-2 md:gap-3 text-[10px] font-bold px-2 md:px-3 py-1.5 rounded-md min-w-[100px] md:min-w-[120px] shadow-sm transition-colors duration-300",
-                                        isStandard
-                                            ? "bg-black/40 border border-white/5 text-zinc-300"
-                                            : "bg-white/[0.03] backdrop-blur-md border border-white/5 text-zinc-300 hover:bg-white/[0.05]"
-                                    )}>
-
-                                        {/* Away Team */}
-                                        <div className="flex flex-col items-center gap-1 min-w-[24px]">
-                                            {getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName) ? (
-                                                <img
-                                                    src={getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName)!}
-                                                    alt={liveGame.awayTeamShort}
-                                                    className="w-6 h-6 object-contain drop-shadow-md"
-                                                />
-                                            ) : (
-                                                <span className="text-[9px] text-zinc-500 uppercase">{liveGame.awayTeamShort.substring(0, 3)}</span>
-                                            )}
-                                            <div className="flex items-center gap-0.5">
-                                                <AnimatePresence mode="popLayout" initial={false}>
-                                                    <motion.span
-                                                        key={liveGame.awayScore}
-                                                        initial={{ y: 10, opacity: 0 }}
-                                                        animate={{ y: 0, opacity: 1 }}
-                                                        exit={{ y: -10, opacity: 0 }}
-                                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                                    >
-                                                        {liveGame.awayScore}
-                                                    </motion.span>
-                                                </AnimatePresence>
-                                                {liveGame.awayScoreTrend === 'UP' && <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />}
-                                            </div>
-                                        </div>
-
-                                        <span className="text-zinc-600 pb-4 text-xs">:</span>
-
-                                        {/* Home Team */}
-                                        <div className="flex flex-col items-center gap-1 min-w-[24px]">
-                                            {getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName) ? (
-                                                <img
-                                                    src={getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName)!}
-                                                    alt={liveGame.homeTeamShort}
-                                                    className="w-6 h-6 object-contain drop-shadow-md"
-                                                />
-                                            ) : (
-                                                <span className="text-[9px] text-zinc-500 uppercase">{liveGame.homeTeamShort.substring(0, 3)}</span>
-                                            )}
-                                            <div className="flex items-center gap-0.5">
-                                                <AnimatePresence mode="popLayout" initial={false}>
-                                                    <motion.span
-                                                        key={liveGame.homeScore}
-                                                        initial={{ y: 10, opacity: 0 }}
-                                                        animate={{ y: 0, opacity: 1 }}
-                                                        exit={{ y: -10, opacity: 0 }}
-                                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                                    >
-                                                        {liveGame.homeScore}
-                                                    </motion.span>
-                                                </AnimatePresence>
-                                                {liveGame.homeScoreTrend === 'UP' && <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />}
-                                            </div>
-                                        </div>
-
-                                        {/* Clock separator */}
-                                        <div className="w-px h-8 bg-white/10 mx-1" />
-
-                                        {/* Clock & Period */}
-                                        <div className="flex flex-col items-end justify-center leading-none gap-1 min-w-[34px]">
-                                            <span className={cn(
-                                                "text-[10px] font-bold whitespace-nowrap px-1 py-0.5 rounded",
-                                                liveGame.status === 'in_progress' ? "bg-red-500/20 text-red-400 animate-pulse border border-red-500/30" : "text-zinc-400"
-                                            )}>
-                                                {liveGame.clock}
-                                            </span>
-                                            <span className="text-[9px] text-zinc-500 font-medium">
-                                                {liveGame.league === 'MLB'
-                                                    ? (liveGame.period >= 10 ? `Ex` : `${liveGame.period}${['st', 'nd', 'rd'][liveGame.period - 1] || 'th'}`)
-                                                    : `Q${liveGame.period}`
-                                                }
-                                            </span>
-                                        </div>
-                                    </div>
+                                <div className="flex-1 flex justify-center mb-0.5 z-20">
+                                    <LiveScoreboard game={liveGame} isStandard={isStandard} />
                                 </div>
                             )}
-                        </div>
 
-                        {/* Bottom Right: Gauge */}
-                        <div className="flex items-end justify-end">
-                            <Gauge value={odds} label={side} size={64} strokeWidth={2} />
+                            <div className="flex items-end justify-end">
+                                <Gauge value={odds} label={side} size={64} strokeWidth={2} />
+                            </div>
                         </div>
                     </div>
                 </Card>

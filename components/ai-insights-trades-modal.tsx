@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { AiInsightPick, Anomaly } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Activity, X, Box, Layers, Zap } from "lucide-react";
+
+const PAGE_SIZE = 20;
 
 type TradesResponse = {
   trades: Anomaly[];
@@ -38,6 +40,8 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<TradesResponse | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     if (!isOpen || (!pick && !trader)) return;
@@ -56,6 +60,7 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
     setMeta(null);
     setIsLoading(true);
     setError(null);
+    setVisibleCount(PAGE_SIZE);
 
     const endpoint = isWalletMode ? "/api/wallet-trades" : "/api/ai-insights/trades";
 
@@ -108,6 +113,42 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
     () => trades.slice().sort((a, b) => b.value - a.value),
     [trades]
   );
+
+  const visibleTrades = useMemo(
+    () => sortedTrades.slice(0, visibleCount),
+    [sortedTrades, visibleCount]
+  );
+
+  const hasMore = visibleCount < sortedTrades.length;
+
+  useEffect(() => {
+    setVisibleCount((prev) => {
+      if (sortedTrades.length === 0) return 0;
+      return Math.min(Math.max(prev, PAGE_SIZE), sortedTrades.length);
+    });
+  }, [sortedTrades.length]);
+
+  const lastTradeRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isLoading) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, sortedTrades.length));
+        }
+      });
+
+      if (node) observerRef.current.observe(node);
+    },
+    [hasMore, isLoading, sortedTrades.length]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, []);
 
   return (
     <Modal
@@ -227,7 +268,7 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
           {!isLoading && trades.length > 0 && (
             <div className="space-y-3">
               <AnimatePresence mode="popLayout">
-                {sortedTrades.map((trade, i) => (
+                {visibleTrades.map((trade, i) => (
                   <motion.div
                     key={trade.id}
                     initial={{ opacity: 0, y: 20, scale: 0.98 }}
@@ -243,6 +284,14 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
                   </motion.div>
                 ))}
               </AnimatePresence>
+              {hasMore && (
+                <div
+                  ref={lastTradeRef}
+                  className="h-10 w-full rounded-lg border border-white/5 bg-white/5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 flex items-center justify-center"
+                >
+                  {isLoading ? "Loading..." : "Loading more trades..."}
+                </div>
+              )}
             </div>
           )}
         </div>

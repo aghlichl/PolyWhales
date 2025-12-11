@@ -59,7 +59,9 @@ export const ModelName = {
   WalletProfile: 'WalletProfile',
   Watchlist: 'Watchlist',
   WalletLeaderboardSnapshot: 'WalletLeaderboardSnapshot',
-  WhalePositionSnapshot: 'WhalePositionSnapshot'
+  WhalePositionSnapshot: 'WhalePositionSnapshot',
+  AiInsightHistory: 'AiInsightHistory',
+  BiggestWinner: 'BiggestWinner'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -256,6 +258,48 @@ export const WhalePositionSnapshotScalarFieldEnum = {
 } as const
 
 export type WhalePositionSnapshotScalarFieldEnum = (typeof WhalePositionSnapshotScalarFieldEnum)[keyof typeof WhalePositionSnapshotScalarFieldEnum]
+
+
+export const AiInsightHistoryScalarFieldEnum = {
+  id: 'id',
+  conditionId: 'conditionId',
+  outcome: 'outcome',
+  eventTitle: 'eventTitle',
+  snapshotAt: 'snapshotAt',
+  confidence: 'confidence',
+  confidencePercentile: 'confidencePercentile',
+  totalVolume: 'totalVolume',
+  topTraderVolume: 'topTraderVolume',
+  topTraderCount: 'topTraderCount',
+  latestPrice: 'latestPrice',
+  isResolved: 'isResolved',
+  volumeZScore: 'volumeZScore',
+  hhiConcentration: 'hhiConcentration',
+  rankWeightedScore: 'rankWeightedScore',
+  directionConviction: 'directionConviction',
+  isUnusualActivity: 'isUnusualActivity',
+  isConcentrated: 'isConcentrated'
+} as const
+
+export type AiInsightHistoryScalarFieldEnum = (typeof AiInsightHistoryScalarFieldEnum)[keyof typeof AiInsightHistoryScalarFieldEnum]
+
+
+export const BiggestWinnerScalarFieldEnum = {
+  id: 'id',
+  winRank: 'winRank',
+  proxyWallet: 'proxyWallet',
+  userName: 'userName',
+  eventSlug: 'eventSlug',
+  eventTitle: 'eventTitle',
+  initialValue: 'initialValue',
+  finalValue: 'finalValue',
+  pnl: 'pnl',
+  profileImage: 'profileImage',
+  timePeriod: 'timePeriod',
+  snapshotAt: 'snapshotAt'
+} as const
+
+export type BiggestWinnerScalarFieldEnum = (typeof BiggestWinnerScalarFieldEnum)[keyof typeof BiggestWinnerScalarFieldEnum]
 
 
 export const SortOrder = {

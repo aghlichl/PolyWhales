@@ -392,7 +392,9 @@ export const ModelName = {
   WalletProfile: 'WalletProfile',
   Watchlist: 'Watchlist',
   WalletLeaderboardSnapshot: 'WalletLeaderboardSnapshot',
-  WhalePositionSnapshot: 'WhalePositionSnapshot'
+  WhalePositionSnapshot: 'WhalePositionSnapshot',
+  AiInsightHistory: 'AiInsightHistory',
+  BiggestWinner: 'BiggestWinner'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -408,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "alert" | "trade" | "userAlertSettings" | "user" | "walletPortfolioSnapshot" | "walletProfile" | "watchlist" | "walletLeaderboardSnapshot" | "whalePositionSnapshot"
+    modelProps: "alert" | "trade" | "userAlertSettings" | "user" | "walletPortfolioSnapshot" | "walletProfile" | "watchlist" | "walletLeaderboardSnapshot" | "whalePositionSnapshot" | "aiInsightHistory" | "biggestWinner"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1078,6 +1080,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AiInsightHistory: {
+      payload: Prisma.$AiInsightHistoryPayload<ExtArgs>
+      fields: Prisma.AiInsightHistoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiInsightHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiInsightHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>
+        }
+        findFirst: {
+          args: Prisma.AiInsightHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiInsightHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>
+        }
+        findMany: {
+          args: Prisma.AiInsightHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>[]
+        }
+        create: {
+          args: Prisma.AiInsightHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>
+        }
+        createMany: {
+          args: Prisma.AiInsightHistoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiInsightHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>[]
+        }
+        delete: {
+          args: Prisma.AiInsightHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>
+        }
+        update: {
+          args: Prisma.AiInsightHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiInsightHistoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiInsightHistoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiInsightHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiInsightHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiInsightHistoryPayload>
+        }
+        aggregate: {
+          args: Prisma.AiInsightHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiInsightHistory>
+        }
+        groupBy: {
+          args: Prisma.AiInsightHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiInsightHistoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiInsightHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiInsightHistoryCountAggregateOutputType> | number
+        }
+      }
+    }
+    BiggestWinner: {
+      payload: Prisma.$BiggestWinnerPayload<ExtArgs>
+      fields: Prisma.BiggestWinnerFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BiggestWinnerFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BiggestWinnerFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>
+        }
+        findFirst: {
+          args: Prisma.BiggestWinnerFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BiggestWinnerFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>
+        }
+        findMany: {
+          args: Prisma.BiggestWinnerFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>[]
+        }
+        create: {
+          args: Prisma.BiggestWinnerCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>
+        }
+        createMany: {
+          args: Prisma.BiggestWinnerCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BiggestWinnerCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>[]
+        }
+        delete: {
+          args: Prisma.BiggestWinnerDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>
+        }
+        update: {
+          args: Prisma.BiggestWinnerUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>
+        }
+        deleteMany: {
+          args: Prisma.BiggestWinnerDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BiggestWinnerUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BiggestWinnerUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>[]
+        }
+        upsert: {
+          args: Prisma.BiggestWinnerUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiggestWinnerPayload>
+        }
+        aggregate: {
+          args: Prisma.BiggestWinnerAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBiggestWinner>
+        }
+        groupBy: {
+          args: Prisma.BiggestWinnerGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BiggestWinnerGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BiggestWinnerCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BiggestWinnerCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1295,6 +1445,48 @@ export const WhalePositionSnapshotScalarFieldEnum = {
 } as const
 
 export type WhalePositionSnapshotScalarFieldEnum = (typeof WhalePositionSnapshotScalarFieldEnum)[keyof typeof WhalePositionSnapshotScalarFieldEnum]
+
+
+export const AiInsightHistoryScalarFieldEnum = {
+  id: 'id',
+  conditionId: 'conditionId',
+  outcome: 'outcome',
+  eventTitle: 'eventTitle',
+  snapshotAt: 'snapshotAt',
+  confidence: 'confidence',
+  confidencePercentile: 'confidencePercentile',
+  totalVolume: 'totalVolume',
+  topTraderVolume: 'topTraderVolume',
+  topTraderCount: 'topTraderCount',
+  latestPrice: 'latestPrice',
+  isResolved: 'isResolved',
+  volumeZScore: 'volumeZScore',
+  hhiConcentration: 'hhiConcentration',
+  rankWeightedScore: 'rankWeightedScore',
+  directionConviction: 'directionConviction',
+  isUnusualActivity: 'isUnusualActivity',
+  isConcentrated: 'isConcentrated'
+} as const
+
+export type AiInsightHistoryScalarFieldEnum = (typeof AiInsightHistoryScalarFieldEnum)[keyof typeof AiInsightHistoryScalarFieldEnum]
+
+
+export const BiggestWinnerScalarFieldEnum = {
+  id: 'id',
+  winRank: 'winRank',
+  proxyWallet: 'proxyWallet',
+  userName: 'userName',
+  eventSlug: 'eventSlug',
+  eventTitle: 'eventTitle',
+  initialValue: 'initialValue',
+  finalValue: 'finalValue',
+  pnl: 'pnl',
+  profileImage: 'profileImage',
+  timePeriod: 'timePeriod',
+  snapshotAt: 'snapshotAt'
+} as const
+
+export type BiggestWinnerScalarFieldEnum = (typeof BiggestWinnerScalarFieldEnum)[keyof typeof BiggestWinnerScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1565,6 +1757,8 @@ export type GlobalOmitConfig = {
   watchlist?: Prisma.WatchlistOmit
   walletLeaderboardSnapshot?: Prisma.WalletLeaderboardSnapshotOmit
   whalePositionSnapshot?: Prisma.WhalePositionSnapshotOmit
+  aiInsightHistory?: Prisma.AiInsightHistoryOmit
+  biggestWinner?: Prisma.BiggestWinnerOmit
 }
 
 /* Types for Logging */
