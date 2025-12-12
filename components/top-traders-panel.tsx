@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { cn, formatShortNumber } from "@/lib/utils";
 import { ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
 import {
     AreaChart,
     Area,
@@ -19,6 +20,8 @@ import type { LeaderboardRank } from "@/lib/client/api";
 import { TraderRibbon } from "./feed/anomaly-card/trader-ribbon";
 import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
 import { CONFIG } from "@/lib/config";
+import { ExpandableSearch } from "@/components/expandable-search";
+import { useDebounce, applyTraderSearch } from "@/lib/filtering";
 
 const selectLeaderboardRanks = (state: ReturnType<typeof useMarketStore.getState>) => state.leaderboardRanks;
 const selectFetchLeaderboardRanks = (state: ReturnType<typeof useMarketStore.getState>) => state.fetchLeaderboardRanks;
@@ -342,6 +345,10 @@ export function TopTradersPanel() {
     const fetchLeaderboardRanks = useMarketStore(selectFetchLeaderboardRanks);
     const observerRef = useRef<IntersectionObserver | null>(null);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState("");
+    const debouncedQuery = useDebounce(searchQuery, 200);
+
     const fetchTraders = async (selectedPeriod: Period) => {
         setIsLoading(true);
         setError(null);
@@ -367,6 +374,8 @@ export function TopTradersPanel() {
 
     useEffect(() => {
         fetchTraders(period);
+        // Reset search when period changes
+        setSearchQuery("");
     }, [period]);
 
     useEffect(() => {
@@ -387,19 +396,24 @@ export function TopTradersPanel() {
         });
     }, [traders]);
 
+    // Apply search filter
+    const filteredTraders = useMemo(() => {
+        return applyTraderSearch(uniqueTraders, debouncedQuery);
+    }, [uniqueTraders, debouncedQuery]);
+
     const loadMoreTraders = useCallback(() => {
         setVisibleCount((prev) => {
-            const next = Math.min(prev + PAGE_SIZE, uniqueTraders.length);
-            if (next >= uniqueTraders.length) {
+            const next = Math.min(prev + PAGE_SIZE, filteredTraders.length);
+            if (next >= filteredTraders.length) {
                 setHasMore(false);
             }
             return next;
         });
-    }, [uniqueTraders.length]);
+    }, [filteredTraders.length]);
 
     const visibleTraders = useMemo(
-        () => uniqueTraders.slice(0, visibleCount),
-        [uniqueTraders, visibleCount]
+        () => filteredTraders.slice(0, visibleCount),
+        [filteredTraders, visibleCount]
     );
 
     const lastElementRef = useCallback((node: HTMLDivElement | null) => {
@@ -421,27 +435,54 @@ export function TopTradersPanel() {
 
     useEffect(() => {
         if (isLoading) return;
-        setHasMore(visibleCount < uniqueTraders.length);
-    }, [visibleCount, uniqueTraders.length, isLoading]);
+        setHasMore(visibleCount < filteredTraders.length);
+    }, [visibleCount, filteredTraders.length, isLoading]);
 
     return (
         <div className="space-y-6 px-4 pb-6">
-            {/* Period selector - Glassmorphic pills */}
-            <div className="p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
-                {PERIODS.map((p) => (
-                    <button
-                        key={p}
-                        onClick={() => setPeriod(p)}
-                        className={cn(
-                            "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg",
-                            period === p
-                                ? "bg-white/10 text-white shadow-sm border border-white/5 backdrop-blur-md"
-                                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-                        )}
-                    >
-                        {PERIOD_LABELS[p]}
-                    </button>
-                ))}
+            {/* Period selector + Search */}
+            <div className="flex items-center gap-2">
+                {/* Period selector - Glassmorphic pills */}
+                <div className="relative flex-1 p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
+                    {PERIODS.map((p) => {
+                        const isActive = period === p;
+                        return (
+                            <button
+                                key={p}
+                                onClick={() => setPeriod(p)}
+                                className={cn(
+                                    "relative flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg z-10",
+                                    isActive
+                                        ? "text-white"
+                                        : "text-zinc-500 hover:text-zinc-300"
+                                )}
+                            >
+                                {/* Active Background Pill (Animated) */}
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="top-traders-period-active"
+                                        className="absolute inset-1 bg-white/10 rounded-lg border border-white/5 backdrop-blur-md shadow-sm"
+                                        transition={{
+                                            type: "spring",
+                                            stiffness: 300,
+                                            damping: 30
+                                        }}
+                                    />
+                                )}
+
+                                {PERIOD_LABELS[p]}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Expandable Search (no filters) */}
+                <ExpandableSearch
+                    query={searchQuery}
+                    onQueryChange={setSearchQuery}
+                    onClear={() => setSearchQuery("")}
+                    placeholder="Search traders..."
+                />
             </div>
 
             {/* Error */}
@@ -510,11 +551,27 @@ export function TopTradersPanel() {
             )}
 
             {/* Empty state */}
-            {!isLoading && !error && traders.length === 0 && (
+            {!isLoading && !error && filteredTraders.length === 0 && (
                 <div className="text-center py-12 rounded-xl border border-white/5 bg-black/20 backdrop-blur-sm">
-                    <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
-                        No data available for {period}
-                    </span>
+                    {searchQuery ? (
+                        <div className="space-y-2">
+                            <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
+                                No traders match "{searchQuery}"
+                            </span>
+                            <div>
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
+                                >
+                                    Clear Search
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
+                            No data available for {period}
+                        </span>
+                    )}
                 </div>
             )}
 

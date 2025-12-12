@@ -1,18 +1,27 @@
 /**
  * Quant-Level Signal Calculator
  * 
- * Provides sophisticated statistical analysis for AI insights:
- * - Z-Score volume anomaly detection
- * - Exponential time decay weighting
- * - Rank-weighted scoring (exponential)
- * - HHI concentration index
- * - Buy/sell pressure logistic scoring
- * - Composite confidence with percentile ranking
+ * HYBRID SCORING MODEL (v2.0)
+ * ===========================
+ * Uses a base + modifier architecture where weak factors REDUCE the final score:
+ * 
+ * - BASE SCORE: Volume anomaly + Rank quality (the foundation)
+ * - MODIFIERS: Recency, Direction, Concentration, Alignment (0.5–1.2 multipliers)
+ * - FINAL = BASE × Π(MODIFIERS) (multiplicative gating)
+ * 
+ * This prevents "everything is 95%+" by ensuring weak factors drag down scores.
+ * Only markets with strong convergence across ALL factors reach exceptional confidence.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONSTANTS
+// TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
+
+/** Signal quality classification based on raw confidence */
+export type SignalQuality = 'weak' | 'moderate' | 'strong' | 'exceptional';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
 
 /** Time decay rate (λ). 0.1 gives ~60% weight to trades < 5 hours old */
 const DECAY_LAMBDA = 0.1;
@@ -83,7 +92,7 @@ export function getTierWeight(rank: number): number {
  */
 export function calculateTierBreakdown(ranks: number[]): TierBreakdown {
     const breakdown: TierBreakdown = { elite: 0, gold: 0, silver: 0, bronze: 0 };
-    
+
     for (const rank of ranks) {
         const tier = getTierForRank(rank);
         if (tier === 'ELITE') breakdown.elite++;
@@ -91,7 +100,7 @@ export function calculateTierBreakdown(ranks: number[]): TierBreakdown {
         else if (tier === 'SILVER') breakdown.silver++;
         else if (tier === 'BRONZE') breakdown.bronze++;
     }
-    
+
     return breakdown;
 }
 
@@ -101,11 +110,11 @@ export function calculateTierBreakdown(ranks: number[]): TierBreakdown {
  */
 export function calculateWeightedTraderCount(ranks: number[]): number {
     let weightedCount = 0;
-    
+
     for (const rank of ranks) {
         weightedCount += getTierWeight(rank);
     }
-    
+
     return weightedCount;
 }
 
@@ -118,7 +127,7 @@ export function calculateWeightedTraderCountBySide(
 ): { buyWeighted: number; sellWeighted: number; totalWeighted: number } {
     const buyWeighted = calculateWeightedTraderCount(buyRanks);
     const sellWeighted = calculateWeightedTraderCount(sellRanks);
-    
+
     return {
         buyWeighted,
         sellWeighted,
@@ -171,6 +180,10 @@ export interface EnhancedSignalMetrics {
 
     // Factor breakdown for explainability
     signalFactors: SignalFactors;
+
+    // Hybrid model v2.0 fields
+    signalQuality: SignalQuality;
+    modifierProduct: number;  // Product of all modifier factors (for debugging)
 
     // Flags
     isUnusualActivity: boolean;
@@ -373,23 +386,56 @@ export function directionStrength(buyVolume: number, sellVolume: number): number
     return Math.abs(conviction - 0.5) * 2;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// COMPOSITE SIGNAL CALCULATION
-// ═══════════════════════════════════════════════════════════════════════════════
+/**
+ * HYBRID SCORING MODEL v2.0
+ * 
+ * Architecture:
+ * - BASE SCORE: Volume anomaly (35%) + Rank quality (65%) → foundation of the signal
+ * - MODIFIERS: Recency, Direction, Concentration, Alignment → multiply base (0.5–1.2 range)
+ * - FINAL = BASE × Π(MODIFIERS)
+ * 
+ * This design ensures weak factors REDUCE scores (unlike pure additive models).
+ * Top scores require strong performance across ALL dimensions.
+ */
+
+/** Base score weights (must sum to 1.0) */
+const BASE_WEIGHTS = {
+    volume: 0.35,   // Z-score based unusual volume
+    rank: 0.65,     // Quality of whales involved
+} as const;
+
+/** Modifier ranges - weak factors drag score down, strong factors boost it */
+const MODIFIER_RANGES = {
+    recency: { min: 0.6, max: 1.15 },      // Fresh trades boost, stale drags
+    direction: { min: 0.5, max: 1.2 },     // Clear direction boosts, split penalizes
+    concentration: { min: 0.7, max: 1.1 }, // Sweet spot concentration boosts
+    alignment: { min: 0.5, max: 1.2 },     // Strong alignment boosts, weak drags
+} as const;
 
 /**
- * Factor weights for composite signal
- * Rebalanced to reduce alignment dominance and prioritize rank quality
- * Total: 1.0 (100%)
+ * Map a 0-1 score to a modifier range
+ * score=0 → min, score=0.5 → 1.0, score=1 → max
  */
-const FACTOR_WEIGHTS = {
-    volume: 0.15,        // Z-score based unusual volume (was 0.14)
-    rank: 0.28,          // Quality of whales involved - INCREASED (was 0.20)
-    concentration: 0.12, // HHI - conviction from consensus (was 0.10)
-    recency: 0.12,       // Time-decayed volume freshness (unchanged)
-    direction: 0.08,     // Buy/sell pressure clarity (was 0.09)
-    alignment: 0.25,     // Reduced from 0.35 - with tier weighting, need less raw alignment weight
-} as const;
+function toModifier(score: number, range: { min: number; max: number }): number {
+    // Center at 0.5 = 1.0 (neutral), scale to range
+    if (score <= 0.5) {
+        // Below neutral: interpolate from min to 1.0
+        return range.min + (1.0 - range.min) * (score / 0.5);
+    } else {
+        // Above neutral: interpolate from 1.0 to max
+        return 1.0 + (range.max - 1.0) * ((score - 0.5) / 0.5);
+    }
+}
+
+/**
+ * Classify raw confidence into signal quality tiers
+ */
+function classifySignalQuality(rawConfidence: number): SignalQuality {
+    if (rawConfidence >= 0.70) return 'exceptional';
+    if (rawConfidence >= 0.50) return 'strong';
+    if (rawConfidence >= 0.30) return 'moderate';
+    return 'weak';
+}
 
 export interface CompositeSignalInput {
     // Volume metrics
@@ -422,7 +468,7 @@ export interface CompositeSignalInput {
         sellCount: number;
     };
 
-    // Tier-weighted trader data (new)
+    // Tier-weighted trader data
     weightedTraderData?: {
         buyWeighted: number;
         sellWeighted: number;
@@ -432,7 +478,7 @@ export interface CompositeSignalInput {
 }
 
 /**
- * Calculate composite signal with full metrics
+ * Calculate composite signal using hybrid base + modifier architecture
  */
 export function calculateCompositeSignal(input: CompositeSignalInput): Omit<EnhancedSignalMetrics, 'confidencePercentile'> {
     const {
@@ -448,89 +494,117 @@ export function calculateCompositeSignal(input: CompositeSignalInput): Omit<Enha
         topTraderVolume,
     } = input;
 
-    // 1. Volume Z-Score
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BASE SCORE COMPONENTS (Volume + Rank)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // 1. Volume Z-Score - measures how unusual the whale activity is
     const volumeZ = zScore(top20Volume, baseline.meanTop20Volume, baseline.stdDevTop20Volume);
-    const volumeScore = clamp(sigmoid(volumeZ - 1) * 2 - 0.5); // Shift sigmoid for better scaling
+    // Slower sigmoid: need Z > 2 to reach 0.5, Z > 3 for strong score
+    const volumeScore = clamp(sigmoid(volumeZ - 2) * 1.8);
 
-    // 2. Rank-weighted score
+    // 2. Rank-weighted score - quality of whales involved
     const rankWeighted = aggregateRankScore(walletRanks, walletVolumes, totalVolume);
-    const rankNormalized = clamp(rankWeighted / 50); // Normalize: 50 = excellent avg rank score
+    // Stricter normalization: need score of 75 (was 50) to max out
+    const rankNormalized = clamp(rankWeighted / 75);
 
-    // 3. HHI Concentration
-    const hhi = calculateHHIFromVolumes(walletVolumes);
-    // Invert and scale: We want some concentration (conviction) but not too much
-    // Sweet spot is around 0.25-0.5 (2-4 major whales agreeing)
-    const concentrationScore = hhi > 0.5
-        ? 1 - (hhi - 0.5) * 2  // Penalize extreme concentration
-        : hhi * 2;              // Reward moderate concentration
+    // BASE SCORE: Foundation of the signal
+    const baseScore = volumeScore * BASE_WEIGHTS.volume + rankNormalized * BASE_WEIGHTS.rank;
 
-    // 4. Recency score (time-decayed volume as ratio of total)
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MODIFIER COMPONENTS (Multiply the base score)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // 3. Recency - how fresh is the activity?
     const recencyRatio = top20Volume > 0 ? timeDecayedTop20Volume / top20Volume : 0;
     const recencyScore = clamp(recencyRatio);
+    const recencyModifier = toModifier(recencyScore, MODIFIER_RANGES.recency);
 
-    // 5. Direction conviction
+    // 4. Direction conviction - how clear is the buy/sell signal?
     const conviction = directionConviction(buyVolume, sellVolume);
     const dirStrength = directionStrength(buyVolume, sellVolume);
 
-    // 6. Alignment of unique top traders on a single side (with tier weighting)
-    const { totalTopTraders, buyCount, sellCount } = topTraderAlignment;
-    const { buyVolume: topTraderBuyVol, sellVolume: topTraderSellVol, totalVolume: topTraderTotalVol } = topTraderVolume;
-    
-    // Use weighted counts if available, otherwise fall back to raw counts
+    // Apply "conflicting whales" penalty for split direction
+    const { buyCount, sellCount, totalTopTraders } = topTraderAlignment;
+    const minSide = Math.min(buyCount, sellCount);
+    const maxSide = Math.max(buyCount, sellCount);
+    const isSplitDirection = totalTopTraders >= 2 && minSide > 0 && (minSide / maxSide > 0.4);
+
+    // If whales are split, apply harsh penalty regardless of volume direction
+    const effectiveDirStrength = isSplitDirection ? dirStrength * 0.3 : dirStrength;
+    const directionModifier = toModifier(effectiveDirStrength, MODIFIER_RANGES.direction);
+
+    // 5. Concentration - is there conviction from a focused group?
+    const hhi = calculateHHIFromVolumes(walletVolumes);
+    // Sweet spot is 0.25-0.5 (2-4 major whales agreeing)
+    // Score peaks at HHI = 0.35, falls off on either side
+    let concentrationScore: number;
+    if (hhi < 0.1) {
+        concentrationScore = 0.3;  // Too dispersed = weak
+    } else if (hhi < 0.25) {
+        concentrationScore = 0.3 + 0.7 * ((hhi - 0.1) / 0.15);  // Ramp up
+    } else if (hhi <= 0.5) {
+        concentrationScore = 1.0;  // Sweet spot
+    } else {
+        concentrationScore = Math.max(0.3, 1.0 - (hhi - 0.5) * 1.4);  // Penalize extremes
+    }
+    const concentrationModifier = toModifier(concentrationScore, MODIFIER_RANGES.concentration);
+
+    // 6. Alignment - are top traders agreeing?
     const weightedData = input.weightedTraderData;
     const buyWeighted = weightedData?.buyWeighted ?? buyCount;
     const sellWeighted = weightedData?.sellWeighted ?? sellCount;
     const totalWeighted = weightedData?.totalWeighted ?? totalTopTraders;
-    
     const dominantWeighted = Math.max(buyWeighted, sellWeighted);
-    
-    // LOGARITHMIC SCALING: Replaces linear caps for diminishing returns
-    // log2(x+1)/log2(10) gives: 0->0, 1->0.3, 2->0.48, 4->0.7, 8->0.95, 10->1.0
-    // This means you need ~8 "weighted" traders to approach max engagement
-    // With tier weights: 8 elite = 8, but 80 bronze = 8 weighted
-    const engagementScore = clamp(Math.log2(totalWeighted + 1) / Math.log2(10));
-    
+
+    // SLOWER log scaling: need ~15 weighted traders to approach max (was 10)
+    // log2(x+1)/log2(15): 0→0, 1→0.26, 2→0.41, 4→0.60, 8→0.82, 15→1.0
+    const engagementScore = clamp(Math.log2(totalWeighted + 1) / Math.log2(15));
+
     // Alignment ratio: how dominant is the majority side?
     const alignmentRatio = totalWeighted > 0 ? dominantWeighted / totalWeighted : 0;
-    
-    // Cluster boost with log scaling: need 2+ weighted traders for meaningful boost
-    // log2(2+1)/log2(5) = 0.68, log2(4+1)/log2(5) = 1.0 (caps at ~4 weighted)
-    const clusterBoost = clamp(Math.log2(dominantWeighted + 1) / Math.log2(5));
-    
-    // Combined count-based alignment (reduced weight since we're using quality metrics)
-    const alignmentScoreCounts = clamp(0.4 * alignmentRatio + 0.6 * clusterBoost);
-    
-    // Volume-based alignment (unchanged logic)
+
+    // Cluster boost with slower log scaling
+    const clusterBoost = clamp(Math.log2(dominantWeighted + 1) / Math.log2(8));
+
+    // Volume-based alignment
+    const { buyVolume: topTraderBuyVol, sellVolume: topTraderSellVol, totalVolume: topTraderTotalVol } = topTraderVolume;
     const dominantTopTraderVol = Math.max(topTraderBuyVol, topTraderSellVol);
     const topTraderVolDominance = topTraderTotalVol > 0 ? dominantTopTraderVol / topTraderTotalVol : 0;
     const topTraderMarketShare = totalVolume > 0 ? topTraderTotalVol / totalVolume : 0;
-    const volumeAlignmentScore = clamp(
-        0.65 * topTraderVolDominance +
-        0.35 * clamp(topTraderMarketShare * 1.5)
+
+    // Combine all alignment factors
+    const alignmentScore = clamp(
+        0.25 * engagementScore +        // How many whales
+        0.25 * alignmentRatio +         // How aligned by count
+        0.25 * clusterBoost +           // Cluster of aligned whales
+        0.25 * topTraderVolDominance    // Volume alignment
     );
-    
-    // Final alignment: balance between count quality and volume dominance
-    const alignmentScore = clamp(0.5 * alignmentScoreCounts + 0.5 * volumeAlignmentScore);
+    const alignmentModifier = toModifier(alignmentScore, MODIFIER_RANGES.alignment);
 
-    // Calculate factor contributions
-    // Engagement is now integrated via log scaling, no separate additive bonus needed
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FINAL COMPOSITE SCORE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // Multiply all modifiers together
+    const modifierProduct = recencyModifier * directionModifier * concentrationModifier * alignmentModifier;
+
+    // Final raw confidence: base × modifiers
+    const rawConfidence = clamp(baseScore * modifierProduct);
+
+    // Classify signal quality
+    const signalQuality = classifySignalQuality(rawConfidence);
+
+    // Calculate factor contributions for explainability (legacy format)
+    // These are now informational rather than additive
     const signalFactors: SignalFactors = {
-        volumeContribution: volumeScore * FACTOR_WEIGHTS.volume,
-        rankContribution: rankNormalized * FACTOR_WEIGHTS.rank,
-        concentrationContribution: concentrationScore * FACTOR_WEIGHTS.concentration,
-        recencyContribution: recencyScore * FACTOR_WEIGHTS.recency,
-        directionContribution: dirStrength * FACTOR_WEIGHTS.direction,
-        alignmentContribution: alignmentScore * FACTOR_WEIGHTS.alignment,
+        volumeContribution: volumeScore * BASE_WEIGHTS.volume,
+        rankContribution: rankNormalized * BASE_WEIGHTS.rank,
+        concentrationContribution: concentrationScore * 0.1,  // Scaled for display
+        recencyContribution: recencyScore * 0.1,
+        directionContribution: effectiveDirStrength * 0.1,
+        alignmentContribution: alignmentScore * 0.2,
     };
-
-    // Composite raw confidence (0-1)
-    const rawConfidence =
-        signalFactors.volumeContribution +
-        signalFactors.rankContribution +
-        signalFactors.concentrationContribution +
-        signalFactors.recencyContribution +
-        signalFactors.directionContribution +
-        (signalFactors.alignmentContribution ?? 0);
 
     return {
         volumeZScore: volumeZ,
@@ -538,8 +612,10 @@ export function calculateCompositeSignal(input: CompositeSignalInput): Omit<Enha
         rankWeightedScore: rankWeighted,
         timeDecayedVolume: timeDecayedTop20Volume,
         directionConviction: conviction,
-        rawConfidence: clamp(rawConfidence),
+        rawConfidence,
         signalFactors,
+        signalQuality,
+        modifierProduct,
         isUnusualActivity: volumeZ >= UNUSUAL_ZSCORE_THRESHOLD,
         isConcentrated: hhi >= CONCENTRATED_HHI_THRESHOLD,
     };

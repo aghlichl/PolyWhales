@@ -1,162 +1,258 @@
-import { useState, useRef, useEffect } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, ListFilter, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import { AnomalyType } from "@/lib/types";
+
+export interface FilterState {
+  tiers: AnomalyType[];
+  sides: ('BUY' | 'SELL')[];
+  leagues: string[];
+}
 
 interface SearchButtonProps {
   onSearch: (query: string) => void;
   className?: string;
+  value?: string;
+  filters?: FilterState;
+  onFilterChange?: (filters: FilterState) => void;
 }
 
-export function SearchButton({ onSearch, className }: SearchButtonProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const TIER_OPTIONS: { label: string; value: AnomalyType; color: string }[] = [
+  { label: "Standard", value: "STANDARD", color: "bg-zinc-600" },
+  { label: "Whale", value: "WHALE", color: "bg-sky-500" },
+  { label: "Mega", value: "MEGA_WHALE", color: "bg-purple-500" },
+  { label: "Super", value: "SUPER_WHALE", color: "bg-[#8e2a2a]" },
+  { label: "God", value: "GOD_WHALE", color: "bg-yellow-500" },
+];
+
+const LEAGUE_OPTIONS = ["NBA", "NFL", "NHL", "MLB", "UFC", "TENNIS", "SOCCER", "POLITICS", "CRYPTO"]; // Common leagues
+
+export function SearchButton({ onSearch, className, filters, onFilterChange }: SearchButtonProps) {
   const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  useEffect(() => {
-    onSearch(query);
-  }, [query, onSearch]);
+  // Local filter state if not controlled (fallback)
+  const [localFilters, setLocalFilters] = useState<FilterState>({
+    tiers: [],
+    sides: [],
+    leagues: []
+  });
 
-  useEffect(() => {
-    if (isModalOpen && inputRef.current) {
-      // Focus input after modal animation completes
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 300);
-    }
-  }, [isModalOpen]);
+  const activeFilters = filters || localFilters;
+  const handleFilterChange = onFilterChange || setLocalFilters;
 
-  const handleToggle = () => {
-    if (isModalOpen) {
-      setQuery("");
-      setIsModalOpen(false);
-    } else {
-      setIsModalOpen(true);
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value;
+    setQuery(newVal);
+    onSearch(newVal);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setQuery("");
-      setIsModalOpen(false);
-    } else if (e.key === 'Enter') {
-      // Enter key explicitly triggers search (though it already searches on change)
-      e.preventDefault();
-      // Could add additional search logic here if needed
-    }
+  const handleClear = () => {
+    setQuery("");
+    onSearch("");
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setQuery(suggestion);
-    // Focus back to input after selecting suggestion
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
+  const toggleTier = (tier: AnomalyType) => {
+    const newTiers = activeFilters.tiers.includes(tier)
+      ? activeFilters.tiers.filter(t => t !== tier)
+      : [...activeFilters.tiers, tier];
+    handleFilterChange({ ...activeFilters, tiers: newTiers });
   };
 
-  // Minimalist search suggestions
-  const searchSuggestions = [
-    "trump",
-    "election",
-    "crypto",
-    "bitcoin",
-    "sports",
-    "football",
-    "basketball",
-    "whale",
-    "god whale"
-  ];
+  const toggleSide = (side: 'BUY' | 'SELL') => {
+    const newSides = activeFilters.sides.includes(side)
+      ? activeFilters.sides.filter(s => s !== side)
+      : [...activeFilters.sides, side];
+    handleFilterChange({ ...activeFilters, sides: newSides });
+  };
+
+  const toggleLeague = (league: string) => {
+    const newLeagues = activeFilters.leagues.includes(league)
+      ? activeFilters.leagues.filter(l => l !== league)
+      : [...activeFilters.leagues, league];
+    handleFilterChange({ ...activeFilters, leagues: newLeagues });
+  };
+
+  const clearFilters = () => {
+    handleFilterChange({ tiers: [], sides: [], leagues: [] });
+  };
+
+  const hasActiveFilters = activeFilters.tiers.length > 0 || activeFilters.sides.length > 0 || activeFilters.leagues.length > 0;
 
   return (
-    <>
-      {/* Floating Search Button */}
-      <div className={cn("fixed bottom-16 right-4 z-60", className)}>
-        <button
-          onClick={handleToggle}
-          className={cn(
-            "flex items-center justify-center w-12 h-12 rounded-xl",
-            "bg-zinc-950/95 backdrop-blur-xl border-2 border-zinc-600 shadow-[4px_4px_0px_0px_#27272a]",
-            "hover:shadow-[6px_6px_0px_0px_#27272a] hover:-translate-y-1",
-            "text-zinc-400 hover:text-zinc-100 transition-colors duration-200"
-          )}
-        >
-          <Search size={20} />
-        </button>
-      </div>
+    <div className={cn("w-full px-4 pb-4", className)}>
+      <div className="relative group flex flex-col gap-2">
+        {/* Search Bar Container */}
+        <div className="
+          relative flex items-center 
+          bg-black/40 backdrop-blur-md
+          border border-white/5 
+          rounded-xl 
+          transition-colors duration-200
+          focus-within:bg-black/60 focus-within:border-white/10
+          shadow-lg
+        ">
 
-      {/* Search Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4"
-            onClick={() => setIsModalOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="w-full max-w-md mx-auto"
-              onClick={(e) => e.stopPropagation()}
+          {/* Search Icon */}
+          <div className="pl-4 text-zinc-500 group-focus-within:text-zinc-300 transition-colors">
+            <Search size={16} />
+          </div>
+
+          {/* Input */}
+          <input
+            type="text"
+            value={query}
+            onChange={handleChange}
+            placeholder="Search events, teams..."
+            className="
+              flex-1 bg-transparent border-none outline-none 
+              text-xs font-medium tracking-wide text-zinc-300 placeholder-zinc-600
+              py-3 px-3 uppercase
+            "
+            spellCheck={false}
+          />
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-1 pr-2">
+            {/* Clear Button */}
+            <AnimatePresence>
+              {query && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={handleClear}
+                  className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  <X size={14} />
+                </motion.button>
+              )}
+            </AnimatePresence>
+
+            {/* Filter Toggle */}
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={cn(
+                "p-2 rounded-lg transition-all duration-200",
+                isFilterOpen || hasActiveFilters
+                  ? "text-sky-400 bg-sky-500/10"
+                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+              )}
             >
-              <div className="flex items-center bg-zinc-950/95 backdrop-blur-xl border-2 border-zinc-600 shadow-[4px_4px_0px_0px_#27272a] rounded-xl overflow-hidden">
-                <input
-                  ref={inputRef}
-                  type="search"
-                  inputMode="search"
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Search events..."
-                  className="flex-1 bg-transparent border-none outline-none text-zinc-100 placeholder-zinc-500 text-lg px-4 py-4"
-                />
-                <button
-                  onClick={() => {
-                    setQuery("");
-                    setIsModalOpen(false);
-                  }}
-                  className="flex items-center justify-center w-12 h-12 text-zinc-400 hover:text-zinc-100 transition-colors duration-200 border-l border-zinc-600"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+              <ListFilter size={16} />
+              {hasActiveFilters && !isFilterOpen && (
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-sky-500 ring-2 ring-black" />
+              )}
+            </button>
+          </div>
+        </div>
 
-              {/* Search Suggestions */}
-              {!query && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="mt-4 space-y-2"
-                >
-                  <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">
-                    Popular searches
-                  </div>
+        {/* Filter Panel */}
+        <AnimatePresence>
+          {isFilterOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0, marginTop: 0 }}
+              animate={{ height: "auto", opacity: 1, marginTop: 8 }}
+              exit={{ height: 0, opacity: 0, marginTop: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="
+                bg-black/40 backdrop-blur-md
+                border border-white/5 
+                rounded-xl p-4
+                space-y-4
+              ">
+                {/* Header with Clear All */}
+                <div className="flex items-center justify-between pointer-events-none"> {/* pointer-events-none to prevent clicks on header area, but children need events. Actually let's just use regular div */}
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-zinc-500">Advanced Filters</span>
+                  {hasActiveFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-[10px] text-sky-400 hover:text-sky-300 transition-colors pointer-events-auto"
+                    >
+                      RESET ALL
+                    </button>
+                  )}
+                </div>
+
+                {/* Tiers Filter */}
+                <div className="space-y-2">
+                  <div className="text-[10px] text-zinc-500 font-medium ml-1">TIER</div>
                   <div className="flex flex-wrap gap-2">
-                    {searchSuggestions.map((suggestion) => (
+                    {TIER_OPTIONS.map((tier) => (
                       <button
-                        key={suggestion}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="px-3 py-1 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 border border-zinc-700 rounded-md transition-colors duration-200"
+                        key={tier.value}
+                        onClick={() => toggleTier(tier.value)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all duration-200 border",
+                          activeFilters.tiers.includes(tier.value)
+                            ? `border-${tier.color.replace('bg-', '')}/50 ${tier.color} text-white shadow-[0_0_10px_-2px_rgba(255,255,255,0.3)]`
+                            : "border-white/5 bg-white/5 text-zinc-500 hover:bg-white/10 hover:border-white/10 hover:text-zinc-400"
+                        )}
                       >
-                        {suggestion}
+                        {tier.label}
                       </button>
                     ))}
                   </div>
-                </motion.div>
-              )}
+                </div>
+
+                {/* Side Filter */}
+                <div className="space-y-2">
+                  <div className="text-[10px] text-zinc-500 font-medium ml-1">SIDE</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => toggleSide('BUY')}
+                      className={cn(
+                        "flex-1 px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all duration-200 border",
+                        activeFilters.sides.includes('BUY')
+                          ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_-2px_rgba(16,185,129,0.3)]"
+                          : "border-white/5 bg-white/5 text-zinc-500 hover:bg-white/10 hover:border-white/10 hover:text-zinc-400"
+                      )}
+                    >
+                      Buy
+                    </button>
+                    <button
+                      onClick={() => toggleSide('SELL')}
+                      className={cn(
+                        "flex-1 px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all duration-200 border",
+                        activeFilters.sides.includes('SELL')
+                          ? "border-red-500/50 bg-red-500/20 text-red-400 shadow-[0_0_10px_-2px_rgba(239,68,68,0.3)]"
+                          : "border-white/5 bg-white/5 text-zinc-500 hover:bg-white/10 hover:border-white/10 hover:text-zinc-400"
+                      )}
+                    >
+                      Sell
+                    </button>
+                  </div>
+                </div>
+
+                {/* Leagues Filter */}
+                <div className="space-y-2">
+                  <div className="text-[10px] text-zinc-500 font-medium ml-1">LEAGUE</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {LEAGUE_OPTIONS.map((league) => (
+                      <button
+                        key={league}
+                        onClick={() => toggleLeague(league)}
+                        className={cn(
+                          "px-2 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide text-center uppercase transition-all duration-200 border truncate",
+                          activeFilters.leagues.includes(league)
+                            ? "border-sky-500/30 bg-sky-500/10 text-sky-400"
+                            : "border-white/5 bg-white/5 text-zinc-500 hover:bg-white/10 hover:border-white/10 hover:text-zinc-400"
+                        )}
+                      >
+                        {league}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }
+

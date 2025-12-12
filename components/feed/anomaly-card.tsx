@@ -284,7 +284,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                             </span>
                                         </h3>
                                         {(closeTimeLabel || volumeValue || liquidityValue) && (
-                                            <div className="mt-1 flex items-center flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium text-zinc-500">
+                                            <div className="mt-0 flex items-center flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium text-zinc-500">
                                                 {/* Time Left - High urgency signal */}
                                                 {closeTimeLabel && (
                                                     <span className={cn(
@@ -338,7 +338,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                         </div>
 
                         {/* Bottom Row: Outcome, Live Score, Gauge */}
-                        <div className="col-span-2 flex items-end gap-3">
+                        <div className="col-span-2 flex items-end gap-3 relative">
                             <div className="flex items-end z-20">
                                 <div className="flex flex-col justify-end">
                                     <div className="relative group/outcome cursor-default">
@@ -381,17 +381,17 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                                 </div>
                             </div>
 
-                            {/* Shared row for scoreboard + gauge so gauge anchors right even when scoreboard is missing */}
-                            <div className="flex items-end gap-2 md:gap-3 flex-1 min-w-0">
-                                {liveGame && (
-                                    <div className="flex justify-center items-end z-20 flex-1 min-w-0 h-12 md:h-16">
+                            {/* Live Scoreboard - Absolutely positioned and centered */}
+                            {liveGame && (
+                                <div className="absolute bottom-[-18px] left-1/2 transform -translate-x-1/2 z-20">
+                                    <div className="h-20 md:h-24 flex items-end">
                                         <LiveScoreboard game={liveGame} isStandard={isStandard} />
                                     </div>
-                                )}
-
-                                <div className="ml-auto flex items-end justify-end shrink-0 h-12 w-12 md:h-16 md:w-16">
-                                    <Gauge value={odds} label={side} size={64} strokeWidth={2} className="w-full h-full max-md:scale-75" />
                                 </div>
+                            )}
+
+                            <div className="ml-auto flex items-end justify-end shrink-0 h-12 w-12 md:h-16 md:w-16">
+                                <Gauge value={odds} label={side} size={64} strokeWidth={2} className="w-full h-full max-md:scale-75" />
                             </div>
                         </div>
                     </div>

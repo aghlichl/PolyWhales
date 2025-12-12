@@ -13,6 +13,7 @@ import {
   type MarketBaseline,
   type EnhancedSignalMetrics,
   type TierBreakdown,
+  type SignalQuality,
 } from "@/lib/signal-calculator";
 import { isMarketExpired } from "@/lib/utils";
 import type { SignalFactors } from "@/lib/types";
@@ -71,6 +72,10 @@ type InsightPick = {
   signalFactors: SignalFactors;
   isUnusualActivity: boolean;
   isConcentrated: boolean;
+
+  // Hybrid scoring model v2.0 fields
+  signalQuality: SignalQuality;
+  modifierProduct: number;
 
   // Tier-weighted trader metrics
   weightedTraderCount: number;
@@ -277,6 +282,10 @@ export async function GET() {
           isUnusualActivity: false,
           isConcentrated: false,
 
+          // Hybrid scoring model v2.0 fields
+          signalQuality: 'weak' as SignalQuality,
+          modifierProduct: 1.0,
+
           // Tier-weighted trader metrics (initialized)
           weightedTraderCount: 0,
           tierBreakdown: { elite: 0, gold: 0, silver: 0, bronze: 0 },
@@ -455,19 +464,29 @@ export async function GET() {
       pick.isUnusualActivity = enhancedMetrics.isUnusualActivity;
       pick.isConcentrated = enhancedMetrics.isConcentrated;
 
+      // Hybrid model v2.0 fields
+      pick.signalQuality = enhancedMetrics.signalQuality;
+      pick.modifierProduct = enhancedMetrics.modifierProduct;
+
       // Legacy confidence (for backwards compatibility)
       pick.confidence = computeLegacyConfidence(pick);
     }
 
     // Phase 4: Calculate percentile rankings
-    const rawConfidences = activePicks.map(p =>
-      p.signalFactors.volumeContribution +
-      p.signalFactors.rankContribution +
-      p.signalFactors.concentrationContribution +
-      p.signalFactors.recencyContribution +
-      p.signalFactors.directionContribution +
-      (p.signalFactors.alignmentContribution ?? 0)
-    );
+    // Now uses rawConfidence from hybrid model (base × modifiers)
+    const rawConfidences = activePicks.map(p => {
+      // Sum up legacy factor contributions for percentile ranking
+      const legacySum =
+        p.signalFactors.volumeContribution +
+        p.signalFactors.rankContribution +
+        p.signalFactors.concentrationContribution +
+        p.signalFactors.recencyContribution +
+        p.signalFactors.directionContribution +
+        (p.signalFactors.alignmentContribution ?? 0);
+      // The actual raw confidence from hybrid model already accounts for multiplicative effects
+      // We use it scaled up to make percentile distribution work better
+      return legacySum * p.modifierProduct;
+    });
 
     const percentiles = calculatePercentiles(rawConfidences);
 
@@ -504,16 +523,16 @@ export async function GET() {
       .filter(pick => pick.top20Trades > 0) // Strict user requirement: ONLY top trader activity
       .map(pick => {
         // Remove internal tracking fields before returning
-        const { 
-          _walletVolumes, 
-          _timeDecayedTop20Volume, 
-          _topTraderBuyers, 
-          _topTraderSellers, 
-          _topTraderBuyVolume, 
+        const {
+          _walletVolumes,
+          _timeDecayedTop20Volume,
+          _topTraderBuyers,
+          _topTraderSellers,
+          _topTraderBuyVolume,
           _topTraderSellVolume,
           _buyerRanks,
           _sellerRanks,
-          ...cleanPick 
+          ...cleanPick
         } = pick;
         const key = pick.conditionId && pick.outcome ? `${pick.conditionId}::${pick.outcome}` : pick.id;
         return {

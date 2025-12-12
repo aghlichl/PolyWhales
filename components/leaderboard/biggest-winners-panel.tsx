@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { ExpandableSearch } from "@/components/expandable-search";
+import { useDebounce, applyWinnerSearch } from "@/lib/filtering";
 
 import { Badge } from "@/components/ui/badge";
 import { NumericDisplay } from "@/components/ui/numeric-display";
@@ -48,6 +51,15 @@ export function BiggestWinnersPanel() {
     const observerRef = useRef<IntersectionObserver | null>(null);
     const lastPeriodRef = useRef<TimePeriod>(selectedPeriod);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState("");
+    const debouncedQuery = useDebounce(searchQuery, 200);
+
+    // Apply search filter
+    const filteredWinners = useMemo(() => {
+        return applyWinnerSearch(winners, debouncedQuery);
+    }, [winners, debouncedQuery]);
+
     useEffect(() => {
         async function fetchWinners() {
             setLoading(true);
@@ -70,28 +82,30 @@ export function BiggestWinnersPanel() {
             }
         }
         fetchWinners();
+        // Reset search when period changes
+        setSearchQuery("");
     }, [selectedPeriod]);
 
     // Reset or clamp visible count when period changes or data size shrinks
     useEffect(() => {
         if (lastPeriodRef.current !== selectedPeriod) {
             lastPeriodRef.current = selectedPeriod;
-            setVisibleCount(Math.min(PAGE_SIZE, winners.length));
+            setVisibleCount(Math.min(PAGE_SIZE, filteredWinners.length));
             return;
         }
 
         setVisibleCount((prev) => {
-            if (winners.length <= PAGE_SIZE) return winners.length;
-            return Math.min(Math.max(prev, PAGE_SIZE), winners.length);
+            if (filteredWinners.length <= PAGE_SIZE) return filteredWinners.length;
+            return Math.min(Math.max(prev, PAGE_SIZE), filteredWinners.length);
         });
-    }, [selectedPeriod, winners.length]);
+    }, [selectedPeriod, filteredWinners.length]);
 
     const visibleWinners = useMemo(
-        () => winners.slice(0, visibleCount),
-        [winners, visibleCount]
+        () => filteredWinners.slice(0, visibleCount),
+        [filteredWinners, visibleCount]
     );
 
-    const canShowMore = visibleCount < winners.length;
+    const canShowMore = visibleCount < filteredWinners.length;
 
     const lastElementRef = useCallback((node: HTMLDivElement | null) => {
         if (loading) return;
@@ -100,12 +114,12 @@ export function BiggestWinnersPanel() {
         observerRef.current = new IntersectionObserver((entries) => {
             if (!entries[0].isIntersecting) return;
             if (canShowMore) {
-                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, winners.length));
+                setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredWinners.length));
             }
         });
 
         if (node) observerRef.current.observe(node);
-    }, [canShowMore, loading, winners.length]);
+    }, [canShowMore, loading, filteredWinners.length]);
 
     useEffect(() => {
         return () => {
@@ -131,23 +145,50 @@ export function BiggestWinnersPanel() {
 
     return (
         <div className="w-full">
-            {/* Period selector - Glassmorphic pills */}
+            {/* Period selector + Search */}
             <div className="px-4 pb-4">
-                <div className="p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
-                    {PERIODS.map((period) => (
-                        <button
-                            key={period}
-                            onClick={() => setSelectedPeriod(period)}
-                            className={cn(
-                                "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg",
-                                selectedPeriod === period
-                                    ? "bg-white/10 text-white shadow-sm border border-white/5 backdrop-blur-md"
-                                    : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-                            )}
-                        >
-                            {PERIOD_LABELS[period]}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-2">
+                    {/* Period selector - Glassmorphic pills */}
+                    <div className="relative flex-1 p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
+                        {PERIODS.map((period) => {
+                            const isActive = selectedPeriod === period;
+                            return (
+                                <button
+                                    key={period}
+                                    onClick={() => setSelectedPeriod(period)}
+                                    className={cn(
+                                        "relative flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg z-10",
+                                        isActive
+                                            ? "text-white"
+                                            : "text-zinc-500 hover:text-zinc-300"
+                                    )}
+                                >
+                                    {/* Active Background Pill (Animated) */}
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="biggest-winners-period-active"
+                                            className="absolute inset-1 bg-white/10 rounded-lg border border-white/5 backdrop-blur-md shadow-sm"
+                                            transition={{
+                                                type: "spring",
+                                                stiffness: 300,
+                                                damping: 30
+                                            }}
+                                        />
+                                    )}
+
+                                    {PERIOD_LABELS[period]}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Expandable Search (no filters) */}
+                    <ExpandableSearch
+                        query={searchQuery}
+                        onQueryChange={setSearchQuery}
+                        onClear={() => setSearchQuery("")}
+                        placeholder="Search winners..."
+                    />
                 </div>
             </div>
 
@@ -231,6 +272,21 @@ export function BiggestWinnersPanel() {
                     </div>
                 )}
             </div>
+
+            {/* Empty state for search */}
+            {!loading && filteredWinners.length === 0 && winners.length > 0 && (
+                <div className="text-center text-zinc-600 mt-10 px-4">
+                    <div className="space-y-2">
+                        <div>NO MATCHING WINNERS</div>
+                        <button
+                            onClick={() => setSearchQuery("")}
+                            className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
+                        >
+                            Clear Search
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

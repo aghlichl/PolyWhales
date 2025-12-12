@@ -20,6 +20,7 @@ export interface LiveScore {
   homeScoreTrend: 'UP' | 'SAME';
   awayScoreTrend: 'UP' | 'SAME';
   lastUpdated: number;
+  rawEspnEvent?: any;
 }
 
 interface ScoreStore {
@@ -179,6 +180,7 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
                 homeScoreTrend,
                 awayScoreTrend,
                 lastUpdated: now,
+                rawEspnEvent: event,
               };
             });
           }

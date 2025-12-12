@@ -7,7 +7,7 @@ import { Anomaly, UserPreferences as UserPreferencesType } from "@/lib/types";
 import { SlotReel } from "@/components/feed/slot-reel";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
 import { BottomCarousel } from "@/components/bottom-carousel";
-import { SearchButton } from "@/components/search-button";
+import { SearchButton, FilterState } from "@/components/search-button";
 import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { motion } from "framer-motion";
 
@@ -72,11 +72,59 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType, t
   }
 }
 
+// Logic to check advanced filters
+const passesAdvancedFilters = (anomaly: Anomaly, filters: FilterState): boolean => {
+  // 1. Tiers
+  if (filters.tiers.length > 0 && !filters.tiers.includes(anomaly.type)) {
+    return false;
+  }
+
+  // 2. Sides
+  if (filters.sides.length > 0 && !filters.sides.includes(anomaly.side)) {
+    return false;
+  }
+
+  // 3. Leagues
+  if (filters.leagues.length > 0) {
+    const rawLeague = (
+      anomaly.league ||
+      anomaly.analysis?.market_context?.league ||
+      anomaly.sport ||
+      anomaly.analysis?.market_context?.sport ||
+      anomaly.category ||
+      ''
+    ).toUpperCase();
+
+    const matchesLeague = filters.leagues.some(filterLeague => {
+      // Direct match
+      if (rawLeague.includes(filterLeague)) return true;
+
+      // Mappings
+      if (filterLeague === 'SOCCER') {
+        return ['UEFA', 'MLS', 'EPL', 'SOCCER', 'LIGA', 'BUNDESLIGA'].some(s => rawLeague.includes(s));
+      }
+      if (filterLeague === 'POLITICS') {
+        return ['POLITICS', 'ELECTION', 'PRESIDENT', 'SENATE'].some(s => rawLeague.includes(s));
+      }
+      if (filterLeague === 'CRYPTO') {
+        return ['CRYPTO', 'BITCOIN', 'ETHEREUM', 'SOLANA', 'TOKEN'].some(s => rawLeague.includes(s));
+      }
+
+      return false;
+    });
+
+    if (!matchesLeague) return false;
+  }
+
+  return true;
+};
+
 export default function Home() {
   const { anomalies, startStream, isLoading, loadMoreHistory, hasMoreHistory, fetchLeaderboardRanks, leaderboardRanks } = useMarketStore();
   const { preferences, loadPreferences } = usePreferencesStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState<FilterState>({ tiers: [], sides: [], leagues: [] });
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Compute top 20 wallets from leaderboard ranks
@@ -113,9 +161,10 @@ export default function Home() {
     );
   };
 
-  // Filter anomalies based on preferences AND search query
+  // Filter anomalies based on preferences AND search query AND advanced filters
   const filteredAnomalies = anomalies
     .filter(anomaly => passesPreferences(anomaly, preferences, top20Wallets))
+    .filter(anomaly => passesAdvancedFilters(anomaly, filters))
     .filter(anomaly => intelligentSearch(anomaly, searchQuery));
 
   const visibleAnomalies = useMemo(
@@ -223,11 +272,17 @@ export default function Home() {
 
             {currentPage === 1 && (
               <>
+                <SearchButton
+                  onSearch={setSearchQuery}
+                  filters={filters}
+                  onFilterChange={setFilters}
+                />
                 <SlotReel>
                   {visibleAnomalies.map((anomaly) => (
                     <AnomalyCard key={anomaly.id} anomaly={anomaly} />
                   ))}
                 </SlotReel>
+
 
                 {/* Sentinel for Infinite Scroll */}
                 {(canShowMoreLocal || (hasMoreHistory && !searchQuery)) && (
@@ -278,13 +333,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Floating Search Button */}
-        {currentPage === 1 && (
-          <SearchButton
-            onSearch={setSearchQuery}
-            className="lg:right-[calc(33.333%+2rem)] lg:bottom-8"
-          />
-        )}
+
 
         {/* Floating Scroll to Top Button */}
         {currentPage === 1 && (

@@ -17,6 +17,13 @@ type SortKey = "confidence" | "topTraders" | "volume";
 
 const PAGE_SIZE = 20;
 
+// Grouped event for stacked card deck
+interface GroupedEvent {
+  eventTitle: string;
+  picks: AiInsightPick[];
+  topPick: AiInsightPick;
+}
+
 const formatUsdCompact = (value?: number | null) => {
   if (value === null || value === undefined || Number.isNaN(value)) return "--";
   return `$${formatShortNumber(value)}`;
@@ -491,16 +498,56 @@ export function AIInsightsPanel() {
     return picks.slice(0, 50);
   }, [activePicks, sortKey]);
 
-  const visiblePicks = useMemo(
-    () => sortedPicks.slice(0, visibleCount),
-    [sortedPicks, visibleCount]
+  // Group picks by eventTitle for stacked card deck
+  const groupedEvents = useMemo<GroupedEvent[]>(() => {
+    if (!sortedPicks.length) return [];
+
+    const eventMap = new Map<string, AiInsightPick[]>();
+
+    for (const pick of sortedPicks) {
+      const key = pick.eventTitle || "Unknown Event";
+      const existing = eventMap.get(key);
+      if (existing) {
+        existing.push(pick);
+      } else {
+        eventMap.set(key, [pick]);
+      }
+    }
+
+    // Convert to grouped events, sorting picks within each group by confidence
+    const groups: GroupedEvent[] = [];
+    for (const [eventTitle, picks] of eventMap) {
+      // Sort picks within group by confidence (highest first)
+      const sortedGroupPicks = [...picks].sort(
+        (a, b) => getDisplayConfidence(b) - getDisplayConfidence(a)
+      );
+      groups.push({
+        eventTitle,
+        picks: sortedGroupPicks,
+        topPick: sortedGroupPicks[0],
+      });
+    }
+
+    // Sort groups by the top pick's sort key
+    groups.sort((a, b) => {
+      if (sortKey === "volume") return b.topPick.totalVolume - a.topPick.totalVolume;
+      if (sortKey === "topTraders") return (b.topPick.topTraderCount || 0) - (a.topPick.topTraderCount || 0);
+      return getDisplayConfidence(b.topPick) - getDisplayConfidence(a.topPick);
+    });
+
+    return groups;
+  }, [sortedPicks, sortKey]);
+
+  const visibleGroups = useMemo(
+    () => groupedEvents.slice(0, visibleCount),
+    [groupedEvents, visibleCount]
   );
 
-  const hasMore = visibleCount < sortedPicks.length;
+  const hasMore = visibleCount < groupedEvents.length;
 
   useEffect(() => {
-    setVisibleCount(Math.min(PAGE_SIZE, sortedPicks.length));
-  }, [sortedPicks.length, sortKey]);
+    setVisibleCount(Math.min(PAGE_SIZE, groupedEvents.length));
+  }, [groupedEvents.length, sortKey]);
 
   const lastElementRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -509,13 +556,13 @@ export function AIInsightsPanel() {
 
       observerRef.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasMore) {
-          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, sortedPicks.length));
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, groupedEvents.length));
         }
       });
 
       if (node) observerRef.current.observe(node);
     },
-    [hasMore, isLoading, sortedPicks.length]
+    [hasMore, isLoading, groupedEvents.length]
   );
 
   useEffect(() => {
@@ -641,11 +688,11 @@ export function AIInsightsPanel() {
           </div>
         </div>
 
-        <div className="grid gap-2">
-          {visiblePicks.map((pick) => (
-            <SignalRow
-              key={pick.id}
-              pick={pick}
+        <div className="grid gap-3">
+          {visibleGroups.map((group) => (
+            <GroupedSignalCard
+              key={group.eventTitle}
+              group={group}
               onSelectOutcome={setSelectedPick}
             />
           ))}
@@ -822,6 +869,397 @@ const getOutcomeStyle = (stance: "bullish" | "bearish", confidence: number) => {
 
   return baseColor;
 };
+
+// Stacked card deck for grouped events
+function GroupedSignalCard({
+  group,
+  onSelectOutcome
+}: {
+  group: GroupedEvent;
+  onSelectOutcome: (pick: AiInsightPick) => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasMultiplePicks = group.picks.length > 1;
+  const secondaryPicks = group.picks.slice(1);
+
+  const topConfidence = getDisplayConfidence(group.topPick);
+  const topGrade = getConfidenceGrade(group.topPick);
+  const liveGame = useScoreStore(state => state.getGameForTeam(group.topPick.eventTitle || ""));
+
+  const outcomeText = extractMarketContext(group.topPick.marketQuestion, group.topPick.outcome);
+  const outcomeStyle = getOutcomeStyle(group.topPick.stance, topConfidence);
+
+  // Aggregate stats for the top pick
+  const aggregator = useMemo(() => {
+    let gold = 0;
+    let silver = 0;
+    let bronze = 0;
+
+    group.topPick.topRanks.forEach(r => {
+      if (r.rank <= 20) gold++;
+      else if (r.rank <= 100) silver++;
+      else if (r.rank <= 200) bronze++;
+    });
+
+    return { gold, silver, bronze };
+  }, [group.topPick.topRanks]);
+
+  // Confidence history from API (fallback to current confidence)
+  const historyData = useMemo(() => {
+    if (!group.topPick.confidenceHistory || group.topPick.confidenceHistory.length === 0) {
+      return [{ value: topConfidence }];
+    }
+
+    return group.topPick.confidenceHistory.map((h) => ({
+      value: h.value,
+      timestamp: new Date(h.timestamp).getTime(),
+    }));
+  }, [group.topPick.confidenceHistory, topConfidence]);
+
+  return (
+    <div className="relative">
+      {/* Stacked cards visual behind the top card (only visible when collapsed) */}
+      <AnimatePresence>
+        {hasMultiplePicks && !isExpanded && (
+          <>
+            {/* Second card peeking */}
+            {secondaryPicks[0] && (
+              <motion.div
+                initial={{ opacity: 0, y: 0 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 0 }}
+                className={cn(
+                  "absolute inset-x-0 top-0 h-full rounded-2xl border",
+                  "backdrop-blur-sm bg-black/40 border-white/5",
+                  "transform translate-y-2 scale-[0.97] origin-top"
+                )}
+                style={{ zIndex: -1 }}
+              />
+            )}
+            {/* Third card peeking (if 3+ picks) */}
+            {secondaryPicks[1] && (
+              <motion.div
+                initial={{ opacity: 0, y: 0 }}
+                animate={{ opacity: 0.6, y: 0 }}
+                exit={{ opacity: 0, y: 0 }}
+                className={cn(
+                  "absolute inset-x-0 top-0 h-full rounded-2xl border",
+                  "backdrop-blur-sm bg-black/30 border-white/3",
+                  "transform translate-y-4 scale-[0.94] origin-top"
+                )}
+                style={{ zIndex: -2 }}
+              />
+            )}
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main card (top pick) */}
+      <motion.div
+        layout
+        className={cn(
+          "relative group cursor-pointer",
+          "backdrop-blur-sm bg-black/60",
+          "border border-white/10 rounded-2xl",
+          "shadow-2xl",
+          "hover:bg-black/70 hover:border-white/15",
+          "transition-colors duration-200 ease-out"
+        )}
+      >
+        {/* Top Pick Content */}
+        <button
+          type="button"
+          onClick={() => onSelectOutcome(group.topPick)}
+          className={cn(
+            "w-full text-left p-3 md:p-4 grid gap-3 md:gap-4",
+            "grid-cols-[1fr_auto] md:grid-cols-[280px_1fr_auto] items-center"
+          )}
+        >
+          {/* LEFT: Market Info & Stats */}
+          <div className="min-w-0 flex flex-col gap-2 md:gap-0 md:pr-4 md:border-r md:border-white/5 md:h-full md:justify-center">
+            {/* Title - Compact on mobile */}
+            <div className="flex flex-col gap-1.5 mb-1">
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "px-2.5 py-1 rounded-lg text-[11px] uppercase font-black tracking-widest border backdrop-blur-md",
+                  outcomeStyle
+                )}>
+                  {outcomeText}
+                </span>
+                {hasMultiplePicks && (
+                  <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-mono text-zinc-400">
+                    +{secondaryPicks.length} more
+                  </span>
+                )}
+              </div>
+              <h4 className="text-xs md:text-sm text-zinc-200 font-medium line-clamp-1 leading-tight group-hover:text-white transition-colors">
+                {group.eventTitle}
+              </h4>
+            </div>
+
+            {/* Live Score */}
+            {liveGame && (
+              <div className="bg-black/20 border border-white/5 rounded-md overflow-hidden w-fit mt-1">
+                <LiveScoreboard
+                  game={liveGame}
+                  className="py-0.5 px-2 text-[10px] md:text-xs gap-2 md:gap-3"
+                />
+              </div>
+            )}
+
+            {/* Stats Block - Mobile Only */}
+            <div className="flex items-center gap-4 md:hidden mt-1">
+              <div>
+                <div className="text-[8px] text-zinc-500 uppercase tracking-widest mb-0.5">Volume</div>
+                <div className="font-mono text-xs text-zinc-300 font-medium">
+                  {formatUsdCompact(group.topPick.totalVolume)}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[8px] text-zinc-500 uppercase tracking-widest mb-1">Traders</div>
+                <div className="flex items-center gap-1">
+                  {aggregator.gold > 0 && (
+                    <div title="Gold Tier (Top 20)" className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-400/10 border border-amber-400/20 text-[9px] font-mono text-amber-400">
+                      <div className="w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_3px_rgba(251,191,36,0.5)]" />
+                      {aggregator.gold}
+                    </div>
+                  )}
+                  {aggregator.silver > 0 && (
+                    <div title="Silver Tier (Top 100)" className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-zinc-400/10 border border-zinc-400/20 text-[9px] font-mono text-zinc-400">
+                      <div className="w-1 h-1 rounded-full bg-zinc-400" />
+                      {aggregator.silver}
+                    </div>
+                  )}
+                  {aggregator.bronze > 0 && (
+                    <div title="Bronze Tier (Top 200)" className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-orange-700/10 border border-orange-700/20 text-[9px] font-mono text-orange-700">
+                      <div className="w-1 h-1 rounded-full bg-orange-700" />
+                      {aggregator.bronze}
+                    </div>
+                  )}
+                  {aggregator.gold === 0 && aggregator.silver === 0 && aggregator.bronze === 0 && (
+                    <span className="text-zinc-600 text-[9px]">-</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MIDDLE: Stats, Segmentation & Graph (Desktop Only) */}
+          <div className="hidden md:grid grid-cols-[auto_1fr] gap-6 items-center px-2">
+            <div className="flex flex-col gap-2 min-w-[140px]">
+              <div>
+                <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-0.5">Volume</div>
+                <div className="font-mono text-sm text-zinc-300 font-medium">
+                  {formatUsdCompact(group.topPick.totalVolume)}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1.5">Top Traders</div>
+                <div className="flex items-center gap-1.5">
+                  {aggregator.gold > 0 && (
+                    <div title="Gold Tier (Top 20)" className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-400/10 border border-amber-400/20 text-[10px] font-mono text-amber-400">
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]" />
+                      {aggregator.gold}
+                    </div>
+                  )}
+                  {aggregator.silver > 0 && (
+                    <div title="Silver Tier (Top 100)" className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-400/10 border border-zinc-400/20 text-[10px] font-mono text-zinc-400">
+                      <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                      {aggregator.silver}
+                    </div>
+                  )}
+                  {aggregator.bronze > 0 && (
+                    <div title="Bronze Tier (Top 200)" className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-700/10 border border-orange-700/20 text-[10px] font-mono text-orange-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-orange-700" />
+                      {aggregator.bronze}
+                    </div>
+                  )}
+                  {aggregator.gold === 0 && aggregator.silver === 0 && aggregator.bronze === 0 && (
+                    <span className="text-zinc-600 text-[10px]">-</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Chart Area */}
+            <div className="h-16 w-full opacity-50 group-hover:opacity-100 transition-opacity">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={historyData}>
+                  <defs>
+                    <linearGradient id={`grad_group_${group.topPick.id}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
+                  <Tooltip
+                    content={({ payload }) => {
+                      if (!payload?.[0]) return null;
+                      const data = payload[0].payload as { value: number; timestamp?: number };
+                      return (
+                        <div className="bg-black/90 border border-white/10 px-2 py-1 rounded text-xs">
+                          <div className="text-zinc-400">Confidence: {Math.round(data.value)}%</div>
+                          {data.timestamp && (
+                            <div className="text-zinc-600 text-[10px]">
+                              {new Date(data.timestamp).toLocaleTimeString()}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#10b981"
+                    strokeWidth={1.5}
+                    fill={`url(#grad_group_${group.topPick.id})`}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* RIGHT: Grade & Confidence */}
+          <div className="flex flex-col items-end gap-1.5 md:gap-2 md:pl-4 md:border-l md:border-white/5 md:h-full md:justify-center">
+            {/* Chart - Mobile Only */}
+            <div className="h-12 w-20 md:hidden opacity-50 group-hover:opacity-100 transition-opacity">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={historyData}>
+                  <defs>
+                    <linearGradient id={`grad_group_mobile_${group.topPick.id}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#10b981"
+                    strokeWidth={1.5}
+                    fill={`url(#grad_group_mobile_${group.topPick.id})`}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="flex flex-col items-end gap-0.5 md:gap-2">
+              <div className={cn("text-lg md:text-xl font-black leading-none tracking-tighter", topConfidence >= 80 ? "text-emerald-400" : "text-white")}>
+                {topGrade}
+              </div>
+              <div className="text-[9px] md:text-[10px] text-zinc-500 font-mono">{topConfidence}% Conf</div>
+            </div>
+          </div>
+        </button>
+
+        {/* Expand/Collapse toggle for groups with multiple picks */}
+        {hasMultiplePicks && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+            className={cn(
+              "w-full flex items-center justify-center gap-2 py-2 px-4",
+              "border-t border-white/5",
+              "text-[10px] uppercase tracking-widest font-mono",
+              "text-zinc-500 hover:text-zinc-300 transition-colors",
+              "hover:bg-white/[0.02]"
+            )}
+          >
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </motion.div>
+            {isExpanded ? "Hide other outcomes" : `Show ${secondaryPicks.length} more outcome${secondaryPicks.length > 1 ? 's' : ''}`}
+          </button>
+        )}
+      </motion.div>
+
+      {/* Expanded secondary picks */}
+      <AnimatePresence>
+        {isExpanded && secondaryPicks.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="mt-2 space-y-2 pl-4 border-l-2 border-white/10">
+              {secondaryPicks.map((pick, idx) => (
+                <motion.div
+                  key={pick.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ delay: idx * 0.05 }}
+                >
+                  <SecondaryPickRow pick={pick} onSelectOutcome={onSelectOutcome} />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Compact row for secondary picks within an expanded group
+function SecondaryPickRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOutcome: (pick: AiInsightPick) => void }) {
+  const confidence = getDisplayConfidence(pick);
+  const grade = getConfidenceGrade(pick);
+  const outcomeText = extractMarketContext(pick.marketQuestion, pick.outcome);
+  const outcomeStyle = getOutcomeStyle(pick.stance, confidence);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelectOutcome(pick)}
+      className={cn(
+        "group w-full text-left cursor-pointer",
+        "backdrop-blur-sm bg-black/40",
+        "border border-white/5 rounded-xl",
+        "hover:bg-black/50 hover:border-white/10",
+        "p-3 flex items-center justify-between gap-4",
+        "transition-all duration-150"
+      )}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <span className={cn(
+          "px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border backdrop-blur-md shrink-0",
+          outcomeStyle
+        )}>
+          {outcomeText}
+        </span>
+        <span className="text-xs text-zinc-400 font-mono truncate">
+          Vol {formatUsdCompact(pick.totalVolume)}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <div className={cn(
+          "text-sm font-bold tracking-tight",
+          confidence >= 80 ? "text-emerald-400" : "text-zinc-300"
+        )}>
+          {grade}
+        </div>
+        <div className="text-[9px] text-zinc-500 font-mono">{confidence}%</div>
+      </div>
+    </button>
+  );
+}
 
 function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOutcome: (pick: AiInsightPick) => void }) {
   const confidence = getDisplayConfidence(pick);
