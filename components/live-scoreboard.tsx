@@ -76,18 +76,20 @@ export function LiveScoreboard({ game, className }: LiveScoreboardProps) {
             {/* Clock separator */}
             <div className="w-px h-6 md:h-10 bg-white/10 mx-0.5 md:mx-1" />
 
-            {/* Clock & Period */}
-            <div className="flex items-center gap-1.5 md:gap-3 min-w-0 md:min-w-[80px]">
-                <span className="text-xs md:text-base font-semibold text-zinc-100 whitespace-nowrap">
-                    {game.clock}
-                </span>
-                <span className="text-xs md:text-base text-zinc-400 font-medium whitespace-nowrap">
-                    {game.league === 'MLB'
-                        ? (game.period >= 10 ? `Ex` : `${game.period}${['st', 'nd', 'rd'][game.period - 1] || 'th'}`)
-                        : `Q${game.period}`
-                    }
-                </span>
-            </div>
+            {/* Clock & Period - Only show if game has started */}
+            {(game.clock !== "0.0" || game.period !== 0) && (
+                <div className="flex items-center gap-1.5 md:gap-3 min-w-0 md:min-w-[80px]">
+                    <span className="text-xs md:text-base font-semibold text-zinc-100 whitespace-nowrap">
+                        {game.clock}
+                    </span>
+                    <span className="text-xs md:text-base text-zinc-400 font-medium whitespace-nowrap">
+                        {game.league === 'MLB'
+                            ? (game.period >= 10 ? `Ex` : `${game.period}${['st', 'nd', 'rd'][game.period - 1] || 'th'}`)
+                            : `Q${game.period}`
+                        }
+                    </span>
+                </div>
+            )}
         </div>
     );
 }

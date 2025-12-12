@@ -5,7 +5,8 @@ import { useAiInsights } from "@/lib/useAiInsights";
 import { AiInsightPick } from "@/lib/types";
 import { cn, formatShortNumber, isMarketExpired } from "@/lib/utils";
 import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap } from "lucide-react";
-import { useScoreStore, getLiveScoreLogo } from '@/lib/useScoreStore';
+import { useScoreStore } from '@/lib/useScoreStore';
+import { LiveScoreboard } from "@/components/live-scoreboard";
 import svgPathsPrimary from "@/imports/svg-1ltd1kb2kd";
 import svgPathsSecondary from "@/imports/svg-7cdl22zaum";
 import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
@@ -65,16 +66,16 @@ const computeAdjustedConfidence = (pick: Partial<AiInsightPick> & { confidence: 
   const buyVol = pick.topTraderBuyVolume ?? 0;
   const sellVol = pick.topTraderSellVolume ?? 0;
   const volumeForDelta = buyVol + sellVol;
-  const volumeDominance = volumeForDelta > 0 
-    ? Math.abs((buyVol - sellVol) / (volumeForDelta + 1e-6)) 
+  const volumeDominance = volumeForDelta > 0
+    ? Math.abs((buyVol - sellVol) / (volumeForDelta + 1e-6))
     : 0;
 
   // Count dominance (how aligned are traders on one side?)
   const buyCount = pick.topTraderBuyCount ?? 0;
   const sellCount = pick.topTraderSellCount ?? 0;
   const countedTotal = buyCount + sellCount;
-  const countDominance = countedTotal > 0 
-    ? Math.abs((buyCount - sellCount) / (countedTotal + 1e-6)) 
+  const countDominance = countedTotal > 0
+    ? Math.abs((buyCount - sellCount) / (countedTotal + 1e-6))
     : volumeDominance;
 
   // Consensus combines count and volume dominance
@@ -733,7 +734,7 @@ function FeaturedCard({ pick, onClick, variantIndex }: { pick: AiInsightPick; on
   return (
     <div
       onClick={onClick}
-      className="relative h-full w-full cursor-pointer overflow-hidden rounded-3xl border border-white/5 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.06),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.04),transparent_26%),linear-gradient(135deg,rgba(7,11,16,0.85),rgba(10,10,12,0.72))] hover:border-white/10 transition-colors group"
+      className="relative h-full w-full cursor-pointer overflow-hidden rounded-3xl border border-white/5 bg-black hover:border-white/10 transition-colors group"
     >
       <GlassAccents variantIndex={variantIndex} />
       <div className="pointer-events-none absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay" aria-hidden />
@@ -814,6 +815,14 @@ function FeaturedCard({ pick, onClick, variantIndex }: { pick: AiInsightPick; on
   );
 }
 
+const getOutcomeStyle = (stance: "bullish" | "bearish", confidence: number) => {
+  const baseColor = stance === "bullish"
+    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
+    : "bg-rose-500/10 border-rose-500/20 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.1)]";
+
+  return baseColor;
+};
+
 function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOutcome: (pick: AiInsightPick) => void }) {
   const confidence = getDisplayConfidence(pick);
   const grade = getConfidenceGrade(pick);
@@ -848,6 +857,9 @@ function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOut
     }));
   }, [pick.confidenceHistory, confidence]);
 
+  const outcomeText = extractMarketContext(pick.marketQuestion, pick.outcome);
+  const outcomeStyle = getOutcomeStyle(pick.stance, confidence);
+
   return (
     <button
       type="button"
@@ -871,45 +883,32 @@ function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOut
       {/* LEFT: Market Info & Stats (Mobile) / Market Info Only (Desktop) */}
       <div className="min-w-0 flex flex-col gap-2 md:gap-0 md:pr-4 md:border-r md:border-white/5 md:h-full md:justify-center">
         {/* Title - Compact on mobile */}
-        <h4 className="text-xs md:text-sm text-zinc-200 font-semibold line-clamp-1 leading-tight">
-          {pick.eventTitle} | {extractMarketContext(pick.marketQuestion, pick.outcome)}
-        </h4>
+        <div className="flex flex-col gap-1.5 mb-1">
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "px-2.5 py-1 rounded-lg text-[11px] uppercase font-black tracking-widest border backdrop-blur-md",
+              outcomeStyle
+            )}>
+              {outcomeText}
+            </span>
+          </div>
+          <h4 className="text-xs md:text-sm text-zinc-200 font-medium line-clamp-1 leading-tight group-hover:text-white transition-colors">
+            {pick.eventTitle}
+          </h4>
+        </div>
 
         {/* Live Score - Compact on mobile */}
         {liveGame && (
-          <div className="inline-flex items-center gap-1.5 text-[9px] md:text-[10px] font-bold font-mono text-zinc-400 bg-black/20 border border-white/5 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md w-fit">
-            <div className="flex items-center gap-0.5 md:gap-1">
-              {getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName) ? (
-                <img
-                  src={getLiveScoreLogo(liveGame.league, liveGame.awayTeamAbbr, liveGame.awayTeamName)!}
-                  alt={liveGame.awayTeamShort}
-                  className="w-3 h-3 md:w-3.5 md:h-3.5 object-contain"
-                />
-              ) : (
-                <span className="uppercase text-zinc-500 text-[8px] md:text-[9px]">{liveGame.awayTeamShort}</span>
-              )}
-              <span className={cn(liveGame.awayScoreTrend === 'UP' && "text-white")}>{liveGame.awayScore}</span>
-            </div>
-            <span className="text-zinc-600 pb-0.5">:</span>
-            <div className="flex items-center gap-0.5 md:gap-1">
-              {getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName) ? (
-                <img
-                  src={getLiveScoreLogo(liveGame.league, liveGame.homeTeamAbbr, liveGame.homeTeamName)!}
-                  alt={liveGame.homeTeamShort}
-                  className="w-3 h-3 md:w-3.5 md:h-3.5 object-contain"
-                />
-              ) : (
-                <span className="uppercase text-zinc-500 text-[8px] md:text-[9px]">{liveGame.homeTeamShort}</span>
-              )}
-              <span className={cn(liveGame.homeScoreTrend === 'UP' && "text-white")}>{liveGame.homeScore}</span>
-            </div>
-            <div className="w-px h-2.5 md:h-3 bg-white/10 mx-0.5 md:mx-1" />
-            <span className={liveGame.status === 'in_progress' ? "text-red-400 animate-pulse" : ""}>{liveGame.clock}</span>
+          <div className="bg-black/20 border border-white/5 rounded-md overflow-hidden w-fit mt-1">
+            <LiveScoreboard
+              game={liveGame}
+              className="py-0.5 px-2 text-[10px] md:text-xs gap-2 md:gap-3"
+            />
           </div>
         )}
 
         {/* Stats Block - Mobile Only (shown inline on mobile, hidden on desktop where it's in middle column) */}
-        <div className="flex items-center gap-4 md:hidden">
+        <div className="flex items-center gap-4 md:hidden mt-1">
           {/* Volume */}
           <div>
             <div className="text-[8px] text-zinc-500 uppercase tracking-widest mb-0.5">Volume</div>

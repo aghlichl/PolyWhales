@@ -93,7 +93,7 @@ export function DesktopLayout({
                         ) : (
                             <>
                                 {/* LEFT COLUMN */}
-                                <div className="hidden lg:flex lg:flex-col h-full bg-zinc-950/30 min-h-0 overflow-x-hidden relative">
+                                <div className="hidden lg:flex lg:flex-col h-full bg-black min-h-0 overflow-x-hidden relative">
                                     <div className="shrink-0 px-6 py-3 border-b border-zinc-800/30 flex items-center justify-center">
                                         <h2 className="text-center text-sm tracking-wider uppercase">
                                             {activePage === "live"

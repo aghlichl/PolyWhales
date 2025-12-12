@@ -32,3 +32,5 @@ CREATE INDEX "ai_insight_history_conditionId_outcome_snapshotAt_idx" ON "ai_insi
 CREATE INDEX "ai_insight_history_snapshotAt_idx" ON "ai_insight_history"("snapshotAt");
 
 
+
+

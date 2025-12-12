@@ -180,7 +180,7 @@ export const AnomalyCard = memo(function AnomalyCard({ anomaly }: AnomalyCardPro
                     "relative z-10 h-full p-4 transition-all duration-300 ease-out rounded-xl overflow-hidden border backdrop-blur-md",
                     // Standard Tier (Default) - match glass style used elsewhere + hover lift
                     !isGod && !isSuper && !isMega && !isWhale &&
-                    "backdrop-blur-sm bg-black/60 border-black/60 shadow-[5px_5px_0px_0px_rgba(216,217,221,0.30)] group-hover:-translate-y-1 group-hover:bg-black/70 group-hover:border-black/70 group-hover:shadow-[6px_6px_0px_0px_rgba(216,217,221,0.30)]",
+                    "backdrop-blur-sm bg-black/60 border border-white/10 shadow-[5px_5px_0px_0px_rgba(216,217,221,0.30)] group-hover:-translate-y-1 group-hover:bg-black/70 group-hover:border-white/15 group-hover:shadow-[6px_6px_0px_0px_rgba(216,217,221,0.30)]",
 
                     // Whale Tier - Subtle Blue
                     isWhale && "bg-[radial-gradient(circle_at_22%_18%,rgba(99,179,237,0.45)_0%,rgba(14,30,54,0.78)_40%,rgba(8,14,34,0.95)_78%)] border-sky-400/50 shadow-[5px_5px_0px_0px_rgba(56,189,248,0.24)] group-hover:shadow-[6px_6px_0px_0px_rgba(56,189,248,0.32)] group-hover:border-sky-300/70 group-hover:-translate-y-1",
