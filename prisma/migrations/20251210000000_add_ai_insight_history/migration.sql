@@ -34,3 +34,4 @@ CREATE INDEX "ai_insight_history_snapshotAt_idx" ON "ai_insight_history"("snapsh
 
 
 
+

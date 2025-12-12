@@ -132,14 +132,14 @@ export function BiggestWinnersPanel() {
     return (
         <div className="w-full">
             {/* Period selector - Glassmorphic pills */}
-            <div className="px-4 pb-4 pt-2">
+            <div className="px-4 pb-4">
                 <div className="p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
                     {PERIODS.map((period) => (
                         <button
                             key={period}
                             onClick={() => setSelectedPeriod(period)}
                             className={cn(
-                                "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg",
+                                "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg",
                                 selectedPeriod === period
                                     ? "bg-white/10 text-white shadow-sm border border-white/5 backdrop-blur-md"
                                     : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
