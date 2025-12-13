@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
-import PrivyWrapper from "@/components/providers/privy-provider";
+
 
 const spotifyMix = localFont({
   src: [
@@ -37,7 +37,7 @@ export default function RootLayout({
       <body
         className="antialiased bg-background text-foreground font-sans"
       >
-        <PrivyWrapper>{children}</PrivyWrapper>
+        {children}
       </body>
     </html>
   );
