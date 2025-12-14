@@ -19,7 +19,7 @@ import { isMarketExpired } from "@/lib/utils";
 import type { SignalFactors } from "@/lib/types";
 import { CONFIG } from "@/lib/config";
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+const FOUR_HOURS_MS = 12 * 60 * 60 * 1000;
 
 type LeaderboardWallet = {
   walletAddress: string;

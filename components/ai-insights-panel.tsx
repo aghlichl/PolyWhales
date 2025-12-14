@@ -457,7 +457,7 @@ export function AIInsightsPanel() {
   useEffect(() => useScoreStore.getState().startPolling(), []);
 
   const activePicks = useMemo(() => {
-    const graceMs = 4 * 60 * 60 * 1000; // keep markets visible for 4h after start/close
+    const graceMs = 12 * 60 * 60 * 1000; // keep markets visible for 4h after start/close
     return (
       data?.picks?.filter(
         (pick) => !pick.isResolved && !isMarketExpired(pick.closeTime, pick.resolutionTime, graceMs)
