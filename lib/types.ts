@@ -365,6 +365,7 @@ export interface AiInsightRank {
     rank: number;
     accountName: string | null;
     totalPnl: number;
+    outcomeVolumeUsd?: number;
 }
 
 /** Signal factor contributions for explainability */

@@ -29,6 +29,7 @@ interface AiInsightsTradesModalProps {
     displayName?: string | null;
     rank?: number;
     totalPnl?: number;
+    outcomeVolumeUsd?: number;
   } | null;
   onClose: () => void;
 }
@@ -49,11 +50,14 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
     const controller = new AbortController();
     const params = new URLSearchParams();
 
-    if (isWalletMode && trader?.walletAddress) {
-      params.set("wallet", trader.walletAddress);
-    } else if (pick) {
+    // If pick is available, always filter by it (even in wallet mode)
+    if (pick) {
       if (pick.conditionId) params.set("conditionId", pick.conditionId);
       if (pick.outcome) params.set("outcome", pick.outcome);
+    }
+
+    if (isWalletMode && trader?.walletAddress) {
+      params.set("wallet", trader.walletAddress);
     }
 
     setTrades([]);
@@ -62,7 +66,7 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
     setError(null);
     setVisibleCount(PAGE_SIZE);
 
-    const endpoint = isWalletMode ? "/api/wallet-trades" : "/api/ai-insights/trades";
+    const endpoint = pick ? "/api/ai-insights/trades" : (isWalletMode ? "/api/wallet-trades" : "/api/ai-insights/trades");
 
     fetch(`${endpoint}?${params.toString()}`, { signal: controller.signal })
       .then(async (res) => {
@@ -84,7 +88,7 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
       .finally(() => setIsLoading(false));
 
     return () => controller.abort();
-  }, [isOpen, pick?.conditionId, pick?.outcome, trader?.walletAddress, isWalletMode]);
+  }, [isOpen, pick?.conditionId, pick?.outcome, trader?.walletAddress, isWalletMode, pick]);
 
   const headerTitle = isWalletMode
     ? (trader?.displayName || (trader?.walletAddress
@@ -93,13 +97,13 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
     : pick?.eventTitle || "Unknown market";
 
   const headerOutcome = isWalletMode
-    ? (trader?.rank ? `Rank #${trader.rank}` : "Last 24h trades")
+    ? (pick?.outcome ? `Trading ${pick.outcome} · Rank #${trader?.rank ?? '-'}` : (trader?.rank ? `Rank #${trader.rank}` : "Last 24h trades"))
     : pick?.outcome || "Outcome";
 
   const kicker = isWalletMode ? "Wallet trades · Last 24h" : "Top-20 wallet trades · Last 24h";
 
   const emptyMessage = isWalletMode
-    ? "No trades from this wallet in the last 24h."
+    ? (pick ? `No trades found for this wallet on ${pick.outcome}.` : "No trades from this wallet in the last 24h.")
     : "No recent top-20 trades for this outcome in the last 24h.";
 
   const note = useMemo(() => {
@@ -190,7 +194,11 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
           <div className="flex items-start justify-between gap-6 mt-2">
             <div className="space-y-1 min-w-0 flex-1">
               <h2 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-200 to-zinc-500 uppercase tracking-tight leading-[0.9] line-clamp-2">
-                {headerTitle}
+                {headerTitle}{isWalletMode && typeof trader?.outcomeVolumeUsd === 'number' && (
+                  <span className="text-xl text-zinc-500 font-medium ml-2 align-middle">
+                    · ${new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(trader.outcomeVolumeUsd)}
+                  </span>
+                )}
               </h2>
               <div className="flex items-center gap-2 text-zinc-400">
                 <Layers className="w-3.5 h-3.5" />

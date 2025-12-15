@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAiInsights } from "@/lib/useAiInsights";
-import { AiInsightPick } from "@/lib/types";
+import { AiInsightPick, AiInsightRank } from "@/lib/types";
 import { cn, formatShortNumber, isMarketExpired } from "@/lib/utils";
 import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap, ArrowUp, ArrowDown } from "lucide-react";
 import { useScoreStore } from '@/lib/useScoreStore';
@@ -12,6 +12,7 @@ import svgPathsSecondary from "@/imports/svg-7cdl22zaum";
 import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { TraderTallyBoard } from "@/components/trader-tally-board";
 
 type SortKey = "confidence" | "topTraders" | "volume";
 
@@ -448,6 +449,7 @@ export function AIInsightsPanel() {
   const { data, isLoading, refresh } = useAiInsights(90_000);
   const [sortKey, setSortKey] = useState<SortKey>("confidence");
   const [selectedPick, setSelectedPick] = useState<AiInsightPick | null>(null);
+  const [selectedTrader, setSelectedTrader] = useState<AiInsightRank | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
@@ -514,7 +516,7 @@ export function AIInsightsPanel() {
       }
     }
 
-    // Convert to grouped events, sorting picks within each group by confidence
+    // Convert to grouped events, sorting picks within group by confidence
     const groups: GroupedEvent[] = [];
     for (const [eventTitle, picks] of eventMap) {
       // Sort picks within group by confidence (highest first)
@@ -697,6 +699,7 @@ export function AIInsightsPanel() {
                   key={group.eventTitle}
                   group={group}
                   onSelectOutcome={setSelectedPick}
+                  onSelectTrader={setSelectedTrader}
                 />
               );
             }
@@ -721,7 +724,14 @@ export function AIInsightsPanel() {
 
       <AiInsightsTradesModal
         pick={selectedPick}
-        onClose={() => setSelectedPick(null)}
+        trader={selectedTrader ? {
+          walletAddress: selectedTrader.address,
+          displayName: selectedTrader.accountName,
+          rank: selectedTrader.rank,
+          totalPnl: selectedTrader.totalPnl,
+          outcomeVolumeUsd: selectedTrader.outcomeVolumeUsd,
+        } : null}
+        onClose={() => { setSelectedPick(null); setSelectedTrader(null); }}
       />
     </div>
   );
@@ -880,10 +890,12 @@ function FeaturedCard({ pick, onClick, variantIndex }: { pick: AiInsightPick; on
 // Specialized card for Head-to-Head matchups (e.g. Sports)
 function VersusMatchupCard({
   group,
-  onSelectOutcome
+  onSelectOutcome,
+  onSelectTrader,
 }: {
   group: GroupedEvent;
   onSelectOutcome: (pick: AiInsightPick) => void;
+  onSelectTrader?: (trader: AiInsightRank) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -1028,8 +1040,6 @@ function VersusMatchupCard({
     if (!pick) return <div className="flex-1 opacity-20 text-xs flex items-center justify-center">No Data</div>;
 
     const confidence = overrideConfidence ?? getDisplayConfidence(pick);
-    const grade = confidenceToGrade(confidence);
-
     // Aggregator logic (reused)
     let gold = 0;
     pick.topRanks.forEach(r => { if (r.rank <= 20) gold++; });
@@ -1172,6 +1182,25 @@ function VersusMatchupCard({
           {renderMLStats(homeML, homeColor, true, homeConf)}
         </div>
       </div>
+
+      {/* Top Traders Tally Board */}
+      <TraderTallyBoard
+        awayTraders={awayML?.topRanks || []}
+        homeTraders={homeML?.topRanks || []}
+        awayLabel={awayName}
+        homeLabel={homeName}
+        awayColor={awayColor}
+        homeColor={homeColor}
+        onTraderClick={(trader, side) => {
+          if (!onSelectTrader) return;
+          const pick = side === "away" ? awayML : homeML;
+          if (pick) {
+            // We also need to select the outcome so the modal has context
+            onSelectOutcome(pick);
+            onSelectTrader(trader);
+          }
+        }}
+      />
 
       {/* Footer / Expandable Others */}
       {otherPicks.length > 0 && (
