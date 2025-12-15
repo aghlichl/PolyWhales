@@ -418,6 +418,7 @@ export interface AiInsightPick {
     stance: 'bullish' | 'bearish';
     confidence: number;
     latestTradeAt: string | null;
+    snapshotPrice?: number; // Price at time of signal generation (for calculating movement)
 
     // ═══════════════════════════════════════════════════════════════════════
     // ENHANCED QUANT METRICS (optional for backwards compatibility)

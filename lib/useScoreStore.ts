@@ -15,8 +15,12 @@ export interface LiveScore {
   // Trends
   homeTeamAbbr: string;
   homeTeamName: string; // Nickname e.g. "Lakers"
+  homeTeamColor?: string;
+  homeTeamAltColor?: string;
   awayTeamAbbr: string;
   awayTeamName: string; // Nickname e.g. "Celtics"
+  awayTeamColor?: string;
+  awayTeamAltColor?: string;
   homeScoreTrend: 'UP' | 'SAME';
   awayScoreTrend: 'UP' | 'SAME';
   lastUpdated: number;
@@ -171,10 +175,14 @@ export const useScoreStore = create<ScoreStore>((set, get) => ({
                 homeTeamShort: home.team?.shortDisplayName || home.team?.name || '',
                 homeTeamAbbr: home.team?.abbreviation || '',
                 homeTeamName: home.team?.name || '', // Nickname
+                homeTeamColor: home.team?.color ? `#${home.team.color}` : undefined,
+                homeTeamAltColor: home.team?.alternateColor ? `#${home.team.alternateColor}` : undefined,
                 awayTeam: away.team?.displayName || '',
                 awayTeamShort: away.team?.shortDisplayName || away.team?.name || '',
                 awayTeamAbbr: away.team?.abbreviation || '',
                 awayTeamName: away.team?.name || '', // Nickname
+                awayTeamColor: away.team?.color ? `#${away.team.color}` : undefined,
+                awayTeamAltColor: away.team?.alternateColor ? `#${away.team.alternateColor}` : undefined,
                 homeScore,
                 awayScore,
                 homeScoreTrend,

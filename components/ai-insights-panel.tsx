@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAiInsights } from "@/lib/useAiInsights";
 import { AiInsightPick } from "@/lib/types";
 import { cn, formatShortNumber, isMarketExpired } from "@/lib/utils";
-import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap, ArrowUp, ArrowDown } from "lucide-react";
 import { useScoreStore } from '@/lib/useScoreStore';
 import { LiveScoreboard } from "@/components/live-scoreboard";
 import svgPathsPrimary from "@/imports/svg-1ltd1kb2kd";
@@ -689,13 +689,25 @@ export function AIInsightsPanel() {
         </div>
 
         <div className="grid gap-3">
-          {visibleGroups.map((group) => (
-            <GroupedSignalCard
-              key={group.eventTitle}
-              group={group}
-              onSelectOutcome={setSelectedPick}
-            />
-          ))}
+          {visibleGroups.map((group) => {
+            const isVersus = group.eventTitle?.toLowerCase().includes(" vs.");
+            if (isVersus) {
+              return (
+                <VersusMatchupCard
+                  key={group.eventTitle}
+                  group={group}
+                  onSelectOutcome={setSelectedPick}
+                />
+              );
+            }
+            return (
+              <GroupedSignalCard
+                key={group.eventTitle}
+                group={group}
+                onSelectOutcome={setSelectedPick}
+              />
+            );
+          })}
           {hasMore && (
             <div
               ref={lastElementRef}
@@ -862,6 +874,345 @@ function FeaturedCard({ pick, onClick, variantIndex }: { pick: AiInsightPick; on
   );
 }
 
+
+
+// Specialized card for Head-to-Head matchups (e.g. Sports)
+// Specialized card for Head-to-Head matchups (e.g. Sports)
+function VersusMatchupCard({
+  group,
+  onSelectOutcome
+}: {
+  group: GroupedEvent;
+  onSelectOutcome: (pick: AiInsightPick) => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Strict assumption per user request: [Away] vs [Home]
+  const titleParts = group.eventTitle.split(/\s+vs\.?\s+/i);
+  const awayName = titleParts[0]?.trim();
+  const homeName = titleParts[1]?.trim();
+
+  // Try to match live game data using individual team names instead of full title
+  const liveGame = useScoreStore(state =>
+    state.getGameForTeam(awayName || homeName || group.topPick.eventTitle || "")
+  );
+
+  // Bucket picks into Away ML, Home ML, and Other (Spreads/Totals/Props)
+  const { awayML, homeML, otherPicks } = useMemo(() => {
+    let awayPick: AiInsightPick | undefined;
+    let homePick: AiInsightPick | undefined;
+    const others: AiInsightPick[] = [];
+
+    // Heuristic: If outcome name matches team name, it's a Moneyline bet
+    group.picks.forEach(pick => {
+      const outcome = pick.outcome?.toLowerCase() || "";
+      const q = pick.marketQuestion?.toLowerCase() || "";
+
+      // Strict matching for ML: outcome must "include" team name but NOT be a spread/total
+      // Actually standard Polymarket sports ML outcome IS the team name.
+      const isSpread = q.includes("handicap") || q.includes("spread") || outcome.match(/[+-]\d+(\.\d+)?$/);
+      const isTotal = q.includes("total") || q.includes("over/under") || outcome.startsWith("over") || outcome.startsWith("under");
+
+      if (!isSpread && !isTotal) {
+        if (outcome.includes(awayName?.toLowerCase() || "___")) {
+          if (!awayPick || getDisplayConfidence(pick) > getDisplayConfidence(awayPick)) {
+            if (awayPick) others.push(awayPick);
+            awayPick = pick;
+          } else {
+            others.push(pick);
+          }
+          return;
+        }
+        if (outcome.includes(homeName?.toLowerCase() || "___")) {
+          if (!homePick || getDisplayConfidence(pick) > getDisplayConfidence(homePick)) {
+            if (homePick) others.push(homePick);
+            homePick = pick;
+          } else {
+            others.push(pick);
+          }
+          return;
+        }
+      }
+      others.push(pick);
+    });
+
+    return {
+      awayML: awayPick,
+      homeML: homePick,
+      otherPicks: others.sort((a, b) => getDisplayConfidence(b) - getDisplayConfidence(a))
+    };
+  }, [group.picks, awayName, homeName]);
+
+  // Use raw confidence scores
+  const { awayConf, homeConf } = useMemo(() => {
+    const rawAway = awayML ? getDisplayConfidence(awayML) : 0;
+    const rawHome = homeML ? getDisplayConfidence(homeML) : 0;
+
+    return {
+      awayConf: rawAway,
+      homeConf: rawHome
+    };
+  }, [awayML, homeML]);
+
+  // Colors from API or default (with contrast adjustment)
+  const adjustColor = (c?: string) => {
+    if (!c) return "#ffffff";
+    const hex = c.toLowerCase();
+    if (hex === "#000000" || hex === "#000" || hex === "black") return "#ffffff";
+    // Check brightness for very dark colors
+    if (hex.startsWith("#")) {
+      try {
+        const h = hex.replace("#", "");
+        const r = parseInt(h.length === 3 ? h[0] + h[0] : h.substring(0, 2), 16);
+        const g = parseInt(h.length === 3 ? h[1] + h[1] : h.substring(2, 4), 16);
+        const b = parseInt(h.length === 3 ? h[2] + h[2] : h.substring(4, 6), 16);
+        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        if (luma < 20) return "#ffffff";
+      } catch (e) { }
+    }
+    return c;
+  };
+
+  const awayColor = adjustColor(liveGame?.awayTeamColor || liveGame?.awayTeamAltColor || "#3b82f6"); // Blue default
+  const homeColor = adjustColor(liveGame?.homeTeamColor || liveGame?.homeTeamAltColor || "#ef4444"); // Red default
+
+  // Combined Chart Data
+  const chartData = useMemo(() => {
+    if (!awayML && !homeML) return [];
+
+    // Merge histories based on timestamp
+    const map = new Map<number, { time: number; away?: number; home?: number }>();
+
+    if (awayML?.confidenceHistory) {
+      awayML.confidenceHistory.forEach(h => {
+        const t = new Date(h.timestamp).getTime();
+        const existing = map.get(t) || { time: t };
+        existing.away = h.value;
+        map.set(t, existing);
+      });
+    } else if (awayML) {
+      // Single point
+      const t = Date.now();
+      map.set(t, { time: t, away: getDisplayConfidence(awayML) });
+    }
+
+    if (homeML?.confidenceHistory) {
+      homeML.confidenceHistory.forEach(h => {
+        const t = new Date(h.timestamp).getTime();
+        const existing = map.get(t) || { time: t };
+        existing.home = h.value;
+        map.set(t, existing);
+      });
+    } else if (homeML) {
+      const t = Date.now();
+      const existing = map.get(t) || { time: t };
+      existing.home = getDisplayConfidence(homeML);
+      map.set(t, existing);
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.time - b.time).map(point => {
+      if (point.away !== undefined && point.home !== undefined) {
+        const delta = point.away - point.home;
+        return {
+          time: point.time,
+          away: Math.max(1, Math.min(99, 50 + delta / 2)),
+          home: Math.max(1, Math.min(99, 50 - delta / 2))
+        };
+      }
+      return point;
+    });
+  }, [awayML, homeML]);
+
+  // Helper to render stats for a ML side
+  const renderMLStats = (pick: AiInsightPick | undefined, color: string, alignRight: boolean, overrideConfidence?: number) => {
+    if (!pick) return <div className="flex-1 opacity-20 text-xs flex items-center justify-center">No Data</div>;
+
+    const confidence = overrideConfidence ?? getDisplayConfidence(pick);
+    const grade = confidenceToGrade(confidence);
+
+    // Aggregator logic (reused)
+    let gold = 0;
+    pick.topRanks.forEach(r => { if (r.rank <= 20) gold++; });
+
+    return (
+      <div
+        onClick={() => onSelectOutcome(pick)}
+        className={cn(
+          "flex-1 flex flex-col justify-between py-1 cursor-pointer hover:bg-white/5 rounded-xl px-2 transition-colors",
+          alignRight ? "items-end text-right" : "items-start text-left"
+        )}
+      >
+        <div className="space-y-0.5">
+          <div className={cn("text-xs font-bold truncate max-w-[120px]", alignRight && "ml-auto")}>
+            {extractMarketContext(pick.marketQuestion, pick.outcome)}
+          </div>
+          {pick.latestPrice > 0 && (
+            <div className={cn("text-lg font-mono leading-none tracking-tight", alignRight && "ml-auto")}>
+              {formatCents(pick.latestPrice)}
+              {(() => {
+                const change = pick.snapshotPrice ? pick.latestPrice - pick.snapshotPrice : 0;
+                if (Math.abs(change) >= 0.001) {
+                  const isUp = change > 0;
+                  return (
+                    <span className={cn("text-[10px] ml-1.5 align-top", isUp ? "text-emerald-400" : "text-rose-400")}>
+                      {isUp ? "↑" : "↓"}{Math.round(Math.abs(change) * 100)}¢
+                    </span>
+                  )
+                }
+                return null;
+              })()}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <div className={cn("text-[10px] text-zinc-500 font-mono", alignRight ? "justify-end" : "justify-start")}>
+            Vol {formatUsdCompact(pick.totalVolume)}
+          </div>
+          <div className={cn("flex flex-col", alignRight ? "items-end" : "items-start")}>
+            <div className="text-xl font-black leading-none" style={{ color }}>
+              {alignRight ? `${homeName} ${awayConf > homeConf ? '-' : '+'}${Math.abs(Math.round(awayConf - homeConf))}%` : `${awayName} ${awayConf > homeConf ? '+' : '-'}${Math.abs(Math.round(awayConf - homeConf))}%`}
+            </div>
+            <div className="text-[9px] text-zinc-600 font-mono">{confidence}% Conf</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative backdrop-blur-sm bg-black/60 border border-white/10 rounded-2xl shadow-2xl overflow-hidden group">
+      {/* Header */}
+      <div className="flex items-center justify-between p-3 border-b border-white/5 bg-black/20">
+        <h4 className="text-sm text-zinc-200 font-bold tracking-tight px-1 flex gap-2">
+          <span style={{ color: awayColor }}>{awayName}</span>
+          <span className="text-zinc-600">vs</span>
+          <span style={{ color: homeColor }}>{homeName}</span>
+        </h4>
+        {liveGame && (
+          <LiveScoreboard game={liveGame} className="py-0.5 px-2 text-[10px] gap-2 mr-2 scale-90 origin-right" />
+        )}
+      </div>
+
+      {/* Main Content: ML Stats + Combined Chart */}
+      <div className="flex h-[140px] relative">
+        {/* Away Stats */}
+        <div className="w-[120px] sm:w-[160px] flex flex-col border-r border-white/5 p-2 bg-gradient-to-r from-white/[0.02] to-transparent">
+          {renderMLStats(awayML, awayColor, false, awayConf)}
+        </div>
+
+        {/* Combined Chart */}
+        <div className="flex-1 relative">
+          <div className="absolute inset-0 top-4 bottom-4 px-2 opacity-60 hover:opacity-100 transition-opacity">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="grad_away" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={awayColor} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={awayColor} stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="grad_home" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={homeColor} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={homeColor} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
+                <Tooltip
+                  content={({ payload, label }) => {
+                    if (!payload || payload.length === 0) return null;
+                    return (
+                      <div className="bg-black/90 border border-white/10 px-3 py-2 rounded-lg text-xs shadow-xl backdrop-blur-md">
+                        <div className="mb-1 text-zinc-500 font-mono text-[10px]">
+                          {new Date(label).toLocaleTimeString()}
+                        </div>
+                        {payload.map((entry: any) => (
+                          <div key={entry.name} className="flex items-center gap-2 mb-0.5">
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: entry.color }} />
+                            <span className="text-zinc-300">
+                              {entry.name === 'away' ? awayName : homeName}:
+                            </span>
+                            <span className="font-bold text-white ml-auto">
+                              {Math.round(entry.value)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="away"
+                  name="away"
+                  stroke={awayColor}
+                  strokeWidth={2}
+                  fill="url(#grad_away)"
+                  connectNulls
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="home"
+                  name="home"
+                  stroke={homeColor}
+                  strokeWidth={2}
+                  fill="url(#grad_home)"
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+
+        </div>
+
+        {/* Home Stats */}
+        <div className="w-[120px] sm:w-[160px] flex flex-col border-l border-white/5 p-2 bg-gradient-to-l from-white/[0.02] to-transparent">
+          {renderMLStats(homeML, homeColor, true, homeConf)}
+        </div>
+      </div>
+
+      {/* Footer / Expandable Others */}
+      {otherPicks.length > 0 && (
+        <div className="border-t border-white/5 bg-white/[0.01]">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full flex items-center justify-center gap-2 py-2 text-[10px] uppercase tracking-widest text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02] transition-all"
+          >
+            <span>{isExpanded ? "Hide" : "Show"} {otherPicks.length} other bets</span>
+            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
+              <ArrowDown className="w-3 h-3" />
+            </motion.div>
+          </button>
+
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2">
+                  {otherPicks.map(pick => (
+                    <SecondaryPickRow key={pick.id} pick={pick} onSelectOutcome={onSelectOutcome} />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Helpers needed for VersusMatchupCard
+function normalizeTeam(name: string): string {
+  return name.toLowerCase().trim();
+}
+
 const getOutcomeStyle = (stance: "bullish" | "bearish", confidence: number) => {
   const baseColor = stance === "bullish"
     ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
@@ -1009,6 +1360,29 @@ function GroupedSignalCard({
 
             {/* Stats Block - Mobile Only */}
             <div className="flex items-center gap-4 md:hidden mt-1">
+              {/* Price & Movement */}
+              {(group.topPick.latestPrice > 0) && (
+                <div>
+                  <div className="text-[8px] text-zinc-500 uppercase tracking-widest mb-0.5">Price</div>
+                  <div className="flex items-center gap-1.5 font-mono text-xs text-zinc-200 font-medium">
+                    <span>{formatCents(group.topPick.latestPrice)}</span>
+                    {(() => {
+                      const change = group.topPick.snapshotPrice ? group.topPick.latestPrice - group.topPick.snapshotPrice : 0;
+                      if (Math.abs(change) < 0.001) return null;
+                      const isUp = change > 0;
+                      return (
+                        <span className={cn(
+                          "flex items-center text-[10px]",
+                          isUp ? "text-emerald-400" : "text-rose-400"
+                        )}>
+                          {isUp ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <div className="text-[8px] text-zinc-500 uppercase tracking-widest mb-0.5">Volume</div>
                 <div className="font-mono text-xs text-zinc-300 font-medium">
@@ -1048,6 +1422,30 @@ function GroupedSignalCard({
           {/* MIDDLE: Stats, Segmentation & Graph (Desktop Only) */}
           <div className="hidden md:grid grid-cols-[auto_1fr] gap-6 items-center px-2">
             <div className="flex flex-col gap-2 min-w-[140px]">
+              {/* Price & Movement */}
+              {(group.topPick.latestPrice > 0) && (
+                <div>
+                  <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-0.5">Price</div>
+                  <div className="flex items-center gap-2 font-mono text-xl text-white font-medium tracking-tight">
+                    <span>{formatCents(group.topPick.latestPrice)}</span>
+                    {(() => {
+                      const change = group.topPick.snapshotPrice ? group.topPick.latestPrice - group.topPick.snapshotPrice : 0;
+                      if (Math.abs(change) < 0.001) return null;
+                      const isUp = change > 0;
+                      return (
+                        <div className={cn(
+                          "flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full border backdrop-blur-sm",
+                          isUp ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                        )}>
+                          {isUp ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                          <span className="font-bold">{Math.round(Math.abs(change) * 100)}¢</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-0.5">Volume</div>
                 <div className="font-mono text-sm text-zinc-300 font-medium">
