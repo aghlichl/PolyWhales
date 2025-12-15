@@ -1123,7 +1123,7 @@ function VersusMatchupCard({
                     return (
                       <div className="bg-black/90 border border-white/10 px-3 py-2 rounded-lg text-xs shadow-xl backdrop-blur-md">
                         <div className="mb-1 text-zinc-500 font-mono text-[10px]">
-                          {new Date(label).toLocaleTimeString()}
+                          {label && typeof label === 'number' ? new Date(label).toLocaleTimeString() : 'N/A'}
                         </div>
                         {payload.map((entry: any) => (
                           <div key={entry.name} className="flex items-center gap-2 mb-0.5">
