@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMarketStore } from "@/lib/store";
 import { AnomalyCard } from "@/components/feed/anomaly-card";
-import { cn } from "@/lib/utils";
+import { cn, isSportsAnomaly } from "@/lib/utils";
 import { NumericDisplay } from "@/components/ui/numeric-display";
 import { TopTradesPeriod } from "@/lib/client/api";
 import { motion } from "framer-motion";
@@ -11,6 +11,7 @@ import { ExpandableSearch } from "@/components/expandable-search";
 import type { FilterState } from "@/components/search-button";
 import { useDebounce, applyWhaleFilters, applyWhaleSearch } from "@/lib/filtering";
 import type { AnomalyType } from "@/lib/types";
+import { useCategoryFilter } from "@/lib/useCategoryFilter";
 
 const PERIODS: TopTradesPeriod[] = ["today", "weekly", "monthly", "max"];
 
@@ -52,6 +53,7 @@ export function TopWhales() {
     hasMore,
     loadMoreTopTrades
   } = useMarketStore();
+  const { isSportsMode } = useCategoryFilter();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastPeriodRef = useRef<TopTradesPeriod>(selectedPeriod);
@@ -65,9 +67,13 @@ export function TopWhales() {
   });
   const debouncedQuery = useDebounce(searchQuery, 200);
 
-  // Apply filter pipeline: base data -> filters -> search -> slice
+  // Apply filter pipeline: base data -> category filter -> filters -> search -> slice
   const filteredTrades = useMemo(() => {
-    let result = topTrades;
+    // First filter by category (sports vs markets)
+    let result = topTrades.filter(trade => {
+      const isSports = isSportsAnomaly(trade);
+      return isSportsMode ? isSports : !isSports;
+    });
 
     // Apply advanced filters (Tier/Side/League)
     result = applyWhaleFilters(result, filters);
@@ -76,7 +82,7 @@ export function TopWhales() {
     result = applyWhaleSearch(result, debouncedQuery);
 
     return result;
-  }, [topTrades, filters, debouncedQuery]);
+  }, [topTrades, filters, debouncedQuery, isSportsMode]);
 
   const visibleTrades = useMemo(
     () => filteredTrades.slice(0, visibleCount),

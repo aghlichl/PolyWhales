@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAiInsights } from "@/lib/useAiInsights";
 import { AiInsightPick, AiInsightRank } from "@/lib/types";
-import { cn, formatShortNumber, isMarketExpired } from "@/lib/utils";
+import { cn, formatShortNumber, isMarketExpired, isSportsAnomaly } from "@/lib/utils";
 import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap, ArrowUp, ArrowDown } from "lucide-react";
 import { useScoreStore } from '@/lib/useScoreStore';
 import { LiveScoreboard } from "@/components/live-scoreboard";
@@ -13,6 +13,7 @@ import { AiInsightsTradesModal } from "@/components/ai-insights-trades-modal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { TraderTallyBoard } from "@/components/trader-tally-board";
+import { useCategoryFilter } from "@/lib/useCategoryFilter";
 
 type SortKey = "confidence" | "topTraders" | "volume";
 
@@ -447,6 +448,7 @@ function extractMarketContext(question: string | null | undefined, outcome: stri
 
 export function AIInsightsPanel() {
   const { data, isLoading, refresh } = useAiInsights(90_000);
+  const { activeCategory, isSportsMode } = useCategoryFilter();
   const [sortKey, setSortKey] = useState<SortKey>("confidence");
   const [selectedPick, setSelectedPick] = useState<AiInsightPick | null>(null);
   const [selectedTrader, setSelectedTrader] = useState<AiInsightRank | null>(null);
@@ -460,12 +462,20 @@ export function AIInsightsPanel() {
 
   const activePicks = useMemo(() => {
     const graceMs = 12 * 60 * 60 * 1000; // keep markets visible for 4h after start/close
-    return (
-      data?.picks?.filter(
-        (pick) => !pick.isResolved && !isMarketExpired(pick.closeTime, pick.resolutionTime, graceMs)
-      ) ?? []
-    );
-  }, [data?.picks]);
+    const basePicks = data?.picks?.filter(
+      (pick) => !pick.isResolved && !isMarketExpired(pick.closeTime, pick.resolutionTime, graceMs)
+    ) ?? [];
+
+    // Filter by category (sports vs markets)
+    return basePicks.filter(pick => {
+      const pickIsSports = isSportsAnomaly({
+        event: pick.eventTitle || '',
+        sport: null,
+        analysis: null
+      });
+      return isSportsMode ? pickIsSports : !pickIsSports;
+    });
+  }, [data?.picks, isSportsMode]);
 
   // Featured: Top 5 by confidence then volume
   const featuredTrades = useMemo(() => {

@@ -86,3 +86,30 @@ export function isMarketExpired(
   if (candidateTs === null) return false;
   return candidateTs < (nowMs - graceMs);
 }
+
+// Sports detection keywords
+export const SPORTS_KEYWORDS = ['vs.', 'spread:', 'win on 202', 'counter-strike'];
+
+// Helper function to check if an anomaly is sports-related
+// Imported types inline to avoid circular dependencies
+export function isSportsAnomaly(anomaly: {
+  event: string;
+  sport?: string | null;
+  analysis?: {
+    market_context?: {
+      sport?: string | null;
+      league?: string | null;
+    };
+  } | null;
+}): boolean {
+  const isSports = Boolean(
+    anomaly.sport ||
+    anomaly.analysis?.market_context?.sport ||
+    anomaly.analysis?.market_context?.league
+  );
+  const keywordMatch = SPORTS_KEYWORDS.some(keyword =>
+    anomaly.event.toLowerCase().includes(keyword.toLowerCase())
+  );
+  return isSports || keywordMatch;
+}
+

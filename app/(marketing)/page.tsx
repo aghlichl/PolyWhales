@@ -30,7 +30,6 @@ export default function LandingPage() {
     return (
         <main className="relative w-screen h-screen overflow-hidden bg-[#050505] text-white font-mono flex flex-col items-center justify-center selection:bg-[#00FF94] selection:text-black">
 
-            {/* 0. Video Intro */}
             <AnimatePresence>
                 {!videoEnded && (
                     <motion.div

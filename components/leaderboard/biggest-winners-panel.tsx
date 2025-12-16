@@ -148,7 +148,7 @@ export function BiggestWinnersPanel() {
             <div className="relative sticky top-0 z-30 bg-black/50 backdrop-blur-xl border-b border-white/5 px-4 py-3">
                 <div className="flex items-center gap-2">
                     {/* Period selector */}
-                    <div className="relative flex-1 p-1 rounded-xl bg-black/40 border border-white/5 flex gap-1 shadow-inner shadow-black/50">
+                    <div className="relative flex-1 p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
                         {PERIODS.map((period) => {
                             const isActive = selectedPeriod === period;
                             return (
@@ -156,7 +156,7 @@ export function BiggestWinnersPanel() {
                                     key={period}
                                     onClick={() => setSelectedPeriod(period)}
                                     className={cn(
-                                        "relative flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg z-10 overflow-hidden",
+                                        "relative flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg z-10",
                                         isActive
                                             ? "text-white"
                                             : "text-zinc-500 hover:text-zinc-300"
@@ -165,13 +165,11 @@ export function BiggestWinnersPanel() {
                                     {isActive && (
                                         <motion.div
                                             layoutId="bw-period-active"
-                                            className="absolute inset-0 bg-white/10 rounded-lg border border-white/10 shadow-[0_0_15px_-3px_rgba(255,255,255,0.1)]"
+                                            className="absolute inset-1 bg-white/10 rounded-lg border border-white/5 backdrop-blur-md shadow-sm"
                                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                        >
-                                            <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent opacity-50" />
-                                        </motion.div>
+                                        />
                                     )}
-                                    <span className="relative z-10">{PERIOD_LABELS[period]}</span>
+                                    {PERIOD_LABELS[period]}
                                 </button>
                             );
                         })}

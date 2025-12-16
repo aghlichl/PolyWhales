@@ -10,6 +10,8 @@ import { BottomCarousel } from "@/components/bottom-carousel";
 import { SearchButton, FilterState } from "@/components/search-button";
 import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { motion } from "framer-motion";
+import { isSportsAnomaly } from "@/lib/utils";
+import { useCategoryFilter, Category, CategoryProvider } from "@/lib/useCategoryFilter";
 
 
 import { HybridHeader } from "@/components/hybrid-header";
@@ -42,16 +44,9 @@ function passesPreferences(anomaly: Anomaly, preferences: UserPreferencesType, t
     }
   }
 
-  // Check sports filter FIRST - hide events containing "vs."
-  const isSports = Boolean(
-    anomaly.sport ||
-    anomaly.analysis?.market_context?.sport ||
-    anomaly.analysis?.market_context?.league
-  );
-  const sportsKeywordMatch = ['vs.', 'spread:', 'win on 202', 'counter-strike'].some(keyword =>
-    anomaly.event.toLowerCase().includes(keyword)
-  );
-  if (!preferences.showSports && (isSports || sportsKeywordMatch)) {
+  // NOTE: Sports filtering is now handled by category selection in sidebar
+  // The showSports preference is still respected for backwards compatibility
+  if (!preferences.showSports && isSportsAnomaly(anomaly)) {
     return false;
   }
 
@@ -119,9 +114,22 @@ const passesAdvancedFilters = (anomaly: Anomaly, filters: FilterState): boolean 
   return true;
 };
 
-export default function Home() {
+// Filter by category (sports vs markets)
+const passesCategoryFilter = (anomaly: Anomaly, category: Category): boolean => {
+  const isSports = isSportsAnomaly(anomaly);
+
+  if (category === "sports") {
+    return isSports;
+  } else {
+    // Markets = everything that is NOT sports
+    return !isSports;
+  }
+};
+
+function TerminalContent() {
   const { anomalies, startStream, isLoading, loadMoreHistory, hasMoreHistory, fetchLeaderboardRanks, leaderboardRanks } = useMarketStore();
   const { preferences, loadPreferences } = usePreferencesStore();
+  const { activeCategory } = useCategoryFilter();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>({ tiers: [], sides: [], leagues: [] });
@@ -161,8 +169,9 @@ export default function Home() {
     );
   };
 
-  // Filter anomalies based on preferences AND search query AND advanced filters
+  // Filter anomalies based on category, preferences, search query, and advanced filters
   const filteredAnomalies = anomalies
+    .filter(anomaly => passesCategoryFilter(anomaly, activeCategory))
     .filter(anomaly => passesPreferences(anomaly, preferences, top20Wallets))
     .filter(anomaly => passesAdvancedFilters(anomaly, filters))
     .filter(anomaly => intelligentSearch(anomaly, searchQuery));
@@ -222,13 +231,15 @@ export default function Home() {
   // Only depend on startStream, not preferences since we use a getter function
   // that dynamically gets current preferences without needing to restart the stream
 
-  // Determine center panel title based on current page
+  // Determine center panel title based on current page and category
   const getCenterTitle = () => {
     switch (currentPage) {
       case 0:
         return <><span className="text-fuchsia-400 animate-pulse">AI</span> INSIGHTS</>;
       case 1:
-        return <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
+        return activeCategory === "sports"
+          ? <><span className="text-green-400 animate-pulse">LIVE</span> SPORTS FEED</>
+          : <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
       case 2:
         return <>TOP <span className="text-orange-400 animate-pulse">TRADERS</span></>;
       case 3:
@@ -236,7 +247,9 @@ export default function Home() {
       case 4:
         return <>BIGGEST <span className="text-green-400 animate-pulse">WINS</span></>;
       default:
-        return <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
+        return activeCategory === "sports"
+          ? <><span className="text-green-400 animate-pulse">LIVE</span> SPORTS FEED</>
+          : <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
     }
   };
 
@@ -253,6 +266,7 @@ export default function Home() {
       leftTitle={<><span className="text-fuchsia-400 animate-pulse">AI</span> INSIGHTS</>}
       rightTitle={<>TOP <span className="text-orange-400 animate-pulse">TRADERS</span></>}
       fourthTitle={<>TOP <span className="text-blue-400 animate-pulse">WHALES</span></>}
+
     >
       <main className="bg-background relative">
 
@@ -291,7 +305,8 @@ export default function Home() {
 
                 {filteredAnomalies.length === 0 && !isLoading && (
                   <div className="text-center text-zinc-600 mt-20">
-                    {searchQuery ? `NO RESULTS FOR "${searchQuery.toUpperCase()}"` : "WAITING FOR SIGNAL..."}
+                    {searchQuery ? `NO RESULTS FOR "${searchQuery.toUpperCase()}"` :
+                      activeCategory === "sports" ? "NO SPORTS SIGNALS YET..." : "WAITING FOR SIGNAL..."}
                   </div>
                 )}
 
@@ -343,5 +358,13 @@ export default function Home() {
         )}
       </main>
     </DesktopLayout>
+  );
+}
+
+export default function Home() {
+  return (
+    <CategoryProvider>
+      <TerminalContent />
+    </CategoryProvider>
   );
 }
