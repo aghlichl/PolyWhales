@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import { cn, SPORTS_KEYWORDS } from "@/lib/utils";
-import { Activity, BarChart2, Settings, Trophy, TrendingUp, Goal, ChevronRight } from "lucide-react";
+import { Activity, BarChart2, Settings, Trophy, TrendingUp, Goal, ChevronRight, Palette } from "lucide-react";
 import { Basketball02Icon, AmericanFootballIcon, IceHockeyIcon, BaseballBatIcon, FootballIcon } from "hugeicons-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoginButton } from "@/components/auth/login-button";
 import { UserPreferencesModal } from "@/components/user-preferences-modal";
+import { useTheme, THEMES, type Theme } from "@/lib/useTheme";
 import type { League } from "@/lib/teamMeta";
 
 // Re-export for backwards compatibility
@@ -56,6 +57,7 @@ interface SidebarNavigationProps {
 export function SidebarNavigation({ activePage, onPageChange }: SidebarNavigationProps) {
     const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const { theme, changeTheme } = useTheme();
 
     const activeCategory = activePage.split("-")[0] as Category;
     const activeSubPage = activePage.split("-")[1] as SubPage;
@@ -183,6 +185,25 @@ export function SidebarNavigation({ activePage, onPageChange }: SidebarNavigatio
                         <div className="flex justify-center scale-75 origin-center">
                             <LoginButton compact={true} />
                         </div>
+
+                        {/* Theme Selection */}
+                        <NavItem
+                            isActive={false}
+                            icon={<Palette className="w-4 h-4" />}
+                            label="THEME"
+                            colorClass="text-pink-400"
+                            onClick={() => { }}
+                        >
+                            {({ close }) => (
+                                <ThemePopoutMenu
+                                    isVisible={true}
+                                    activeTheme={theme}
+                                    onSelect={(t) => {
+                                        changeTheme(t);
+                                    }}
+                                />
+                            )}
+                        </NavItem>
 
                         {/* Preferences */}
                         <NavItem
@@ -346,5 +367,59 @@ function PopoutOption({
                 {label}
             </span>
         </button>
+    );
+}
+
+// Theme Popout Menu Component
+function ThemePopoutMenu({
+    isVisible,
+    activeTheme,
+    onSelect
+}: {
+    isVisible: boolean;
+    activeTheme: Theme;
+    onSelect: (theme: Theme) => void;
+}) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -10, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "backOut" }}
+            className="absolute left-full top-1/2 -translate-y-1/2 ml-4 flex flex-col gap-1 p-1.5 rounded-xl border border-white/10 bg-surface-1/90 backdrop-blur-xl shadow-2xl z-50 min-w-[120px]"
+        >
+            {/* Invisible Bridge */}
+            <div className="absolute right-full top-0 bottom-0 w-6 bg-transparent" />
+
+            {THEMES.map((themeItem) => (
+                <button
+                    key={themeItem.id}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect(themeItem.id);
+                    }}
+                    className={cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 w-full text-left",
+                        activeTheme === themeItem.id
+                            ? "bg-white/10"
+                            : "hover:bg-white/5"
+                    )}
+                >
+                    <div
+                        className={cn(
+                            "w-3.5 h-3.5 rounded-full shadow-sm",
+                            themeItem.id === 'black' ? "border border-white/60" : "border border-white/20"
+                        )}
+                        style={{ backgroundColor: themeItem.color }}
+                    />
+                    <span className={cn(
+                        "text-[10px] font-bold tracking-widest uppercase",
+                        activeTheme === themeItem.id ? "text-white" : "text-zinc-500"
+                    )}>
+                        {themeItem.label}
+                    </span>
+                </button>
+            ))}
+        </motion.div>
     );
 }
