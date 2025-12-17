@@ -266,7 +266,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                             <div className="flex-1 min-w-0">
                                 {/* Type Badge Row */}
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className={cn("text-xs md:text-sm font-bold px-3 py-1 border rounded-full bg-black/60 backdrop-blur-sm", themeColor)}>
+                                    <span className={cn("text-xs md:text-sm font-bold px-3 py-1 border rounded-full bg-surface-1/60 backdrop-blur-sm", themeColor)}>
                                         {anomaly.type.replace('_', ' ')}
                                     </span>
                                     {isInsider && (
@@ -318,7 +318,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                 </div>
 
                 {/* Unified Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-3 md:p-4 lg:p-6 border-b border-zinc-800 bg-black/20">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-3 md:p-4 lg:p-6 border-b border-zinc-800 bg-surface-1/20">
                     {/* 1. Liquidity */}
                     <div className="bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/50 flex flex-col justify-center">
                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5">Liq</span>
@@ -426,7 +426,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                             <span className="w-1 h-3 bg-blue-500 rounded-full" />
                             Price History ({outcome})
                         </h3>
-                        <div className="h-32 md:h-40 lg:h-48 xl:h-56 w-full bg-black/20 rounded-xl border border-zinc-800/50 p-1 md:p-2 [&_*]:outline-none [&_*]:focus:outline-none">
+                        <div className="h-32 md:h-40 lg:h-48 xl:h-56 w-full bg-surface-1/20 rounded-xl border border-zinc-800/50 p-1 md:p-2 [&_*]:outline-none [&_*]:focus:outline-none">
                             {isLoadingHistory ? (
                                 <div className="h-full flex items-center justify-center text-zinc-600 text-xs md:text-sm animate-pulse">Loading chart data...</div>
                             ) : historyData?.priceHistory?.length ? (
@@ -516,7 +516,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                             <span className="w-1 h-3 bg-emerald-500 rounded-full" />
                             Recent Wallet Activity
                         </h3>
-                        <div className="h-32 md:h-40 lg:h-48 xl:h-56 w-full bg-black/20 rounded-xl border border-zinc-800/50 p-1 md:p-2 [&_*]:outline-none [&_*]:focus:outline-none">
+                        <div className="h-32 md:h-40 lg:h-48 xl:h-56 w-full bg-surface-1/20 rounded-xl border border-zinc-800/50 p-1 md:p-2 [&_*]:outline-none [&_*]:focus:outline-none">
                             {isLoadingHistory ? (
                                 <div className="h-full flex items-center justify-center text-zinc-600 text-xs md:text-sm animate-pulse">Loading wallet data...</div>
                             ) : historyData?.walletHistory?.length ? (
@@ -725,7 +725,7 @@ export function TradeDetailsModal({ isOpen, onClose, anomaly }: TradeDetailsModa
                     {displayAccountName && (
                         <div className={cn(
                             "flex flex-col gap-3 p-3 md:p-4 rounded-xl border mt-4",
-                            "bg-black/30",
+                            "bg-surface-1/30",
                             isGod ? "border-yellow-500/20" :
                                 isSuper ? "border-red-500/20" :
                                     isMega ? "border-purple-500/20" :

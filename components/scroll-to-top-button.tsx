@@ -70,7 +70,7 @@ export function ScrollToTopButton({
         className={cn(
           "flex items-center justify-center w-10 h-10",
           // Neo-brutalist dark base
-          "bg-zinc-950/95 backdrop-blur-xl rounded-xl",
+          "bg-surface-1/95 backdrop-blur-xl rounded-xl",
           // Thin neon accent border
           "border border-primary/40",
           // Chunky shadow

@@ -34,19 +34,12 @@ type BiggestWinner = {
 };
 
 // Colors for top ranks
-const MEDAL_COLORS = {
-    1: "from-yellow-300 via-amber-200 to-yellow-500", // Gold
-    2: "from-slate-300 via-zinc-200 to-slate-400",   // Silver
-    3: "from-orange-300 via-amber-300 to-orange-400"  // Bronze
-};
-
-const RANK_BADGE_COLORS = [
-    "bg-amber-500", // 1
-    "bg-zinc-400",  // 2
-    "bg-orange-500", // 3
-    "bg-purple-500", // 4
-    "bg-blue-500", // 5
-    "bg-emerald-500" // 6+
+const RANK_COLORS = [
+    "#F59E0B", // Gold
+    "#06B6D4", // Cyan
+    "#F97316", // Orange
+    "#8B5CF6", // Purple
+    "#10B981"  // Emerald
 ];
 
 export function BiggestWinnersPanel() {
@@ -141,14 +134,11 @@ export function BiggestWinnersPanel() {
 
     return (
         <div className="w-full relative">
-            {/* Ambient Background Glow */}
-            <div className="absolute top-0 left-0 right-0 h-96 bg-green-500/5 blur-[100px] pointer-events-none rounded-full -translate-y-1/2 opacity-30" />
-
             {/* Header Controls */}
-            <div className="relative sticky top-0 z-30 bg-black/50 backdrop-blur-xl border-b border-white/5 px-4 py-3">
+            <div className="relative sticky top-0 z-30 px-4 py-3">
                 <div className="flex items-center gap-2">
                     {/* Period selector */}
-                    <div className="relative flex-1 p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
+                    <div className="relative flex-1 p-1 rounded-xl bg-surface-1/20 backdrop-blur-sm border border-white/5 flex gap-1">
                         {PERIODS.map((period) => {
                             const isActive = selectedPeriod === period;
                             return (
@@ -186,7 +176,7 @@ export function BiggestWinnersPanel() {
             </div>
 
             {/* Content Area */}
-            <div className="relative p-4 space-y-3 min-h-[500px]">
+            <div className="relative p-4 pl-14 space-y-3 min-h-[500px]">
                 {loading && winners.length === 0 ? (
                     <div className="flex flex-col items-center justify-center pt-20 gap-3">
                         <div className="w-6 h-6 border-2 border-green-500/30 border-t-green-400 rounded-full animate-spin" />
@@ -211,12 +201,23 @@ export function BiggestWinnersPanel() {
                                         transition={{ duration: 0.3, delay: index * 0.05 }}
                                         className="group relative"
                                     >
+                                        {/* Rank indicator - Floating style matching TopWhales */}
+                                        <div className="absolute -left-10 top-1/2 -translate-y-1/2 z-10">
+                                            <div className={cn(
+                                                "w-8 h-8 rounded-lg flex items-center justify-center backdrop-blur-sm shadow-inner",
+                                                "font-black text-sm border border-white/5 bg-linear-to-b from-white/10 to-white/5",
+                                                "transition-transform duration-200 group-hover:scale-105"
+                                            )} style={{ color: RANK_COLORS[index % RANK_COLORS.length] }}>
+                                                <NumericDisplay value={index + 1} size="xs" variant="bold" />
+                                            </div>
+                                        </div>
+
                                         {/* Card Container */}
                                         <div className={cn(
                                             "relative overflow-hidden rounded-xl border transition-all duration-300",
                                             isTop3
-                                                ? "bg-zinc-900/40 backdrop-blur-md border-white/10 hover:border-white/20 hover:bg-zinc-800/40 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.15)]"
-                                                : "bg-zinc-950/40 backdrop-blur-sm border-white/5 hover:border-white/10 hover:bg-zinc-900/60"
+                                                ? "bg-zinc-900/60 backdrop-blur-md border-white/10 hover:border-white/20 hover:bg-zinc-800/60 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.15)]"
+                                                : "bg-surface-2/60 backdrop-blur-sm border-white/5 hover:border-white/10 hover:bg-zinc-900/60"
                                         )}>
 
                                             {/* Top 3 Glow Effect */}
@@ -226,18 +227,7 @@ export function BiggestWinnersPanel() {
 
                                             <div className="relative flex items-center p-3 sm:p-4 gap-4">
 
-                                                {/* Rank Badge */}
-                                                <div className="flex flex-col items-center justify-center shrink-0 w-10">
-                                                    <div className={cn(
-                                                        "w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shadow-lg ring-1 ring-white/10 relative",
-                                                        isTop3
-                                                            ? `bg-linear-to-br ${MEDAL_COLORS[index + 1 as 1 | 2 | 3]} text-black`
-                                                            : "bg-zinc-800 text-zinc-400 border border-white/5"
-                                                    )}>
-                                                        <span className="relative z-10">#{index + 1}</span>
-                                                        {isTop3 && <div className="absolute inset-0 bg-white/40 blur-sm rounded-lg animate-pulse" />}
-                                                    </div>
-                                                </div>
+                                                {/* Removed old rank badge */}
 
                                                 {/* User Avatar & Info */}
                                                 <div className="flex-1 min-w-0 flex items-center gap-3">

@@ -1,27 +1,5 @@
 @import "tailwindcss";
 
-:root {
-  --background: #050505;
-  --foreground: #E0E0E0;
-  --primary: #00FF94;
-  --secondary: #FF0055;
-  --gold: #FFD700;
-  --muted: #888888;
-  --card: #000000;
-  --border: #27272a;
-
-  /* Radius System */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-full: 9999px;
-
-  /* Ticker defaults */
-  --ticker-speed: 250s;
-  --ticker-gap: 22px;
-}
 
 @font-face {
   font-family: 'Spotify Mix';
@@ -31,14 +9,26 @@
 }
 
 :root {
-  --background: #050505;
-  --foreground: #E0E0E0;
-  --primary: #00FF94;
-  --secondary: #FF0055;
-  --gold: #FFD700;
-  --muted: #888888;
-  --card: #000000;
-  --border: #27272a;
+  /* Warm Graphite — Darker 7 (super low-contrast, premium) */
+  --background: #030304;
+  --foreground: #E3D9C8;
+  --primary: #1BCB8B;
+  --secondary: #FF1E57;
+  --gold: #D7A33F;
+  --muted: rgba(227, 217, 200, 0.58);
+  --card: #090909;
+  --surface-1: #060606;
+  --surface-2: #0B0B0B;
+  --border: rgba(255, 255, 255, 0.05);
+  --borderSoft: rgba(255, 255, 255, 0.032);
+  --hairline: rgba(255, 255, 255, 0.075);
+  --text: rgba(227, 217, 200, 0.92);
+  --border-subtle: rgba(255, 255, 255, 0.042);
+
+
+
+
+
 
   /* Radius System */
   --radius-xs: 4px;
@@ -61,7 +51,13 @@
   --color-gold: var(--gold);
   --color-muted: var(--muted);
   --color-card: var(--card);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
   --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-borderSoft: var(--borderSoft);
+  --color-hairline: var(--hairline);
+  --color-text: var(--text);
 
   --font-sans: var(--font-spotify-mix);
   --font-mono: var(--font-spotify-mix);
@@ -374,8 +370,13 @@
   }
 
   @keyframes scan {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(500%); }
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(500%);
+    }
   }
 
 }
@@ -455,6 +456,31 @@ body {
 }
 
 /* Custom utilities */
+.panel-surface {
+  background-color: var(--surface-1);
+  border: 1px solid var(--borderSoft);
+}
+
+.card-surface {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.card-surface::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--hairline);
+  pointer-events: none;
+}
+
+/* Custom utilities */
 .scrollbar-hide {
   -ms-overflow-style: none;
   /* Internet Explorer 10+ */
@@ -473,7 +499,8 @@ body {
 }
 
 /* Global scrollbar hiding - Phase 1 */
-html, body {
+html,
+body {
   /* Hide scrollbars on the root elements */
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -505,7 +532,8 @@ body::-webkit-scrollbar {
 }
 
 /* Edge/IE specific */
-@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+@media screen and (-ms-high-contrast: active),
+(-ms-high-contrast: none) {
   * {
     -ms-overflow-style: none !important;
   }
@@ -525,6 +553,7 @@ body::-webkit-scrollbar {
     -webkit-overflow-scrolling: touch;
   }
 }
+
 /* Utilities added for AI Insights Panel */
 .mask-gradient-right {
   mask-image: linear-gradient(to right, black 85%, transparent 100%);
@@ -534,20 +563,30 @@ body::-webkit-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
 @keyframes border-dance {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .run-border-animation {
   position: relative;
   overflow: hidden;
 }
+
 /* Optional subtle shine effect if needed, or just keep it simple */
 
 /* Enhanced Animation for active badges */
@@ -558,17 +597,23 @@ body::-webkit-scrollbar {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent);
   animation: shimmer 3s infinite;
 }
 
 @keyframes shimmer {
-  0% { left: -100%; }
-  50% { left: 100%; }
-  100% { left: 100%; }
+  0% {
+    left: -100%;
+  }
+
+  50% {
+    left: 100%;
+  }
+
+  100% {
+    left: 100%;
+  }
 }

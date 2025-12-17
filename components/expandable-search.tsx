@@ -100,8 +100,8 @@ export function ExpandableSearch({
                         onClick={handleExpand}
                         className={cn(
                             "relative p-2 rounded-lg transition-all duration-200",
-                            "bg-black/20 backdrop-blur-sm border border-white/5",
-                            "hover:bg-black/40 hover:border-white/10",
+                            "bg-surface-1/20 backdrop-blur-sm border border-white/5",
+                            "hover:bg-surface-1/40 hover:border-white/10",
                             "text-zinc-500 hover:text-zinc-300"
                         )}
                         aria-label="Search"
@@ -125,11 +125,11 @@ export function ExpandableSearch({
                         <div
                             className={cn(
                                 "relative flex items-center min-w-[240px]",
-                                "bg-black/40 backdrop-blur-md",
+                                "bg-surface-1/40 backdrop-blur-md",
                                 "border border-white/5",
                                 "rounded-xl",
                                 "transition-colors duration-200",
-                                "focus-within:bg-black/60 focus-within:border-white/10",
+                                "focus-within:bg-surface-1/60 focus-within:border-white/10",
                                 "shadow-lg"
                             )}
                         >
@@ -206,7 +206,7 @@ export function ExpandableSearch({
                                     >
                                         <div
                                             className={cn(
-                                                "bg-black/40 backdrop-blur-md",
+                                                "bg-surface-1/40 backdrop-blur-md",
                                                 "border border-white/5",
                                                 "rounded-xl p-3"
                                             )}

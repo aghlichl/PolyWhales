@@ -44,7 +44,7 @@ export function SidebarNavigation({ activePage, onPageChange }: SidebarNavigatio
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: -80, opacity: 0 }}
                         transition={{ duration: 0.3, ease: "circOut" }}
-                        className="h-auto py-6 px-2 ml-2 rounded-full border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl flex flex-col gap-4 items-center z-50 min-w-[60px]"
+                        className="h-auto py-6 px-2 ml-2 rounded-full border border-white/10 bg-surface-1 shadow-2xl flex flex-col gap-4 items-center z-50 min-w-[60px]"
                     >
                         {/* Sports Section */}
                         <NavItem
@@ -186,7 +186,7 @@ function PopoutMenu({
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "backOut" }}
-            className="absolute left-full top-1/2 -translate-y-1/2 ml-4 flex flex-col gap-1 p-1.5 rounded-xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-2xl z-50 min-w-[120px]"
+            className="absolute left-full top-1/2 -translate-y-1/2 ml-4 flex flex-col gap-1 p-1.5 rounded-xl border border-white/10 bg-surface-1/90 backdrop-blur-xl shadow-2xl z-50 min-w-[120px]"
         >
             {/* Abstract Decorative Line */}
             <div className={cn("absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full opacity-50", colorClass.replace("text-", "bg-"))} />

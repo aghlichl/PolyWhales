@@ -47,7 +47,7 @@ export function BottomCarousel({ currentPage, onPageChange }: BottomCarouselProp
   return (
     <div className="w-full">
       {/* Glass Container */}
-      <div className="relative w-full border-t border-white/5 bg-black/80 backdrop-blur-xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
+      <div className="relative w-full border-t border-white/5 bg-surface-1/80 backdrop-blur-xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
         {/* Top Shine Line */}
         <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
 

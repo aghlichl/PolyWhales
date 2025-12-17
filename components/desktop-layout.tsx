@@ -83,7 +83,7 @@ function DesktopLayoutInner({
                         {isChartsView ? (
                             <>
                                 {/* Charts: Top Traders */}
-                                <div className="flex flex-col h-full bg-black min-h-0 overflow-x-hidden relative">
+                                <div className="flex flex-col h-full bg-background min-h-0 overflow-x-hidden relative">
                                     <div className="shrink-0 px-6 py-3 flex items-center justify-center">
                                         <h2 className="text-center text-sm tracking-wider uppercase">
                                             {rightTitle || <>TOP <span className="text-orange-400 animate-pulse">TRADERS</span></>}
@@ -95,7 +95,7 @@ function DesktopLayoutInner({
                                 </div>
 
                                 {/* Charts: Top Whales */}
-                                <div className="flex flex-col h-full bg-black min-h-0 overflow-x-hidden relative">
+                                <div className="flex flex-col h-full bg-background min-h-0 overflow-x-hidden relative">
                                     <div className="shrink-0 px-6 py-3 flex items-center justify-center">
                                         <h2 className="text-center text-sm tracking-wider uppercase">
                                             {fourthTitle || <>TOP <span className="text-blue-400 animate-pulse">WHALES</span></>}
@@ -107,7 +107,7 @@ function DesktopLayoutInner({
                                 </div>
 
                                 {/* Charts: Biggest Winners */}
-                                <div className="flex flex-col h-full bg-black min-h-0 overflow-x-hidden relative">
+                                <div className="flex flex-col h-full bg-background min-h-0 overflow-x-hidden relative">
                                     <div className="shrink-0 px-6 py-3 flex items-center justify-center">
                                         <h2 className="text-center text-sm tracking-wider uppercase">
                                             {winnersTitle || <>BIGGEST <span className="text-green-400 animate-pulse">WINS</span></>}
@@ -121,7 +121,7 @@ function DesktopLayoutInner({
                         ) : (
                             <>
                                 {/* LEFT COLUMN - AI Insights */}
-                                <div className="hidden lg:flex lg:flex-col h-full bg-black min-h-0 overflow-x-hidden relative">
+                                <div className="hidden lg:flex lg:flex-col h-full bg-background min-h-0 overflow-x-hidden relative">
                                     <div className="shrink-0 px-6 py-3 flex items-center justify-center">
                                         <h2 className="text-center text-sm tracking-wider uppercase">
                                             {leftTitle || <><span className="text-fuchsia-400 animate-pulse">AI</span> INSIGHTS</>}
@@ -133,7 +133,7 @@ function DesktopLayoutInner({
                                 </div>
 
                                 {/* RIGHT COLUMN - Live Feed (filtered by category) */}
-                                <div className="h-full relative bg-black flex flex-col min-h-0">
+                                <div className="h-full relative bg-background flex flex-col min-h-0">
                                     <div className="shrink-0 px-6 py-3 relative z-5 flex items-center justify-center">
                                         <h2 className="text-center text-sm tracking-wider uppercase">
                                             {centerTitle || getLiveTitle()}

@@ -151,8 +151,8 @@ function TraderCard({
     return (
         <div
             className={cn(
-                "relative group cursor-pointer overflow-hidden rounded-xl border border-white/5 bg-black/40 backdrop-blur-md transition-all duration-300",
-                "hover:border-white/10 hover:bg-black/60 hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.03)]"
+                "relative group cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-surface-2 transition-all duration-300",
+                "hover:border-white/20 hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.03)]"
             )}
             onClick={onSelect}
         >
@@ -443,7 +443,7 @@ export function TopTradersPanel() {
             {/* Period selector + Search */}
             <div className="flex items-center gap-2">
                 {/* Period selector - Glassmorphic pills */}
-                <div className="relative flex-1 p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
+                <div className="relative flex-1 p-1 rounded-xl bg-surface-1/20 backdrop-blur-sm border border-white/5 flex gap-1">
                     {PERIODS.map((p) => {
                         const isActive = period === p;
                         return (
@@ -506,7 +506,7 @@ export function TopTradersPanel() {
 
             {/* Chart */}
             {!isLoading && uniqueTraders.length > 0 && (
-                <div className="relative rounded-xl border border-white/5 bg-black/20 backdrop-blur-md p-4 overflow-hidden">
+                <div className="relative rounded-xl border border-white/5 bg-surface-1 p-4 overflow-hidden">
                     <div className="flex items-center justify-between mb-6">
                         <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold flex items-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -552,7 +552,7 @@ export function TopTradersPanel() {
 
             {/* Empty state */}
             {!isLoading && !error && filteredTraders.length === 0 && (
-                <div className="text-center py-12 rounded-xl border border-white/5 bg-black/20 backdrop-blur-sm">
+                <div className="text-center py-12 rounded-xl border border-white/5 bg-surface-1/20 backdrop-blur-sm">
                     {searchQuery ? (
                         <div className="space-y-2">
                             <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-medium">

@@ -158,7 +158,7 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-5xl w-full !bg-zinc-950/80 !backdrop-blur-3xl !border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.05)] p-0 overflow-hidden"
+      className="max-w-5xl w-full !bg-surface-1/80 !backdrop-blur-3xl !border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.05)] p-0 overflow-hidden"
     >
       {/* Decorative gradients */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
@@ -305,7 +305,7 @@ export function AiInsightsTradesModal({ pick, trader = null, onClose }: AiInsigh
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-white/5 bg-black/40 backdrop-blur-xl flex justify-between items-center text-[10px] text-zinc-600 font-mono uppercase tracking-widest">
+        <div className="p-3 border-t border-white/5 bg-surface-1/40 backdrop-blur-xl flex justify-between items-center text-[10px] text-zinc-600 font-mono uppercase tracking-widest">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
             AI_INSIGHTS_V2.0

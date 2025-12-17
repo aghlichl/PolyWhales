@@ -199,8 +199,8 @@ const accentVariants: AccentVariant[] = [
         source: "primary",
         pathKey: "p191bd700",
         viewBox: "0 0 1083 2174",
-        className: "pointer-events-none absolute -right-16 top-1/4 w-36 h-56 opacity-75",
-        fillOpacity: 0.8,
+        className: "pointer-events-none absolute -right-16 top-1/4 w-36 h-56 opacity-50",
+        fillOpacity: 0.5,
         gradient: {
           x1: 805.503,
           x2: 811.003,
@@ -214,8 +214,8 @@ const accentVariants: AccentVariant[] = [
         source: "primary",
         pathKey: "p103b2f80",
         viewBox: "0 0 1589 1040",
-        className: "pointer-events-none absolute -left-20 -bottom-16 w-80 h-48 rotate-180 scale-y-[-100%] opacity-75",
-        fillOpacity: 0.9,
+        className: "pointer-events-none absolute -left-20 -bottom-16 w-80 h-48 rotate-180 scale-y-[-100%] opacity-50",
+        fillOpacity: 0.6,
         gradient: {
           x1: 1201,
           x2: 1196.5,
@@ -230,7 +230,7 @@ const accentVariants: AccentVariant[] = [
         pathKey: "p16d23600",
         viewBox: "0 0 1291 3433",
         className: "pointer-events-none absolute right-1/4 -top-32 w-20 h-72",
-        style: { opacity: 0.55 },
+        style: { opacity: 0.35 },
         gradient: {
           x1: 308.661,
           x2: 1258.16,
@@ -248,8 +248,8 @@ const accentVariants: AccentVariant[] = [
         source: "secondary",
         pathKey: "p191bd700",
         viewBox: "0 0 1083 2174",
-        className: "pointer-events-none absolute -left-10 top-10 w-28 h-60 rotate-6 opacity-70",
-        fillOpacity: 0.85,
+        className: "pointer-events-none absolute -left-10 top-10 w-28 h-60 rotate-6 opacity-45",
+        fillOpacity: 0.6,
         gradient: {
           x1: 805.503,
           x2: 811.003,
@@ -262,7 +262,7 @@ const accentVariants: AccentVariant[] = [
         source: "secondary",
         pathKey: "p11044800",
         viewBox: "0 0 1806 1806",
-        className: "pointer-events-none absolute right-[-72px] top-1/3 w-60 h-60 opacity-50 blur-[1px]",
+        className: "pointer-events-none absolute right-[-72px] top-1/3 w-60 h-60 opacity-35 blur-[1px]",
         gradient: {
           x1: 900,
           x2: 900,
@@ -275,8 +275,8 @@ const accentVariants: AccentVariant[] = [
         source: "secondary",
         pathKey: "p1f460800",
         viewBox: "0 0 1164 1895",
-        className: "pointer-events-none absolute -right-6 -bottom-12 w-48 h-40 opacity-60",
-        fillOpacity: 0.8,
+        className: "pointer-events-none absolute -right-6 -bottom-12 w-48 h-40 opacity-40",
+        fillOpacity: 0.55,
         gradient: {
           x1: 600,
           x2: 620,
@@ -674,7 +674,7 @@ export function AIInsightsPanel() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex p-0.5 backdrop-blur-sm bg-black/60 border border-white/10 rounded-2xl shadow-2xl">
+            <div className="flex p-0.5 backdrop-blur-sm bg-surface-1/60 border border-white/10 rounded-2xl shadow-2xl">
               {(["confidence", "volume"] as SortKey[]).map((key) => (
                 <button
                   key={key}
@@ -693,7 +693,7 @@ export function AIInsightsPanel() {
             <button
               onClick={refresh}
               disabled={isLoading}
-              className="group p-2 backdrop-blur-sm bg-black/60 border border-white/10 rounded-2xl shadow-2xl text-zinc-400 hover:text-white hover:bg-black/70 transition-all"
+              className="group p-2 backdrop-blur-sm bg-surface-1/60 border border-white/10 rounded-2xl shadow-2xl text-zinc-400 hover:text-white hover:bg-surface-1/70 transition-all"
             >
               <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
             </button>
@@ -724,7 +724,7 @@ export function AIInsightsPanel() {
           {hasMore && (
             <div
               ref={lastElementRef}
-              className="h-10 w-full backdrop-blur-sm bg-black/60 border border-white/10 rounded-2xl shadow-2xl text-[10px] uppercase tracking-[0.2em] text-zinc-400 flex items-center justify-center"
+              className="h-10 w-full backdrop-blur-sm bg-surface-1/60 border border-white/10 rounded-2xl shadow-2xl text-[10px] uppercase tracking-[0.2em] text-zinc-400 flex items-center justify-center"
             >
               {isLoading ? "Loading..." : "Loading more signals..."}
             </div>
@@ -813,13 +813,12 @@ function FeaturedCard({ pick, onClick, variantIndex }: { pick: AiInsightPick; on
   return (
     <div
       onClick={onClick}
-      className="relative h-full w-full cursor-pointer overflow-hidden rounded-3xl border border-white/5 bg-black hover:border-white/10 transition-colors group"
+      className="relative h-full w-full cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-surface-2 transition-colors group"
     >
       <GlassAccents variantIndex={variantIndex} />
       <div className="pointer-events-none absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay" aria-hidden />
-      {/* <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/5 via-transparent to-white/5" aria-hidden /> */}
 
-      <div className="absolute inset-4 rounded-2xl border border-white/10 bg-black/50 backdrop-blur-md p-8 flex flex-col justify-between shadow-2xl z-10">
+      <div className="absolute inset-4 rounded-2xl border border-white/10 bg-surface-1/50 backdrop-blur-md p-8 flex flex-col justify-between shadow-2xl z-10 transition-all group-hover:bg-surface-1/60">
         <div className="space-y-6">
           <div className="flex items-start justify-between gap-3">
             <div
@@ -980,17 +979,23 @@ function VersusMatchupCard({
   const adjustColor = (c?: string) => {
     if (!c) return "#ffffff";
     const hex = c.toLowerCase();
-    if (hex === "#000000" || hex === "#000" || hex === "black") return "#ffffff";
-    // Check brightness for very dark colors
+
+    // Improved contrast guard: Luminance check
+    // Treat luminance < 0.08 (approx 20/255) as near-black
     if (hex.startsWith("#")) {
       try {
         const h = hex.replace("#", "");
-        const r = parseInt(h.length === 3 ? h[0] + h[0] : h.substring(0, 2), 16);
-        const g = parseInt(h.length === 3 ? h[1] + h[1] : h.substring(2, 4), 16);
-        const b = parseInt(h.length === 3 ? h[2] + h[2] : h.substring(4, 6), 16);
+        // Expand shorthand like #000 to #000000
+        const expanded = h.length === 3 ? h.split("").map(x => x + x).join("") : h;
+        const r = parseInt(expanded.substring(0, 2), 16);
+        const g = parseInt(expanded.substring(2, 4), 16);
+        const b = parseInt(expanded.substring(4, 6), 16);
+
         const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        if (luma < 20) return "#ffffff";
+        if (luma < 21) return "#ffffff";
       } catch (e) { }
+    } else if (hex === "black") {
+      return "#ffffff";
     }
     return c;
   };
@@ -1051,49 +1056,65 @@ function VersusMatchupCard({
 
     const confidence = overrideConfidence ?? getDisplayConfidence(pick);
     // Aggregator logic (reused)
-    let gold = 0;
-    pick.topRanks.forEach(r => { if (r.rank <= 20) gold++; });
+    /* let gold = 0;
+    pick.topRanks.forEach(r => { if (r.rank <= 20) gold++; }); */
 
     return (
       <div
         onClick={() => onSelectOutcome(pick)}
         className={cn(
-          "flex-1 flex flex-col justify-between py-1 cursor-pointer hover:bg-white/5 rounded-xl px-2 transition-colors",
+          "flex-1 flex flex-col justify-between py-2 cursor-pointer hover:bg-white/5 rounded-xl px-3 transition-colors",
           alignRight ? "items-end text-right" : "items-start text-left"
         )}
       >
-        <div className="space-y-0.5">
-          <div className={cn("text-xs font-bold truncate max-w-[120px]", alignRight && "ml-auto")}>
-            {extractMarketContext(pick.marketQuestion, pick.outcome)}
-          </div>
-          {pick.latestPrice > 0 && (
-            <div className={cn("text-lg font-mono leading-none tracking-tight", alignRight && "ml-auto")}>
-              {formatCents(pick.latestPrice)}
-              {(() => {
-                const change = pick.snapshotPrice ? pick.latestPrice - pick.snapshotPrice : 0;
-                if (Math.abs(change) >= 0.001) {
-                  const isUp = change > 0;
-                  return (
-                    <span className={cn("text-[10px] ml-1.5 align-top", isUp ? "text-emerald-400" : "text-rose-400")}>
-                      {isUp ? "↑" : "↓"}{Math.round(Math.abs(change) * 100)}¢
-                    </span>
-                  )
-                }
-                return null;
-              })()}
-            </div>
-          )}
+        {/* Outcome Name */}
+        <div className={cn("text-xs md:text-sm font-medium text-zinc-400 truncate max-w-[140px] mb-1", alignRight && "ml-auto")}>
+          {extractMarketContext(pick.marketQuestion, pick.outcome)}
         </div>
 
-        <div className="space-y-1">
-          <div className={cn("text-[10px] text-zinc-500 font-mono", alignRight ? "justify-end" : "justify-start")}>
-            Vol {formatUsdCompact(pick.totalVolume)}
+        {/* HERO: Price */}
+        {pick.latestPrice > 0 && (
+          <div
+            className={cn("text-3xl md:text-4xl font-black leading-none tracking-tight mb-2", alignRight && "ml-auto")}
+            style={{ color }}
+          >
+            {formatCents(pick.latestPrice)}
+            {/* Price Change Indicator */}
+            {(() => {
+              const change = pick.snapshotPrice ? pick.latestPrice - pick.snapshotPrice : 0;
+              if (Math.abs(change) >= 0.001) {
+                const isUp = change > 0;
+                return (
+                  <sup className={cn("text-[10px] ml-1 align-top font-bold", isUp ? "text-emerald-400" : "text-rose-400")}>
+                    {isUp ? "↑" : "↓"}
+                  </sup>
+                )
+              }
+              return null;
+            })()}
           </div>
+        )}
+
+        <div className="mt-auto space-y-1">
+          {/* Delta & Confirmation */}
           <div className={cn("flex flex-col", alignRight ? "items-end" : "items-start")}>
-            <div className="text-xl font-black leading-none" style={{ color }}>
-              {alignRight ? `${homeName} ${awayConf > homeConf ? '-' : '+'}${Math.abs(Math.round(awayConf - homeConf))}%` : `${awayName} ${awayConf > homeConf ? '+' : '-'}${Math.abs(Math.round(awayConf - homeConf))}%`}
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-bold text-white">
+                {alignRight ? (
+                  <>{awayConf > homeConf ? '-' : '+'}{Math.abs(Math.round(awayConf - homeConf))}%</>
+                ) : (
+                  <>{awayConf > homeConf ? '+' : '-'}{Math.abs(Math.round(awayConf - homeConf))}%</>
+                )}
+                <span className="text-[10px] text-zinc-500 font-normal ml-1">EDGE</span>
+              </span>
             </div>
-            <div className="text-[9px] text-zinc-600 font-mono">{confidence}% Conf</div>
+            <div className="text-[10px] text-zinc-500 font-mono tracking-wide">
+              CONF: <span className="text-zinc-300 font-bold">{confidence}%</span>
+            </div>
+          </div>
+
+          <div className={cn("text-[10px] text-zinc-600 font-mono pt-1", alignRight ? "justify-end" : "justify-start")}>
+            Vol {formatUsdCompact(pick.totalVolume)}
           </div>
         </div>
       </div>
@@ -1101,29 +1122,29 @@ function VersusMatchupCard({
   };
 
   return (
-    <div className="relative backdrop-blur-sm bg-black/60 border border-white/10 rounded-2xl shadow-2xl overflow-hidden group">
+    <div className="relative card-surface rounded-2xl group mb-4">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-white/5 bg-black/20">
-        <h4 className="text-sm text-zinc-200 font-bold tracking-tight px-1 flex gap-2">
-          <span style={{ color: awayColor }}>{awayName}</span>
-          <span className="text-zinc-600">vs</span>
-          <span style={{ color: homeColor }}>{homeName}</span>
+      <div className="flex items-center justify-between p-4 border-b border-white/5 bg-surface-1/20">
+        <h4 className="flex items-center gap-3 text-lg md:text-xl font-black tracking-tight px-1">
+          <span style={{ color: awayColor }} className="drop-shadow-sm">{awayName}</span>
+          <span className="text-sm text-zinc-600 font-light italic">vs</span>
+          <span style={{ color: homeColor }} className="drop-shadow-sm">{homeName}</span>
         </h4>
         {liveGame && (
-          <LiveScoreboard game={liveGame} className="py-0.5 px-2 text-[10px] gap-2 mr-2 scale-90 origin-right" />
+          <LiveScoreboard game={liveGame} className="py-1 px-3 text-xs gap-3 mr-2 scale-95 origin-right" />
         )}
       </div>
 
       {/* Main Content: ML Stats + Combined Chart */}
-      <div className="flex h-[140px] relative">
+      <div className="flex h-[180px] relative">
         {/* Away Stats */}
-        <div className="w-[120px] sm:w-[160px] flex flex-col border-r border-white/5 p-2 bg-gradient-to-r from-white/[0.02] to-transparent">
+        <div className="w-[160px] sm:w-[180px] flex flex-col border-r border-white/5 p-2 bg-gradient-to-r from-white/[0.02] to-transparent">
           {renderMLStats(awayML, awayColor, false, awayConf)}
         </div>
 
         {/* Combined Chart */}
         <div className="flex-1 relative">
-          <div className="absolute inset-0 top-4 bottom-4 px-2 opacity-60 hover:opacity-100 transition-opacity">
+          <div className="absolute inset-0 top-4 bottom-4 px-2 opacity-50 hover:opacity-100 transition-opacity">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -1141,7 +1162,7 @@ function VersusMatchupCard({
                   content={({ payload, label }) => {
                     if (!payload || payload.length === 0) return null;
                     return (
-                      <div className="bg-black/90 border border-white/10 px-3 py-2 rounded-lg text-xs shadow-xl backdrop-blur-md">
+                      <div className="bg-surface-1/90 border border-white/10 px-3 py-2 rounded-lg text-xs shadow-xl backdrop-blur-md z-50">
                         <div className="mb-1 text-zinc-500 font-mono text-[10px]">
                           {label && typeof label === 'number' ? new Date(label).toLocaleTimeString() : 'N/A'}
                         </div>
@@ -1183,12 +1204,10 @@ function VersusMatchupCard({
               </AreaChart>
             </ResponsiveContainer>
           </div>
-
-
         </div>
 
         {/* Home Stats */}
-        <div className="w-[120px] sm:w-[160px] flex flex-col border-l border-white/5 p-2 bg-gradient-to-l from-white/[0.02] to-transparent">
+        <div className="w-[160px] sm:w-[180px] flex flex-col border-l border-white/5 p-2 bg-gradient-to-l from-white/[0.02] to-transparent">
           {renderMLStats(homeML, homeColor, true, homeConf)}
         </div>
       </div>
@@ -1320,7 +1339,7 @@ function GroupedSignalCard({
                 exit={{ opacity: 0, y: 0 }}
                 className={cn(
                   "absolute inset-x-0 top-0 h-full rounded-2xl border",
-                  "backdrop-blur-sm bg-black/40 border-white/5",
+                  "backdrop-blur-sm bg-surface-1/40 border-white/5",
                   "transform translate-y-2 scale-[0.97] origin-top"
                 )}
                 style={{ zIndex: -1 }}
@@ -1334,7 +1353,7 @@ function GroupedSignalCard({
                 exit={{ opacity: 0, y: 0 }}
                 className={cn(
                   "absolute inset-x-0 top-0 h-full rounded-2xl border",
-                  "backdrop-blur-sm bg-black/30 border-white/3",
+                  "backdrop-blur-sm bg-surface-1/30 border-white/3",
                   "transform translate-y-4 scale-[0.94] origin-top"
                 )}
                 style={{ zIndex: -2 }}
@@ -1349,10 +1368,8 @@ function GroupedSignalCard({
         layout
         className={cn(
           "relative group cursor-pointer",
-          "backdrop-blur-sm bg-black/60",
-          "border border-white/10 rounded-2xl",
-          "shadow-2xl",
-          "hover:bg-black/70 hover:border-white/15",
+          "card-surface rounded-2xl",
+          "hover:border-white/20",
           "transition-colors duration-200 ease-out"
         )}
       >
@@ -1389,7 +1406,7 @@ function GroupedSignalCard({
 
             {/* Live Score */}
             {liveGame && (
-              <div className="bg-black/20 border border-white/5 rounded-md overflow-hidden w-fit mt-1">
+              <div className="bg-surface-1/20 border border-white/5 rounded-md overflow-hidden w-fit mt-1">
                 <LiveScoreboard
                   game={liveGame}
                   className="py-0.5 px-2 text-[10px] md:text-xs gap-2 md:gap-3"
@@ -1536,7 +1553,7 @@ function GroupedSignalCard({
                       if (!payload?.[0]) return null;
                       const data = payload[0].payload as { value: number; timestamp?: number };
                       return (
-                        <div className="bg-black/90 border border-white/10 px-2 py-1 rounded text-xs">
+                        <div className="bg-surface-1/90 border border-white/10 px-2 py-1 rounded text-xs">
                           <div className="text-zinc-400">Confidence: {Math.round(data.value)}%</div>
                           {data.timestamp && (
                             <div className="text-zinc-600 text-[10px]">
@@ -1666,9 +1683,9 @@ function SecondaryPickRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSe
       onClick={() => onSelectOutcome(pick)}
       className={cn(
         "group w-full text-left cursor-pointer",
-        "backdrop-blur-sm bg-black/40",
+        "backdrop-blur-sm bg-surface-1/40",
         "border border-white/5 rounded-xl",
-        "hover:bg-black/50 hover:border-white/10",
+        "hover:bg-surface-1/50 hover:border-white/10",
         "p-3 flex items-center justify-between gap-4",
         "transition-all duration-150"
       )}
@@ -1742,12 +1759,12 @@ function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOut
       className={cn(
         "group relative w-full text-left cursor-pointer",
         // Glassmorphism base - matching featured card style
-        "backdrop-blur-sm bg-black/60",
+        "backdrop-blur-sm bg-surface-1/60",
         // Border & shadow
         "border border-white/10 rounded-2xl",
         "shadow-2xl",
         // Hover state
-        "hover:bg-black/70 hover:border-white/15",
+        "hover:bg-surface-1/70 hover:border-white/15",
         // Layout: Mobile two-column, Desktop three-column
         "p-3 md:p-4 grid gap-3 md:gap-4",
         "grid-cols-[1fr_auto] md:grid-cols-[280px_1fr_auto] items-center",
@@ -1774,7 +1791,7 @@ function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOut
 
         {/* Live Score - Compact on mobile */}
         {liveGame && (
-          <div className="bg-black/20 border border-white/5 rounded-md overflow-hidden w-fit mt-1">
+          <div className="bg-surface-1/20 border border-white/5 rounded-md overflow-hidden w-fit mt-1">
             <LiveScoreboard
               game={liveGame}
               className="py-0.5 px-2 text-[10px] md:text-xs gap-2 md:gap-3"
@@ -1879,7 +1896,7 @@ function SignalRow({ pick, onSelectOutcome }: { pick: AiInsightPick; onSelectOut
                   if (!payload?.[0]) return null;
                   const data = payload[0].payload as { value: number; timestamp?: number };
                   return (
-                    <div className="bg-black/90 border border-white/10 px-2 py-1 rounded text-xs">
+                    <div className="bg-surface-1/90 border border-white/10 px-2 py-1 rounded text-xs">
                       <div className="text-zinc-400">Confidence: {Math.round(data.value)}%</div>
                       {data.timestamp && (
                         <div className="text-zinc-600 text-[10px]">

@@ -282,7 +282,7 @@ export function TraderTallyBoard({
     if (totalCount === 0) return null;
 
     return (
-        <div className="w-full border-t border-white/5 bg-black/20">
+        <div className="w-full border-t border-white/5 bg-surface-1/20">
             {/* Toggle Header */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}

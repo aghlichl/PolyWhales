@@ -47,7 +47,7 @@ export function TraderRibbon({
     return (
         <div className={cn(
             "relative -mt-2 mx-1 pt-5 pb-3 px-3 rounded-b-xl",
-            "bg-black border border-t-0 border-zinc-800/60",
+            "bg-surface-1 border border-t-0 border-zinc-800/60",
             isGod && "border-b-yellow-500/20",
             isSuper && "border-b-red-500/20",
             isMega && "border-b-purple-500/20",
@@ -64,7 +64,7 @@ export function TraderRibbon({
                             key={period}
                             className={cn(
                                 "flex-1 flex flex-col items-center py-1 px-1.5 rounded-md",
-                                "bg-black border",
+                                "bg-surface-1 border",
                                 hasRank ? (
                                     isGod ? "border-yellow-500/40" :
                                         isSuper ? "border-red-500/40" :

@@ -82,7 +82,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                             damping: 30,
                             duration: 0.4
                         }}
-                        className="relative w-full max-w-[900px] h-[550px] bg-[#050505] border border-white/10 rounded-3xl shadow-[0_0_100px_-20px_rgba(0,255,148,0.1)] flex overflow-hidden isolate"
+                        className="relative w-full max-w-[900px] h-[550px] bg-surface-1 border border-white/10 rounded-3xl shadow-[0_0_100px_-20px_rgba(0,255,148,0.1)] flex overflow-hidden isolate"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close Button */}
@@ -94,7 +94,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         </button>
 
                         {/* LEFT COLUMN: AURORA BRANDING */}
-                        <div className="hidden md:flex flex-col justify-between w-[42%] p-8 relative border-r border-white/5 bg-black overflow-hidden">
+                        <div className="hidden md:flex flex-col justify-between w-[42%] p-8 relative border-r border-white/5 bg-surface-1 overflow-hidden">
                             {/* Animated Aurora Background */}
                             <div className="absolute inset-0 opacity-40">
                                 <motion.div
@@ -151,7 +151,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         </div>
 
                         {/* RIGHT COLUMN: LOGIN METHODS */}
-                        <div className="flex-1 p-8 sm:p-12 flex flex-col justify-center relative bg-[#0A0A0B]">
+                        <div className="flex-1 p-8 sm:p-12 flex flex-col justify-center relative bg-background">
                             <div className="max-w-[360px] mx-auto w-full">
                                 <div className="mb-6 text-center sm:text-left">
                                     <h3 className="text-2xl font-bold text-white mb-1">Welcome Back</h3>

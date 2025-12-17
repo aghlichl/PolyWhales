@@ -52,7 +52,7 @@ export function UserPreferencesModal({ isOpen, onClose }: UserPreferencesModalPr
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                        className="absolute inset-0 bg-black/60 backdrop-blur-md"
                         onClick={onClose}
                     />
 
@@ -67,7 +67,7 @@ export function UserPreferencesModal({ isOpen, onClose }: UserPreferencesModalPr
                             damping: 25,
                             duration: 0.3
                         }}
-                        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-[#0A0A0B] border border-white/10 rounded-2xl shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)] overflow-hidden"
+                        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-surface-1 border border-white/10 rounded-2xl shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Ambient Background Effects */}
@@ -101,7 +101,7 @@ export function UserPreferencesModal({ isOpen, onClose }: UserPreferencesModalPr
                         </div>
 
                         {/* Footer Gradient Fade */}
-                        <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-[#0A0A0B] to-transparent pointer-events-none" />
+                        <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-surface-1 to-transparent pointer-events-none" />
                     </motion.div>
                 </div>
             )}

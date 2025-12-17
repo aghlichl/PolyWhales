@@ -44,7 +44,7 @@ export function HybridHeader() {
 
     return (
         <>
-            <header className="fixed top-[calc(0.5rem+env(safe-area-inset-top,0px))] left-0 right-0 h-10 mx-auto w-[calc(100%-1rem)] bg-zinc-950/80 backdrop-blur-md border border-white/10 rounded-full z-40 flex items-center px-1 shadow-lg overflow-hidden">
+            <header className="fixed top-[calc(0.5rem+env(safe-area-inset-top,0px))] left-0 right-0 h-10 mx-auto w-[calc(100%-1rem)] bg-surface-1/80 backdrop-blur-md border border-white/10 rounded-full z-40 flex items-center px-1 shadow-lg overflow-hidden">
 
                 {/* LOGO AREA */}
                 <div className="flex items-center gap-2 pl-3 pr-3 shrink-0 h-full relative z-20">
@@ -59,10 +59,10 @@ export function HybridHeader() {
                 </div>
 
                 {/* TICKER MARQUEE */}
-                <div className="flex-1 h-full overflow-hidden relative z-10 flex items-center bg-zinc-950/20">
+                <div className="flex-1 h-full overflow-hidden relative z-10 flex items-center bg-surface-1/20">
                     {/* Gradient Masks */}
-                    <div className="absolute left-0 top-0 bottom-0 w-8 z-20 bg-gradient-to-r from-zinc-950/80 to-transparent pointer-events-none" />
-                    <div className="absolute right-0 top-0 bottom-0 w-8 z-20 bg-gradient-to-l from-zinc-950/80 to-transparent pointer-events-none" />
+                    <div className="absolute left-0 top-0 bottom-0 w-8 z-20 bg-gradient-to-r from-surface-1 to-transparent pointer-events-none" />
+                    <div className="absolute right-0 top-0 bottom-0 w-8 z-20 bg-gradient-to-l from-surface-1 to-transparent pointer-events-none" />
 
                     <div
                         className={`ticker-marquee w-full ${hasTickerEntries ? "" : "opacity-0"}`}
@@ -115,7 +115,7 @@ export function HybridHeader() {
                 </div>
 
                 {/* AUTH & SETTINGS */}
-                <div className="flex items-center gap-2 pl-4 pr-1 border-l border-white/5 h-full shrink-0 z-20 bg-zinc-950/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2 pl-4 pr-1 border-l border-white/5 h-full shrink-0 z-20 bg-surface-1/50 backdrop-blur-sm">
                     <LoginButton
                         showPreferencesTrigger
                         onOpenPreferences={() => setIsPreferencesOpen(true)}

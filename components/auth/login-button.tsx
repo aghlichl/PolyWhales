@@ -102,7 +102,7 @@ export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false,
                     disabled
                     variant="ghost"
                     size="sm"
-                    className={`h-8 px-2 sm:px-4 text-[10px] font-bold uppercase tracking-[0.15em] bg-zinc-950/60 text-zinc-500 rounded-sm cursor-not-allowed shadow-[0_1px_0_rgba(255,255,255,0.04)] ${compact ? 'h-6 text-[9px]' : ''}`}
+                    className={`h-8 px-2 sm:px-4 text-[10px] font-bold uppercase tracking-[0.15em] bg-surface-1/60 text-zinc-500 rounded-sm cursor-not-allowed shadow-[0_1px_0_rgba(255,255,255,0.04)] ${compact ? 'h-6 text-[9px]' : ''}`}
                 >
                     <Loader2 className={`mr-2 animate-spin ${compact ? 'h-2 w-2' : 'h-3 w-3'}`} />
                     <span className="hidden sm:inline">Loading</span>
@@ -119,7 +119,7 @@ export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false,
                     onClick={logout}
                     size="sm"
                     variant="ghost"
-                    className={`group relative h-8 px-2 sm:px-4 text-[10px] font-bold uppercase tracking-[0.15em] bg-zinc-950/60 text-emerald-400 hover:text-emerald-300 hover:bg-zinc-900/70 hover:shadow-[0_0_12px_-4px_rgba(52,211,153,0.2)] rounded-sm transition-all duration-300 backdrop-blur-sm ${compact ? 'h-6 min-w-0 px-2' : ''}`}
+                    className={`group relative h-8 px-2 sm:px-4 text-[10px] font-bold uppercase tracking-[0.15em] bg-surface-1/60 text-emerald-400 hover:text-emerald-300 hover:bg-surface-1/80 hover:shadow-[0_0_12px_-4px_rgba(52,211,153,0.2)] rounded-sm transition-all duration-300 backdrop-blur-sm ${compact ? 'h-6 min-w-0 px-2' : ''}`}
                 >
                     <User className={`sm:hidden text-emerald-400 group-hover:text-emerald-300 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
                     <span className="hidden sm:inline truncate max-w-[100px]">
@@ -137,7 +137,7 @@ export function LoginButton({ onOpenPreferences, showPreferencesTrigger = false,
                 onClick={() => setIsAuthModalOpen(true)}
                 size="sm"
                 variant="ghost"
-                className={`group relative h-8 px-2 sm:px-4 text-[10px] font-bold uppercase tracking-[0.15em] bg-zinc-950/60 text-zinc-500 hover:text-emerald-400 hover:bg-zinc-900/70 hover:shadow-[0_0_12px_-4px_rgba(52,211,153,0.2)] rounded-sm transition-all duration-300 backdrop-blur-sm ${compact ? 'h-6 text-[9px] px-2' : ''}`}
+                className={`group relative h-8 px-2 sm:px-4 text-[10px] font-bold uppercase tracking-[0.15em] bg-surface-1/60 text-zinc-500 hover:text-emerald-400 hover:bg-surface-1/80 hover:shadow-[0_0_12px_-4px_rgba(52,211,153,0.2)] rounded-sm transition-all duration-300 backdrop-blur-sm ${compact ? 'h-6 text-[9px] px-2' : ''}`}
             >
                 <User className={`sm:hidden text-zinc-500 group-hover:text-emerald-400 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
                 <span className="hidden sm:inline">Log In {compact ? '' : '/ Sign Up'}</span>

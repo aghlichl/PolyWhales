@@ -17,7 +17,7 @@ interface CategoryContextType {
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
 
 export function CategoryProvider({ children }: { children: ReactNode }) {
-    const [activePage, setActivePage] = useState<DesktopPage>("markets-live");
+    const [activePage, setActivePage] = useState<DesktopPage>("sports-live");
 
     const activeCategory = activePage.split("-")[0] as Category;
     const isSportsMode = activeCategory === "sports";

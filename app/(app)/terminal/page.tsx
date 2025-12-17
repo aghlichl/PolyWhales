@@ -339,7 +339,7 @@ function TerminalContent() {
         </div>
 
         {/* Bottom Navigation - Hidden on Desktop */}
-        <div className="fixed bottom-0 left-0 right-0 h-12 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur flex items-center justify-center px-3 z-50 lg:hidden">
+        <div className="fixed bottom-0 left-0 right-0 h-12 border-t border-zinc-800 bg-surface-1/90 backdrop-blur flex items-center justify-center px-3 z-50 lg:hidden">
           <div className="flex-1 flex items-center justify-center">
             <BottomCarousel
               currentPage={currentPage}

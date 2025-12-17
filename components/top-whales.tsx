@@ -177,7 +177,7 @@ export function TopWhales() {
       <div className="px-4 pb-4">
         <div className="flex items-center gap-2">
           {/* Period selector - Glassmorphic pills */}
-          <div className="relative flex-1 p-1 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5 flex gap-1">
+          <div className="relative flex-1 p-1 rounded-xl bg-surface-1/20 backdrop-blur-sm border border-white/5 flex gap-1">
             {PERIODS.map((period, index) => {
               const isActive = selectedPeriod === period;
               return (
@@ -243,7 +243,7 @@ export function TopWhales() {
                         className={cn(
                           "px-2 py-1 rounded-lg text-[9px] font-bold tracking-wider uppercase transition-all duration-200 border",
                           filters.tiers.includes(tier.value)
-                            ? `border-${tier.color.replace('bg-', '')}/50 ${tier.color} text-white shadow-[0_0_10px_-2px_rgba(255,255,255,0.3)]`
+                            ? `bg-surface-1/30 border-${tier.color.replace('bg-', '')}/50 ${tier.color} text-white shadow-[0_0_10px_-2px_rgba(255,255,255,0.3)]`
                             : "border-white/5 bg-white/5 text-zinc-500 hover:bg-white/10 hover:border-white/10 hover:text-zinc-400"
                         )}
                       >
@@ -313,11 +313,11 @@ export function TopWhales() {
           LOADING TOP TRADES...
         </div>
       ) : filteredTrades.length > 0 ? (
-        <div className="space-y-4 p-4 pl-10">
+        <div className="space-y-4 p-4 pl-14">
           {visibleTrades.map((anomaly, index) => (
             <div key={anomaly.id} className="relative group">
               {/* Rank indicator */}
-              <div className="absolute -left-8 top-4 z-10">
+              <div className="absolute -left-10 top-4 z-10">
                 <div className={cn(
                   "w-8 h-8 rounded-lg flex items-center justify-center backdrop-blur-sm shadow-inner",
                   "font-black text-sm border border-white/5 bg-linear-to-b from-white/10 to-white/5",

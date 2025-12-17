@@ -285,7 +285,7 @@ function PowerUpCard({ label, sublabel, active, onClick, colorTheme, isWide, ico
         {/* Power Switch Visual */}
         <div className={cn(
           "w-6 h-6 rounded-md border flex items-center justify-center transition-all duration-300 relative",
-          active ? `${styles.border} ${styles.indicator} text-black shadow-[0_0_10px_currentColor]` : "border-zinc-700 bg-black/50"
+          active ? `${styles.border} ${styles.indicator} text-surface-2 shadow-[0_0_10px_currentColor]` : "border-zinc-700 bg-surface-1/50"
         )}>
           {active && <Zap className="w-3.5 h-3.5 fill-current" />}
           {/* Glow Ring */}
@@ -509,7 +509,7 @@ function StatusCard() {
   return (
     <div className="p-0.5 rounded-xl bg-gradient-to-br from-white/10 to-white/5 relative group overflow-hidden">
       <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-      <div className="relative h-full bg-black/80 backdrop-blur-sm rounded-[10px] p-4 flex items-center justify-between">
+      <div className="relative h-full bg-surface-1/80 backdrop-blur-sm rounded-[10px] p-4 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
             <Wallet className="w-3 h-3" />

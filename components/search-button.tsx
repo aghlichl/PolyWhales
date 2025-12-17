@@ -86,11 +86,11 @@ export function SearchButton({ onSearch, className, filters, onFilterChange }: S
         {/* Search Bar Container */}
         <div className="
           relative flex items-center 
-          bg-black/40 backdrop-blur-md
+          bg-surface-1/40 backdrop-blur-md
           border border-white/5 
           rounded-xl 
           transition-colors duration-200
-          focus-within:bg-black/60 focus-within:border-white/10
+          focus-within:bg-surface-1/60 focus-within:border-white/10
           shadow-lg
         ">
 
@@ -158,7 +158,7 @@ export function SearchButton({ onSearch, className, filters, onFilterChange }: S
               className="overflow-hidden"
             >
               <div className="
-                bg-black/40 backdrop-blur-md
+                bg-surface-1/40 backdrop-blur-md
                 border border-white/5 
                 rounded-xl p-4
                 space-y-4
