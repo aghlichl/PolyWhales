@@ -10,7 +10,7 @@
 
 :root {
   /* Warm Graphite — Darker 7 (super low-contrast, premium) */
-  --background: #030304;
+  /* --background: #030304;
   --foreground: #E3D9C8;
   --primary: #1BCB8B;
   --secondary: #FF1E57;
@@ -23,7 +23,25 @@
   --borderSoft: rgba(255, 255, 255, 0.032);
   --hairline: rgba(255, 255, 255, 0.075);
   --text: rgba(227, 217, 200, 0.92);
-  --border-subtle: rgba(255, 255, 255, 0.042);
+  --border-subtle: rgba(255, 255, 255, 0.042); */
+  /* Full High-Contrast Dark Mode */
+  /* Absolute Black — Maximum Contrast */
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --primary: #00FF94;
+  --secondary: #FF0055;
+  --gold: #FFD700;
+  --muted: rgba(255, 255, 255, 0.80);
+  --card: #000000;
+  --surface-1: #000000;
+  --surface-2: #000000;
+  --border: rgba(255, 255, 255, 0.20);
+  --borderSoft: rgba(255, 255, 255, 0.12);
+  --hairline: rgba(255, 255, 255, 0.25);
+  --text: rgba(255, 255, 255, 0.98);
+  --border-subtle: rgba(255, 255, 255, 0.15);
+
+
 
 
 

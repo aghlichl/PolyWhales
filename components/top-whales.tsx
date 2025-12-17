@@ -53,7 +53,7 @@ export function TopWhales() {
     hasMore,
     loadMoreTopTrades
   } = useMarketStore();
-  const { isSportsMode } = useCategoryFilter();
+  const { isSportsMode, filterByCategory } = useCategoryFilter();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastPeriodRef = useRef<TopTradesPeriod>(selectedPeriod);
@@ -70,10 +70,7 @@ export function TopWhales() {
   // Apply filter pipeline: base data -> category filter -> filters -> search -> slice
   const filteredTrades = useMemo(() => {
     // First filter by category (sports vs markets)
-    let result = topTrades.filter(trade => {
-      const isSports = isSportsAnomaly(trade);
-      return isSportsMode ? isSports : !isSports;
-    });
+    let result = filterByCategory(topTrades);
 
     // Apply advanced filters (Tier/Side/League)
     result = applyWhaleFilters(result, filters);
@@ -82,7 +79,7 @@ export function TopWhales() {
     result = applyWhaleSearch(result, debouncedQuery);
 
     return result;
-  }, [topTrades, filters, debouncedQuery, isSportsMode]);
+  }, [topTrades, filters, debouncedQuery, filterByCategory]);
 
   const visibleTrades = useMemo(
     () => filteredTrades.slice(0, visibleCount),

@@ -11,7 +11,7 @@ import { SearchButton, FilterState } from "@/components/search-button";
 import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { motion } from "framer-motion";
 import { isSportsAnomaly } from "@/lib/utils";
-import { useCategoryFilter, Category, CategoryProvider } from "@/lib/useCategoryFilter";
+import { useCategoryFilter, Category, CategoryProvider, isLeagueCategory } from "@/lib/useCategoryFilter";
 
 
 import { HybridHeader } from "@/components/hybrid-header";
@@ -114,22 +114,12 @@ const passesAdvancedFilters = (anomaly: Anomaly, filters: FilterState): boolean 
   return true;
 };
 
-// Filter by category (sports vs markets)
-const passesCategoryFilter = (anomaly: Anomaly, category: Category): boolean => {
-  const isSports = isSportsAnomaly(anomaly);
 
-  if (category === "sports") {
-    return isSports;
-  } else {
-    // Markets = everything that is NOT sports
-    return !isSports;
-  }
-};
 
 function TerminalContent() {
   const { anomalies, startStream, isLoading, loadMoreHistory, hasMoreHistory, fetchLeaderboardRanks, leaderboardRanks } = useMarketStore();
   const { preferences, loadPreferences } = usePreferencesStore();
-  const { activeCategory } = useCategoryFilter();
+  const { activeCategory, filterByCategory } = useCategoryFilter();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>({ tiers: [], sides: [], leagues: [] });
@@ -170,8 +160,7 @@ function TerminalContent() {
   };
 
   // Filter anomalies based on category, preferences, search query, and advanced filters
-  const filteredAnomalies = anomalies
-    .filter(anomaly => passesCategoryFilter(anomaly, activeCategory))
+  const filteredAnomalies = filterByCategory(anomalies)
     .filter(anomaly => passesPreferences(anomaly, preferences, top20Wallets))
     .filter(anomaly => passesAdvancedFilters(anomaly, filters))
     .filter(anomaly => intelligentSearch(anomaly, searchQuery));
@@ -247,9 +236,10 @@ function TerminalContent() {
       case 4:
         return <>BIGGEST <span className="text-green-400 animate-pulse">WINS</span></>;
       default:
-        return activeCategory === "sports"
-          ? <><span className="text-green-400 animate-pulse">LIVE</span> SPORTS FEED</>
-          : <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
+        if (activeCategory === "sports") return <><span className="text-green-400 animate-pulse">LIVE</span> SPORTS FEED</>;
+        if (activeCategory === "markets") return <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
+        if (isLeagueCategory(activeCategory)) return <><span className="text-green-400 animate-pulse">LIVE</span> {activeCategory.toUpperCase()} FEED</>;
+        return <><span className="text-green-400 animate-pulse">LIVE</span> MARKET INTELLIGENCE</>;
     }
   };
 

@@ -2,18 +2,51 @@
 
 import React, { useState } from "react";
 import { cn, SPORTS_KEYWORDS } from "@/lib/utils";
-import { Activity, BarChart2, Settings, Trophy, TrendingUp } from "lucide-react";
+import { Activity, BarChart2, Settings, Trophy, TrendingUp, Goal, ChevronRight } from "lucide-react";
+import { Basketball02Icon, AmericanFootballIcon, IceHockeyIcon, BaseballBatIcon, FootballIcon } from "hugeicons-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoginButton } from "@/components/auth/login-button";
 import { UserPreferencesModal } from "@/components/user-preferences-modal";
+import type { League } from "@/lib/teamMeta";
 
 // Re-export for backwards compatibility
 export { SPORTS_KEYWORDS };
 
 // Type definitions for navigation
-export type Category = "sports" | "markets";
+export type LeagueCategory = "nfl" | "nba" | "mlb" | "nhl" | "mls" | "uefa";
+export type BaseCategory = "sports" | "markets";
+export type Category = BaseCategory | LeagueCategory;
 export type SubPage = "live" | "charts";
 export type DesktopPage = `${Category}-${SubPage}`;
+
+// Helper to check if a category is a league
+export function isLeagueCategory(category: Category): category is LeagueCategory {
+    return ["nfl", "nba", "mlb", "nhl", "mls", "uefa"].includes(category);
+}
+
+// Convert league category to League type
+export function categoryToLeague(category: LeagueCategory): League {
+    return category.toUpperCase() as League;
+}
+
+// League configuration for rendering
+const LEAGUE_CONFIG: Record<LeagueCategory, { label: string; colorClass: string; icon: React.ReactNode }> = {
+    nfl: { label: "NFL", colorClass: "text-red-400", icon: <AmericanFootballIcon className="w-4 h-4" /> },
+    nba: { label: "NBA", colorClass: "text-orange-400", icon: <Basketball02Icon className="w-4 h-4" /> },
+    mlb: { label: "MLB", colorClass: "text-blue-400", icon: <BaseballBatIcon className="w-4 h-4" /> },
+    nhl: { label: "NHL", colorClass: "text-sky-400", icon: <IceHockeyIcon className="w-4 h-4" /> },
+    mls: { label: "MLS", colorClass: "text-green-400", icon: <FootballIcon className="w-4 h-4" /> },
+    uefa: {
+        label: "UEFA",
+        colorClass: "text-indigo-400",
+        icon: (
+            <div className="flex items-end -space-x-1">
+                <Trophy className="w-3 h-3" />
+                <FootballIcon className="w-2.5 h-2.5" />
+            </div>
+        )
+    },
+};
 
 interface SidebarNavigationProps {
     activePage: DesktopPage;
@@ -21,87 +54,153 @@ interface SidebarNavigationProps {
 }
 
 export function SidebarNavigation({ activePage, onPageChange }: SidebarNavigationProps) {
-    const [isHovering, setIsHovering] = useState(false);
     const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     const activeCategory = activePage.split("-")[0] as Category;
     const activeSubPage = activePage.split("-")[1] as SubPage;
 
-    return (
-        <div
-            className="fixed left-0 top-0 bottom-0 z-50 flex items-center"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-        >
-            {/* Trigger Zone */}
-            <div className="absolute left-0 top-0 bottom-0 w-4 z-40" />
+    // Wrap page change to close sidebar on mobile
+    const handlePageChange = (page: DesktopPage) => {
+        onPageChange(page);
+        setIsMobileOpen(false);
+    };
 
-            {/* Sidebar Content */}
+    return (
+        <>
+            {/* Mobile Toggle Button */}
+            <div className={cn(
+                "fixed left-0 top-[4.5rem] z-50 min-[700px]:hidden transition-transform duration-300",
+                isMobileOpen ? "-translate-x-full" : "translate-x-0"
+            )}>
+                <button
+                    onClick={() => setIsMobileOpen(true)}
+                    className="flex items-center justify-center w-6 h-12 bg-surface-1 border border-white/10 border-l-0 rounded-r-lg shadow-lg text-zinc-400 hover:text-white hover:w-8 transition-all active:scale-95"
+                >
+                    <ChevronRight className="w-4 h-4" />
+                </button>
+            </div>
+
+            {/* Mobile Backdrop */}
             <AnimatePresence>
-                {isHovering && (
+                {isMobileOpen && (
                     <motion.div
-                        initial={{ x: -80, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: -80, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "circOut" }}
-                        className="h-auto py-6 px-2 ml-2 rounded-full border border-white/10 bg-surface-1 shadow-2xl flex flex-col gap-4 items-center z-50 min-w-[60px]"
-                    >
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-[2px] z-40 min-[700px]:hidden"
+                        onClick={() => setIsMobileOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Sidebar Container */}
+            <div className={cn(
+                "fixed left-0 top-[3.5rem] bottom-0 z-50 flex items-center transition-transform duration-300 min-[700px]:translate-x-0",
+                isMobileOpen ? "translate-x-0" : "-translate-x-full"
+            )}>
+                {/* Sidebar Content */}
+                <motion.div
+                    layout
+                    className="h-[calc(100%-1rem)] py-1 px-0 ml-2 rounded-full border border-white/10 bg-surface-1/80 backdrop-blur-md shadow-lg flex flex-col justify-between items-center z-50 w-12"
+                >
+                    <div className="flex flex-col gap-4 w-full items-center">
                         {/* Sports Section */}
                         <NavItem
                             isActive={activeCategory === "sports"}
-                            icon={<Trophy className="w-5 h-5" />}
+                            icon={<Trophy className="w-4 h-4" />}
                             label="SPORTS"
                             colorClass="text-amber-400"
-                            onClick={() => onPageChange("sports-live")} // Default to live
+                            onClick={() => handlePageChange("sports-live")} // Default to live
                         >
-                            {/* Popout Signal Menu */}
-                            <PopoutMenu
-                                isVisible={activeCategory === "sports"}
-                                activeSubPage={activeSubPage}
-                                colorClass="text-amber-400"
-                                onSelect={(sub) => onPageChange(`sports-${sub}`)}
-                            />
+                            {({ close }) => (
+                                <PopoutMenu
+                                    isVisible={activeCategory === "sports"}
+                                    activeSubPage={activeSubPage}
+                                    colorClass="text-amber-400"
+                                    onSelect={(sub) => {
+                                        handlePageChange(`sports-${sub}`);
+                                        close();
+                                    }}
+                                />
+                            )}
                         </NavItem>
 
                         {/* Markets Section */}
                         <NavItem
                             isActive={activeCategory === "markets"}
-                            icon={<TrendingUp className="w-5 h-5" />}
+                            icon={<TrendingUp className="w-4 h-4" />}
                             label="MARKETS"
                             colorClass="text-cyan-400"
-                            onClick={() => onPageChange("markets-live")} // Default to live
+                            onClick={() => handlePageChange("markets-live")} // Default to live
                         >
-                            <PopoutMenu
-                                isVisible={activeCategory === "markets"}
-                                activeSubPage={activeSubPage}
-                                colorClass="text-cyan-400"
-                                onSelect={(sub) => onPageChange(`markets-${sub}`)}
-                            />
+                            {({ close }) => (
+                                <PopoutMenu
+                                    isVisible={activeCategory === "markets"}
+                                    activeSubPage={activeSubPage}
+                                    colorClass="text-cyan-400"
+                                    onSelect={(sub) => {
+                                        handlePageChange(`markets-${sub}`);
+                                        close();
+                                    }}
+                                />
+                            )}
                         </NavItem>
 
-                        <div className="w-8 h-px bg-white/10 my-1" />
+                        {/* Divider */}
+                        <div className="w-4 h-px bg-white/10 my-1" />
 
+                        {/* League Sections */}
+                        {(Object.keys(LEAGUE_CONFIG) as LeagueCategory[]).map((leagueKey) => {
+                            const config = LEAGUE_CONFIG[leagueKey];
+                            return (
+                                <NavItem
+                                    key={leagueKey}
+                                    isActive={activeCategory === leagueKey}
+                                    icon={config.icon}
+                                    label={config.label}
+                                    colorClass={config.colorClass}
+                                    onClick={() => handlePageChange(`${leagueKey}-live`)}
+                                >
+                                    {({ close }) => (
+                                        <PopoutMenu
+                                            isVisible={activeCategory === leagueKey}
+                                            activeSubPage={activeSubPage}
+                                            colorClass={config.colorClass}
+                                            onSelect={(sub) => {
+                                                handlePageChange(`${leagueKey}-${sub}`);
+                                                close();
+                                            }}
+                                        />
+                                    )}
+                                </NavItem>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex flex-col gap-4 w-full items-center">
                         {/* Login */}
-                        <div className="flex justify-center scale-90 origin-center">
+                        <div className="flex justify-center scale-75 origin-center">
                             <LoginButton compact={true} />
                         </div>
 
                         {/* Preferences */}
                         <NavItem
                             isActive={false}
-                            icon={<Settings className="w-5 h-5" />}
+                            icon={<Settings className="w-4 h-4" />}
                             label="PREFS"
                             colorClass="text-purple-400"
                             onClick={() => setIsPreferencesModalOpen(true)}
                         />
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            <UserPreferencesModal
-                isOpen={isPreferencesModalOpen}
-                onClose={() => setIsPreferencesModalOpen(false)}
-            />
-        </div>
+                    </div>
+                </motion.div>
+
+                <UserPreferencesModal
+                    isOpen={isPreferencesModalOpen}
+                    onClose={() => setIsPreferencesModalOpen(false)}
+                />
+            </div>
+        </>
     );
 }
 
@@ -119,19 +218,22 @@ function NavItem({
     label: string;
     colorClass: string;
     onClick: () => void;
-    children?: React.ReactNode;
+    children?: React.ReactNode | ((props: { close: () => void }) => React.ReactNode);
 }) {
-    // We handle hover locally to give feedback, but popout is driven by 'isActive' or could be 'hover' too.
-    // User request: "when selected pop out". So we rely on isActive for persistence.
+    const [isHovered, setIsHovered] = useState(false);
 
     return (
-        <div className="relative flex flex-col items-center justify-center w-full group">
+        <div
+            className="relative flex flex-col items-center justify-center w-full group"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             <button
                 onClick={onClick}
                 className={cn(
-                    "relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300",
+                    "relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
                     isActive
-                        ? "bg-white/10 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                        ? "bg-white/10"
                         : "hover:bg-white/5"
                 )}
             >
@@ -141,20 +243,9 @@ function NavItem({
                 )}>
                     {icon}
                 </div>
-
-                {isActive && (
-                    <div className={cn(
-                        "absolute inset-0 rounded-full opacity-20 bg-current blur-md",
-                        // To simulate glow with current color, we can't easily use bg-current mixed with opacity in tailwind cleanly 
-                        // without a defined text color scope. 
-                        // But the icon color is set above.
-                        // Let's rely on shadow or manually applied classes if needed.
-                        // For now, simpler:
-                    )} />
-                )}
             </button>
             <span className={cn(
-                "text-[9px] font-bold tracking-widest mt-1.5 transition-colors duration-300",
+                "text-[8px] font-bold tracking-widest mt-1 transition-colors duration-300 scale-90 origin-center hidden sm:block",
                 isActive ? "text-zinc-200" : "text-zinc-600 group-hover:text-zinc-500"
             )}>
                 {label}
@@ -162,7 +253,11 @@ function NavItem({
 
             {/* Popout Menu */}
             <AnimatePresence>
-                {isActive && children}
+                {isHovered && (
+                    typeof children === "function"
+                        ? children({ close: () => setIsHovered(false) })
+                        : children
+                )}
             </AnimatePresence>
         </div>
     );

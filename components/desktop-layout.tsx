@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { SidebarNavigation, DesktopPage, Category, SubPage } from "./sidebar-navigation";
+import { SidebarNavigation, DesktopPage, Category, SubPage, isLeagueCategory } from "./sidebar-navigation";
 import { cn, SPORTS_KEYWORDS } from "@/lib/utils";
 import { useCategoryFilter } from "@/lib/useCategoryFilter";
 
@@ -41,7 +41,7 @@ function DesktopLayoutInner({
     biggestWinnersPanel,
     winnersTitle
 }: DesktopLayoutProps) {
-    const { activePage, setActivePage, activeCategory } = useCategoryFilter();
+    const { activePage, setActivePage, activeCategory, activeLeague } = useCategoryFilter();
 
     // Determine if we're in charts view (either sports-charts or markets-charts)
     const activeSubPage = activePage.split("-")[1] as SubPage;
@@ -49,6 +49,15 @@ function DesktopLayoutInner({
 
     // Get category-specific titles
     const getLiveTitle = () => {
+        // Check if we're viewing a specific league
+        if (isLeagueCategory(activeCategory) && activeLeague) {
+            return (
+                <>
+                    <span className="text-green-400 animate-pulse">LIVE</span> {activeLeague} FEED
+                </>
+            );
+        }
+
         if (activeCategory === "sports") {
             return (
                 <>
@@ -71,7 +80,7 @@ function DesktopLayoutInner({
                 {header}
             </div>
 
-            <div className="relative flex-1 min-h-0">
+            <div className="relative flex-1 min-h-0 pl-0 min-[700px]:pl-16">
                 {/* Floating Sidebar */}
                 <SidebarNavigation activePage={activePage} onPageChange={setActivePage} />
 

@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, isSportsAnomaly } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExpandableSearch } from "@/components/expandable-search";
+import { useCategoryFilter } from "@/lib/useCategoryFilter";
+import { anomalyMatchesLeague } from "@/lib/leagueFilter";
 import { useDebounce, applyWinnerSearch } from "@/lib/filtering";
 import { NumericDisplay } from "@/components/ui/numeric-display";
 
@@ -43,6 +45,7 @@ const RANK_COLORS = [
 ];
 
 export function BiggestWinnersPanel() {
+    const { isSportsMode, isLeagueMode, activeLeague } = useCategoryFilter();
     const [winners, setWinners] = useState<BiggestWinner[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("day");
@@ -56,8 +59,28 @@ export function BiggestWinnersPanel() {
 
     // Apply search filter
     const filteredWinners = useMemo(() => {
-        return applyWinnerSearch(winners, debouncedQuery);
-    }, [winners, debouncedQuery]);
+        let result = winners;
+
+        // Filter by category (Sports vs Markets vs League)
+        result = result.filter(w => {
+            const proxy = {
+                event: w.eventTitle || '',
+                outcome: undefined,
+                sport: null,
+                league: null,
+                analysis: null
+            };
+
+            if (isLeagueMode && activeLeague) {
+                return anomalyMatchesLeague(proxy, activeLeague);
+            }
+
+            const isSports = isSportsAnomaly(proxy);
+            return isSportsMode ? isSports : !isSports;
+        });
+
+        return applyWinnerSearch(result, debouncedQuery);
+    }, [winners, debouncedQuery, isSportsMode, isLeagueMode, activeLeague]);
 
     useEffect(() => {
         async function fetchWinners() {

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAiInsights } from "@/lib/useAiInsights";
 import { AiInsightPick, AiInsightRank } from "@/lib/types";
 import { cn, formatShortNumber, isMarketExpired, isSportsAnomaly } from "@/lib/utils";
+import { anomalyMatchesLeague } from "@/lib/leagueFilter";
 import { RefreshCw, TrendingUp, TrendingDown, ArrowRight, Activity, Zap, ArrowUp, ArrowDown } from "lucide-react";
 import { useScoreStore } from '@/lib/useScoreStore';
 import { LiveScoreboard } from "@/components/live-scoreboard";
@@ -448,7 +449,7 @@ function extractMarketContext(question: string | null | undefined, outcome: stri
 
 export function AIInsightsPanel() {
   const { data, isLoading, refresh } = useAiInsights(90_000);
-  const { activeCategory, isSportsMode } = useCategoryFilter();
+  const { activeCategory, isSportsMode, isLeagueMode, activeLeague } = useCategoryFilter();
   const [sortKey, setSortKey] = useState<SortKey>("confidence");
   const [selectedPick, setSelectedPick] = useState<AiInsightPick | null>(null);
   const [selectedTrader, setSelectedTrader] = useState<AiInsightRank | null>(null);
@@ -468,14 +469,23 @@ export function AIInsightsPanel() {
 
     // Filter by category (sports vs markets)
     return basePicks.filter(pick => {
-      const pickIsSports = isSportsAnomaly({
-        event: pick.eventTitle || '',
+      // Create a proxy object for checking
+      const proxy = {
+        event: pick.eventTitle || pick.marketQuestion || '',
+        outcome: pick.outcome || undefined,
         sport: null,
+        league: null,
         analysis: null
-      });
+      };
+
+      if (isLeagueMode && activeLeague) {
+        return anomalyMatchesLeague(proxy, activeLeague);
+      }
+
+      const pickIsSports = isSportsAnomaly(proxy);
       return isSportsMode ? pickIsSports : !pickIsSports;
     });
-  }, [data?.picks, isSportsMode]);
+  }, [data?.picks, isSportsMode, isLeagueMode, activeLeague]);
 
   // Featured: Top 5 by confidence then volume
   const featuredTrades = useMemo(() => {
